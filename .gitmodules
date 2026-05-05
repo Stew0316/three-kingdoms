@@ -1,0 +1,6 @@
+[submodule "BaseSource"]
+	path = BaseSource
+	url = https://github.com/Stew0316/game-source
+[submodule "addons"]
+	path = addons
+	url = https://github.com/Stew0316/game-plugin

@@ -1,17 +1,20 @@
-[gd_scene format=4 uid="uid://cenie4o8io4l6"]
+[gd_scene format=3 uid="uid://cenie4o8io4l6"]
 
 [ext_resource type="Script" uid="uid://c73q7fro6gd27" path="res://Scripts/LB.cs" id="1_7lj54"]
 [ext_resource type="Texture2D" uid="uid://crb281maggjtf" path="res://Source/Terrain/ground/ground1.png" id="2_0ce0i"]
-
-[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_7lj54"]
-0:0/0 = 0
-12:0/0 = 0
-0:56/0 = 0
-
-[sub_resource type="TileSet" id="TileSet_wxmxd"]
-sources/0 = SubResource("TileSetAtlasSource_7lj54")
+[ext_resource type="Texture2D" uid="uid://qoy4bjvt43pt" path="res://BaseSource/Logo.png" id="2_pntdf"]
+[ext_resource type="PackedScene" uid="uid://bhiv82f67e1ln" path="res://Scene/Arena.tscn" id="3_0ce0i"]
+[ext_resource type="Script" uid="uid://v4dobknnaih4" path="res://Scripts/Dummy.cs" id="5_p35hx"]
+[ext_resource type="Script" uid="uid://b52v1b5w18j1s" path="res://Scripts/Combat/Hurtbox.cs" id="6_t37pv"]
+[ext_resource type="Script" uid="uid://de03tyfyugql4" path="res://Scripts/Combat/Health.cs" id="7_psmx6"]
 
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_ig74y"]
+radius = 32.0
+height = 128.0
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_x3dph"]
+
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_2jicn"]
 radius = 32.0
 height = 128.0
 
@@ -23,26 +26,103 @@ texture = ExtResource("2_0ce0i")
 [sub_resource type="TileSet" id="TileSet_ig74y"]
 sources/0 = SubResource("TileSetAtlasSource_pntdf")
 
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_wxmxd"]
+size = Vector2(34, 34)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_2jicn"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_yb8yt"]
+size = Vector2(32, 18)
+
 [node name="Node2D" type="Node2D" unique_id=448293679]
+y_sort_enabled = true
 
-[node name="TileMapLayer" type="TileMapLayer" parent="." unique_id=1414909120]
-visible = false
-tile_map_data = PackedByteArray("AAAEAAMAAAAAADgAAAAMAAMAAAAAADgAAAATAAMAAAAAADgAAAAbAAMAAAAAADgAAAAiAAMAAAAAADgAAAApAAQAAAAAADgAAAAtAAIAAAAAADgAAAAqAAMAAAAAADgAAAAsAAYAAAAAADgAAAAmAAgAAAAAADgAAAAjAAUAAAAAADgAAAAhAAoAAAAAADgAAAAfAAcAAAAAADgAAAAdAAoAAAAAADgAAAAcAAcAAAAAADgAAAAWAAYAAAAAADgAAAAVAAcAAAAAADgAAAAVAAoAAAAAADgAAAAUAA4AAAAAADgAAAARAAoAAAAAADgAAAAMAAkAAAAAADgAAAAMAAoAAAAAADgAAAANAAkAAAAAADgAAAANAAoAAAAAADgAAAAJAAoAAAAAADgAAAAJAAsAAAAAADgAAAAKAAoAAAAAADgAAAAKAAsAAAAAADgAAAAHAA0AAAAAADgAAAAGAA8AAAAAADgAAAAEAAsAAAAAADgAAAAEAAwAAAAAADgAAAAFAAsAAAAAADgAAAAFAAwAAAAAADgAAAAEAAoAAAAAADgAAAADAA0AAAAAADgAAAADAA4AAAAAADgAAAADABIAAAAAADgAAAAJAA4AAAAAADgAAAAJABIAAAAAADgAAAAJABMAAAAAADgAAAALABIAAAAAADgAAAALABMAAAAAADgAAAALABQAAAAAADgAAAAMABIAAAAAADgAAAAMABMAAAAAADgAAAAMABQAAAAAADgAAAANABIAAAAAADgAAAANABMAAAAAADgAAAANABQAAAAAADgAAAAOABIAAAAAADgAAAAOABMAAAAAADgAAAAOABQAAAAAADgAAAAPABEAAAAAADgAAAAPABIAAAAAADgAAAAWABQAAAAAADgAAAAXABIAAAAAADgAAAAXABMAAAAAADgAAAAYABIAAAAAADgAAAAYABMAAAAAADgAAAAcABIAAAAAADgAAAAcABMAAAAAADgAAAAcABQAAAAAADgAAAAcABAAAAAAADgAAAAcABEAAAAAADgAAAAcABUAAAAAADgAAAAhABIAAAAAADgAAAAhABMAAAAAADgAAAAiABAAAAAAADgAAAAiABIAAAAAADgAAAAdABAAAAAAADgAAAAhAA8AAAAAADgAAAAqAA8AAAAAADgAAAAnAA0AAAAAADgAAAAoAA0AAAAAADgAAAAmAA4AAAAAADgAAAAmABIAAAAAADgAAAAlAA8AAAAAADgAAAAmABUAAAAAADgAAAAnABUAAAAAADgAAAAnABcAAAAAADgAAAAsABYAAAAAADgAAAAtABMAAAAAADgAAAAtABQAAAAAADgAAAAtABUAAAAAADgAAAADABgAAAAAADgAAAAGABgAAAAAADgAAAAIABcAAAAAADgAAAAKABoAAAAAADgAAAAMABgAAAAAADgAAAAMABkAAAAAADgAAAAQABgAAAAAADgAAAARABoAAAAAADgAAAATABkAAAAAADgAAAAUABkAAAAAADgAAAAWABkAAAAAADgAAAAZABgAAAAAADgAAAAbABoAAAAAADgAAAAeABkAAAAAADgAAAAgABoAAAAAADgAAAAjABsAAAAAADgAAAAZABwAAAAAADgAAAAXABwAAAAAADgAAAAjAB0AAAAAADgAAAAoABsAAAAAADgAAAAsAB0AAAAAADgAAAAwAB0AAAAAADgAAAApAB0AAAAAADgAAAAeAB0AAAAAADgAAAA=")
-tile_set = SubResource("TileSet_wxmxd")
-
-[node name="CharacterBody2D" type="CharacterBody2D" parent="." unique_id=1813061626]
-visibility_layer = 2
-position = Vector2(408, 208)
+[node name="CharacterBody2D" type="CharacterBody2D" parent="." unique_id=1813061626 node_paths=PackedStringArray("stateLabel")]
+position = Vector2(416, 232)
 script = ExtResource("1_7lj54")
-metadata/_edit_group_ = true
+speed = 600
+stateLabel = NodePath("../HUD/StateLabel")
+metadata/_edit_lock_ = true
+
+[node name="Camera2D" type="Camera2D" parent="CharacterBody2D" unique_id=744831261]
+position = Vector2(32, 64)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="CharacterBody2D" unique_id=40015350]
-position = Vector2(24, 64)
+position = Vector2(32, 64)
 shape = SubResource("CapsuleShape2D_ig74y")
 
-[node name="Camera2D" type="Camera2D" parent="." unique_id=744831261]
-anchor_mode = 0
+[node name="Visual" type="Sprite2D" parent="CharacterBody2D" unique_id=1035043181]
+position = Vector2(32.000004, 64.00002)
+scale = Vector2(0.21333314, 0.2666667)
+texture = ExtResource("2_pntdf")
+
+[node name="AttackHitbox" type="Area2D" parent="CharacterBody2D" unique_id=1692013666]
+position = Vector2(64, 56)
+collision_layer = 0
+collision_mask = 8
+monitoring = false
+metadata/_edit_group_ = true
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="CharacterBody2D/AttackHitbox" unique_id=1153634984]
+shape = SubResource("RectangleShape2D_x3dph")
+
+[node name="Hurtbox" type="Area2D" parent="CharacterBody2D" unique_id=1257512164]
+position = Vector2(32, 64)
+collision_layer = 2
+collision_mask = 0
+metadata/_edit_group_ = true
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="CharacterBody2D/Hurtbox" unique_id=1217113515]
+shape = SubResource("CapsuleShape2D_2jicn")
 
 [node name="TileMapLayer2" type="TileMapLayer" parent="." unique_id=60637091]
-tile_map_data = PackedByteArray("AAAvAB8AAAAAAAAAAAA=")
+tile_map_data = PackedByteArray(0, 0, 47, 0, 31, 0, 0, 0, 0, 0, 0, 0, 0, 0)
 tile_set = SubResource("TileSet_ig74y")
+
+[node name="Node2D" parent="." unique_id=1631975359 instance=ExtResource("3_0ce0i")]
+metadata/_edit_lock_ = true
+
+[node name="HUD" type="CanvasLayer" parent="." unique_id=210005099]
+
+[node name="StateLabel" type="Label" parent="HUD" unique_id=613738386]
+offset_right = 40.0
+offset_bottom = 23.0
+theme_override_font_sizes/font_size = 30
+text = "12333"
+
+[node name="Dummy" type="CharacterBody2D" parent="." unique_id=1577518222]
+position = Vector2(792, 288)
+script = ExtResource("5_p35hx")
+metadata/_edit_group_ = true
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Dummy" unique_id=801230497]
+shape = SubResource("RectangleShape2D_wxmxd")
+metadata/_edit_lock_ = true
+
+[node name="Hurtbox" type="Area2D" parent="Dummy" unique_id=1502556915 node_paths=PackedStringArray("target")]
+position = Vector2(-8, 0)
+collision_layer = 8
+collision_mask = 0
+script = ExtResource("6_t37pv")
+target = NodePath("..")
+metadata/_edit_group_ = true
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Dummy/Hurtbox" unique_id=2050622788]
+shape = SubResource("RectangleShape2D_2jicn")
+
+[node name="Health" type="Node" parent="Dummy" unique_id=1753692018]
+script = ExtResource("7_psmx6")
+
+[node name="AttackHitbox" type="Area2D" parent="Dummy" unique_id=123294915]
+collision_layer = 0
+collision_mask = 2
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Dummy/AttackHitbox" unique_id=1818038742]
+position = Vector2(-8, 0)
+shape = SubResource("RectangleShape2D_yb8yt")
+
+[node name="ColorRect" type="ColorRect" parent="Dummy" unique_id=1883220404]
+offset_left = -16.0
+offset_top = -8.0
+offset_right = 24.0
+offset_bottom = 32.0

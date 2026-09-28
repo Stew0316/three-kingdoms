@@ -11,13 +11,9 @@ config_version=5
 [application]
 
 config/name="Three-Kingdoms"
-run/main_scene="uid://cenie4o8io4l6"
+run/main_scene="res://Scene/Arena.tscn"
 config/features=PackedStringArray("4.7", "C#", "Forward Plus")
 config/icon="res://icon.svg"
-
-[dotnet]
-
-project/assembly_name="Three-Kingdoms"
 
 [display]
 
@@ -26,6 +22,10 @@ window/size/viewport_height=360
 window/size/window_width_override=1280
 window/size/window_height_override=720
 window/stretch/mode="canvas_items"
+
+[dotnet]
+
+project/assembly_name="Three-Kingdoms"
 
 [global_group]
 

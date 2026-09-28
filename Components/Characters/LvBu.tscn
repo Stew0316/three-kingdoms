@@ -1,0 +1,17 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="PackedScene" path="res://Components/Characters/Combatant.tscn" id="1"]
+[ext_resource type="Texture2D" path="res://Source/People/LvBu/lubu-prototype.png" id="2"]
+[ext_resource type="Script" path="res://Scripts/Characters/LvBuController.cs" id="3"]
+
+[node name="LvBu" instance=ExtResource("1")]
+MoveSpeed = 145.0
+
+[node name="Visual" parent="." index="1"]
+texture = ExtResource("2")
+
+[node name="Health" parent="." index="2"]
+MaxHealth = 120
+
+[node name="Controller" type="Node" parent="."]
+script = ExtResource("3")

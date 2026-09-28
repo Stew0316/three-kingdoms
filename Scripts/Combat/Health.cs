@@ -15,7 +15,7 @@ public partial class Health : Node
 
     public void ApplyDamage(DamageInfo info)
     {
-        if (CurrentHealth <= 0) return; // 已死不再扣血
+        if (CurrentHealth <= 0 || info.Amount <= 0) return;
 
         CurrentHealth = Mathf.Max(0, CurrentHealth - info.Amount);
         EmitSignal(SignalName.Damaged, CurrentHealth, MaxHealth);
@@ -27,6 +27,6 @@ public partial class Health : Node
     public void ResetHealth()
     {
         CurrentHealth = MaxHealth;
-        // 最小实现不发信号；以后 HUD 需要同步时再发 Healed 信号
+        EmitSignal(SignalName.Damaged, CurrentHealth, MaxHealth);
     }
 }

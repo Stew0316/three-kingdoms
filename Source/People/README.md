@@ -1,0 +1,29 @@
+# S1 武将 PNG 原型
+
+日期：2026-09-28。生成方式：内置 GPT 图像生成工具（非 CLI），两张独立生成，无输入参考图。保留原始透明 alpha，未抠图、未二次压缩。
+
+## 本轮用户要求
+
+> 根据我的学习路线，帮我完成第一个场景，我希望是看起来像是真实的武将，可以先用一个png代替，你帮我生成一个魏延的武将图，然后把我的图从logo图换成吕布的图片
+
+## 资产与使用
+
+| 文件 | 角色 | 规格 | 场景 |
+| --- | --- | --- | --- |
+| LvBu/lubu-prototype.png | 吕布，红黑甲、双翎、方天画戟 | 1024×1536，RGBA PNG | Components/Characters/LvBu.tscn |
+| WeiYan/weiyan-prototype.png | 魏延，绿黑甲、长柄刀 | 1024×1536，RGBA PNG | Components/Characters/WeiYan.tscn |
+
+两张图均按用户要求作为可玩原型直接接入，不代表已完成正式四向动画或像素规范验收。写实人体比例是本次明确需求，优先于 S0 的 3.5 头身像素候选约束；本轮不全局改写其他素材风格。角色根节点在脚底，Sprite 显示缩放 0.074，脚底碰撞半径 12、Hurtbox 半径 14；不使用整张立绘当碰撞体。朝向通过脚底箭头表达，临时水平镜像与轻微起伏表达移动；武器左右一致性留待正式方向图解决。
+
+验收：透明通道存在且角像素 alpha=0；Godot 实际截图中边缘无矩形背景。应用图像只更换玩家角色 Sprite，工作室 BaseSource/Logo.png 保留原文件。
+
+## 最终生成提示词
+
+### 魏延
+
+Use case: historical-scene. Asset type: transparent PNG single-character cutout for a 2D top-down action RPG prototype. Create Wei Yan (魏延), a fierce adult Chinese male general of the Three Kingdoms, original historically inspired design, realistic human proportions, weathered face, short black beard, tied hair beneath a practical iron helmet, dark steel lamellar armor with muted forest-green cloth and aged bronze fittings, both hands holding a long single-edged dao polearm in a compact combat-ready stance. Full body including both boots and entire weapon visible. Three-quarter view facing screen-left, slightly elevated camera about 20 degrees, natural realistic painted game rendering with clean readable silhouette and clear material textures, not chibi, not pixel art. One centered character only, vertical 1024x1536 composition, generous transparent margins around helmet weapon and feet. Soft upper-left daylight. Genuinely transparent alpha background, no background scene, no ground plane, no shadow baked behind character, no text, no watermark, no border, no duplicate views. Boots end near 90 percent canvas height. Make character convincing as a real warrior, no oversized fantasy armor, do not copy existing franchise designs.
+
+### 吕布
+
+Use case: historical-scene. Asset type: transparent PNG single-character cutout for a 2D top-down action RPG prototype. Create Lü Bu (吕布), a powerful adult Chinese male general of the Three Kingdoms, original historically inspired design, realistic human proportions, strong stern face, dark hair, distinctive crown with two swept pheasant plumes, dark charcoal lamellar armor with restrained antique-gold fittings and deep crimson cloth and short cape, holding one fangtian ji halberd in a compact combat-ready stance. Full body including both boots and entire halberd visible. Three-quarter view facing screen-right, slightly elevated camera about 20 degrees, natural realistic painted game rendering with clean readable silhouette and clear material textures, not chibi, not pixel art. One centered character only, vertical 1024x1536 composition, generous transparent margins around plumes weapon and feet. Soft upper-left daylight. Genuinely transparent alpha background, no background scene, no ground plane, no shadow baked behind character, no text, no watermark, no border, no duplicate views. Boots end near 90 percent canvas height. Make character convincing as a real warrior, no oversized fantasy armor, do not copy existing franchise designs.
+

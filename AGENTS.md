@@ -20,6 +20,8 @@
 - Source
   - City是城池资源
   - People是人物资源
+  - Terrain是地形资源
+  - StyleGuide是美术风格样板和生成记录；候选图不等于正式游戏资产
 - Scripts
   - c#脚本代码放入其中
   - Utils

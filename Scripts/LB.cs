@@ -20,19 +20,19 @@ public partial class LB : CharacterBody2D
 
 	public override void _Ready()
 	{
-		_visual = GetNode<Node2D>("Visual");
-		_attackHitbox = GetNode<Area2D>("AttackHitbox");
+		_visual = GetNode<Node2D>(NodeNames.Visual);
+		_attackHitbox = GetNode<Area2D>(NodeNames.AttackHitbox);
 		_attackHitbox.AreaEntered += OnAttackHit; // 命中信号：攻击框检测到受击框时触发
 	}
 
     public override void _PhysicsProcess(double delta)
     {
-		if (Input.IsActionJustPressed("attack"))
+		if (Input.IsActionJustPressed(InputActions.Attack))
 		{
 			_ = PerformAttackAsync();
 		}
 
-        Vector2 direction = Input.GetVector("move_left", "move_right", "move_up", "move_down");
+        Vector2 direction = Input.GetVector(InputActions.MoveLeft, InputActions.MoveRight, InputActions.MoveUp, InputActions.MoveDown);
 
         // 只在有输入时更新：松手后保留最后一个非零方向
         if (direction != Vector2.Zero)

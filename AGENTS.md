@@ -23,15 +23,19 @@
   - 基础资源，例如是本工作室的logo等这样非常通用资源，不只是在本游戏里使用的内容
 - Source
   - City是城池资源
-  - People是人物资源；LvBu / WeiYan 中保存当前对战使用的写实透明 PNG 原型，生成记录见 People/README.md
+  - People是人物资源；LvBu / WeiYan 中保存当前对战使用的写实透明 PNG 原型，生成记录与缩放/骨骼接入说明见 People/README.md；二维骨骼及刀光脚本位于 Scripts/Presentation
   - Terrain是地形资源
   - StyleGuide是美术风格样板和生成记录；候选图不等于正式游戏资产
+- Resources
+  - Config保存 Godot 可在 Inspector 编辑的 `.tres` 配置实例；对应的 C# 配置类型放在 `Scripts/Config`
 - Scripts
   - c#脚本代码放入其中
   - Utils
     - 工具类
   - Config
     - 配置项
+  - Const
+    - 定义的静态值
 - Scene
   - 场景
 - Demand
@@ -52,8 +56,8 @@
     - 繁中
     - 日语
     - 英文
-- 架构设计
-  - Architecture/下都是架构设计，会有我的输入，还有ai的输入，涉及架构的内容需要先阅读一下
+- Architecture
+  - Architecture/下都是架构设计，会有我的输入，还有ai的输入，涉及架构或者比较复杂的内容需要先阅读一下，如果架构有改动，需要更新Architecture/里的文档
 - UI
   - UI界面内容
 

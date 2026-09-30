@@ -1,0 +1,61 @@
+[gd_resource type="Resource" script_class="CombatantConfig" load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://Scripts/Config/CombatantConfig.cs" id="1"]
+[ext_resource type="Script" path="res://Scripts/Config/CombatActionConfig.cs" id="2"]
+
+[sub_resource type="Resource" id="Basic"]
+script = ExtResource("2")
+Prepare = 0.14
+Active = 0.1
+Recover = 0.23
+Cooldown = 0.48
+Range = 48.0
+HalfAngle = 0.95
+Damage = 12
+Speed = 0.0
+
+[sub_resource type="Resource" id="Dash"]
+script = ExtResource("2")
+Prepare = 0.18
+Active = 0.22
+Recover = 0.32
+Cooldown = 3.0
+Range = 40.0
+HalfAngle = 0.72
+Damage = 18
+Speed = 360.0
+
+[sub_resource type="Resource" id="Sweep"]
+script = ExtResource("2")
+Prepare = 0.32
+Active = 0.14
+Recover = 0.4
+Cooldown = 5.0
+Range = 76.0
+HalfAngle = 1.75
+Damage = 24
+Speed = 0.0
+
+[sub_resource type="Resource" id="Dodge"]
+script = ExtResource("2")
+Prepare = 0.0
+Active = 0.18
+Recover = 0.1
+Cooldown = 1.2
+Range = 0.0
+HalfAngle = 0.0
+Damage = 0
+Speed = 330.0
+
+[resource]
+script = ExtResource("1")
+MaxHealth = 120
+MoveSpeed = 145.0
+HurtDuration = 0.2
+KnockbackSpeed = 160.0
+KnockbackDeceleration = 850.0
+HitStopDuration = 0.035
+Basic = SubResource("Basic")
+Dash = SubResource("Dash")
+Sweep = SubResource("Sweep")
+Dodge = SubResource("Dodge")

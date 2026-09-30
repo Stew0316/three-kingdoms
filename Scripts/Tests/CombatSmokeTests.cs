@@ -3,19 +3,26 @@ using System;
 using System.Threading.Tasks;
 
 // 显式传 -- --combat-test 才运行；使用真实物理帧和场景，不修改正常游戏输入。
+/// <summary>跨场景重载执行真实物理帧回归；仅由显式测试参数启动，不参与正常游戏流程。</summary>
 public partial class CombatSmokeTests : Node
 {
+    // 已通过的断言数量，用于最终报告和失败定位。
     private int _checks;
+    // 当前测试场景；每次重载后必须重新取得引用。
     private Arena _arena;
+    // 当前场景的玩家，避免缓存重载前已经失效的角色节点。
     private Combatant Player => _arena.Player;
+    // 当前场景的敌人，随 _arena 更新而切换。
     private Combatant Enemy => _arena.Enemy;
 
+    /// <summary>使测试器在暂停期间仍可等待物理帧，再延迟启动测试流程。</summary>
     public override void _Ready()
     {
         ProcessMode = ProcessModeEnum.Always;
         CallDeferred(MethodName.Run);
     }
 
+    /// <summary>顺序执行输入、骨骼、刀光和战斗边界检查；异常时打印位置并以非零退出码结束。</summary>
     private async void Run()
     {
         try
@@ -30,7 +37,47 @@ public partial class CombatSmokeTests : Node
             await RestartThroughHud("after victory");
             await Reset();
             Check(Player.Health.CurrentHealth == 120 && Enemy.Health.CurrentHealth == 100, "initial health");
-            Check(Player.GetNode<Sprite2D>("Visual").Texture != null && Enemy.GetNode<Sprite2D>("Visual").Texture != null, "character textures loaded");
+            Check(Player.Config != null && Enemy.Config != null
+                && Player.Config.Basic.Damage == 12 && Enemy.Config.Basic.Damage == 10,
+                "角色场景已加载各自的可编辑战斗配置");
+            Check(Player.GetNode<Sprite2D>(NodeNames.Visual).Texture != null && Enemy.GetNode<Sprite2D>(NodeNames.Visual).Texture != null, "character textures loaded");
+            var rig = Player.GetNode<CharacterRig>(NodeNames.Rig);
+            Check(rig.Skeleton.GetBoneCount() == CharacterBoneNames.Count && rig.Skin.GetBoneCount() == CharacterBoneNames.Count, "二维骨骼和蒙皮均已绑定八根骨骼");
+            Check(Mathf.IsEqualApprox(rig.ArtScale, .05f), "角色缩小至原尺寸约百分之六十八");
+            bool normalized = true;
+            for (int v = 0; v < rig.Skin.Polygon.Length; v++)
+            {
+                float total = 0;
+                for (int b = 0; b < CharacterBoneNames.Count; b++) total += rig.Skin.GetBoneWeights(b)[v];
+                normalized &= Mathf.IsEqualApprox(total, 1);
+            }
+            Check(normalized, "蒙皮所有顶点权重归一化");
+            float beforePose = rig.Skeleton.GetBone(1).Rotation;
+            Player.SetMoveInput(Vector2.Right);
+            await Frames(10);
+            Check(!Mathf.IsEqualApprox(beforePose, rig.Skeleton.GetBone(1).Rotation), "行走动画确实改变骨骼姿态");
+            Player.SetMoveInput(Vector2.Zero);
+            await Frames(2);
+            Player.TryAction(CombatAction.Sweep);
+            await Frames(23);
+            var trail = Player.GetNode<WeaponTrail>(NodeNames.WeaponTrail);
+            Check(trail.IsEmitting, "生效窗口出现刀光");
+            GetTree().Paused = true;
+            float pausedTime = Player.ActionTime;
+            await Frames(4);
+            Check(Mathf.IsEqualApprox(Player.ActionTime, pausedTime), "暂停冻结刀光与骨骼的动作时钟");
+            GetTree().Paused = false;
+            Player.ReceiveDamage(new DamageInfo(Enemy, 1, Vector2.Left));
+            await Frames(3);
+            Check(!trail.IsEmitting, "受击打断立即清理刀光");
+            await Reset();
+            PlaceDuel();
+            Player.GetNode<WeaponTrail>(NodeNames.WeaponTrail).EffectsEnabled = false;
+            await Frames(3);
+            Player.TryAction(CombatAction.Basic);
+            await Frames(35);
+            Check(Enemy.Health.CurrentHealth == 88, "关闭装饰刀光不改变伤害结果");
+            await Reset();
             PlaceDuel();
             await Frames(3);
             Check(Player.TryAction(CombatAction.Basic), "basic accepted");
@@ -44,7 +91,7 @@ public partial class CombatSmokeTests : Node
 
             await Reset();
             PlaceDuel();
-            var extraHurtbox = new Hurtbox { CollisionLayer = 8, CollisionMask = 0, Monitoring = false };
+            var extraHurtbox = new Hurtbox { CollisionLayer = PhysicsLayers.EnemyHurtbox, CollisionMask = PhysicsLayers.None, Monitoring = false };
             extraHurtbox.AddChild(new CollisionShape2D { Shape = new CircleShape2D { Radius = 14 } });
             Enemy.AddChild(extraHurtbox);
             await Frames(4);
@@ -58,11 +105,11 @@ public partial class CombatSmokeTests : Node
 
             await Reset();
             PlaceDuel();
-            Player.GetNode("Controller").ProcessMode = ProcessModeEnum.Inherit;
+            Player.GetNode(NodeNames.Controller).ProcessMode = ProcessModeEnum.Inherit;
             await Frames(3);
-            Input.ActionPress("attack");
+            Input.ActionPress(InputActions.Attack);
             await Frames(2);
-            Input.ActionRelease("attack");
+            Input.ActionRelease(InputActions.Attack);
             await Frames(35);
             Check(Enemy.Health.CurrentHealth == 88, "player input reaches shared combat action");
 
@@ -146,11 +193,11 @@ public partial class CombatSmokeTests : Node
                 else Player.ReceiveDamage(new DamageInfo(Enemy, 120, Vector2.Left));
                 await Frames(2);
                 Check(_arena.Finished && (i % 2 == 0 ? _arena.Result == "挑战成功" : Player.IsDead), $"round {i + 1} ends correctly");
-                Check(_arena.GetNode("Fighters").GetChildCount() == 2, "only two fighters after restart");
+                Check(_arena.GetNode(NodeNames.Fighters).GetChildCount() == 2, "only two fighters after restart");
             }
 
             await Reset();
-            Enemy.GetNode("Controller").ProcessMode = ProcessModeEnum.Inherit;
+            Enemy.GetNode(NodeNames.Controller).ProcessMode = ProcessModeEnum.Inherit;
             await Frames(720);
             Check(Player.Health.CurrentHealth < 120, "AI chases and damages through combat rules");
             await Frames(1800);
@@ -166,33 +213,49 @@ public partial class CombatSmokeTests : Node
         }
     }
 
+    /// <summary>重载并等待节点就绪，关闭双方控制器，隔离人为设置的测试条件。</summary>
     private async Task Reset()
     {
         GetTree().Paused = false;
-        GetTree().ReloadCurrentScene();
-        await Frames(3);
-        _arena = (Arena)GetTree().CurrentScene;
-        Player.GetNode("Controller").ProcessMode = ProcessModeEnum.Disabled;
-        Enemy.GetNode("Controller").ProcessMode = ProcessModeEnum.Disabled;
+        Error reloadError = GetTree().ReloadCurrentScene();
+        if (reloadError != Error.Ok)
+            throw new InvalidOperationException($"场景重载请求失败：{reloadError}");
+        _arena = await WaitForArenaReady();
+        Player.GetNode(NodeNames.Controller).ProcessMode = ProcessModeEnum.Disabled;
+        Enemy.GetNode(NodeNames.Controller).ProcessMode = ProcessModeEnum.Disabled;
         Player.SetMoveInput(Vector2.Zero);
         Enemy.SetMoveInput(Vector2.Zero);
     }
 
+    /// <summary>通过真实 HUD 回调触发重开；context 标注对战、暂停或胜利等触发场景。</summary>
     private async Task RestartThroughHud(string context)
     {
         ulong previousScene = _arena.GetInstanceId();
-        var hud = _arena.GetNode<BattleHud>("HUD");
-        using var input = new InputEventAction { Action = "restart_battle", Pressed = true };
+        var hud = _arena.GetNode<BattleHud>(NodeNames.Hud);
+        using var input = new InputEventAction { Action = InputActions.Restart, Pressed = true };
         hud._UnhandledInput(input);
-        await Frames(3);
-        _arena = (Arena)GetTree().CurrentScene;
+        _arena = await WaitForArenaReady();
         Check(_arena.GetInstanceId() != previousScene && !GetTree().Paused
             && Player.Health.CurrentHealth == 120 && Enemy.Health.CurrentHealth == 100,
             $"HUD restart {context} completes without accessing detached nodes");
-        Player.GetNode("Controller").ProcessMode = ProcessModeEnum.Disabled;
-        Enemy.GetNode("Controller").ProcessMode = ProcessModeEnum.Disabled;
+        Player.GetNode(NodeNames.Controller).ProcessMode = ProcessModeEnum.Disabled;
+        Enemy.GetNode(NodeNames.Controller).ProcessMode = ProcessModeEnum.Disabled;
     }
 
+    /// <summary>等待重载后的 Arena 成为 CurrentScene 且角色引用就绪，避免把场景切换的空窗期当成业务错误。</summary>
+    private async Task<Arena> WaitForArenaReady()
+    {
+        const int maxFrames = 30;
+        for (int i = 0; i < maxFrames; i++)
+        {
+            await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+            if (GetTree().CurrentScene is Arena arena && arena.Player != null && arena.Enemy != null)
+                return arena;
+        }
+        throw new InvalidOperationException($"等待 {maxFrames} 帧后 Arena 仍未完成重载。");
+    }
+
+    /// <summary>摆放面对面的固定近战目标，使普攻范围与方向检查可重复。</summary>
     private void PlaceDuel()
     {
         Player.Position = new Vector2(280, 240);
@@ -201,11 +264,13 @@ public partial class CombatSmokeTests : Node
         Enemy.Face(Vector2.Left);
     }
 
+    /// <summary>等待 count 个真实物理帧；用于观察引擎碰撞更新，不使用墙钟延时替代。</summary>
     private async Task Frames(int count)
     {
         for (int i = 0; i < count; i++) await ToSignal(GetTree(), SceneTree.SignalName.PhysicsFrame);
     }
 
+    /// <summary>condition 为验证条件，description 说明预期行为；失败立即中断本轮测试。</summary>
     private void Check(bool condition, string description)
     {
         if (!condition) throw new InvalidOperationException(description);

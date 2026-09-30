@@ -1,14 +1,17 @@
 using Godot;
 
+/// <summary>旧测试场景使用的受击木桩；保留用于独立验证生命组件。</summary>
 public partial class Dummy : CharacterBody2D
 {
+    // 木桩受击与死亡时切换颜色的占位图形。
     private ColorRect _rect;
+    // 木桩复用的生命组件。
     private Health _health;
 
     public override void _Ready()
     {
-        _health = GetNode<Health>("Health");
-        _rect = GetNode<ColorRect>("ColorRect");
+        _health = GetNode<Health>(NodeNames.Health);
+        _rect = GetNode<ColorRect>(NodeNames.ColorRect);
 
         _health.Damaged += (cur, max) =>
         {
@@ -25,7 +28,7 @@ public partial class Dummy : CharacterBody2D
     public override void _PhysicsProcess(double delta)
     {
         // H 键：木桩回满血
-        if (Input.IsActionJustPressed("health"))
+        if (Input.IsActionJustPressed(InputActions.RestoreHealth))
         {
             _health.ResetHealth();
             _rect.Color = Colors.White; // 颜色一并归位

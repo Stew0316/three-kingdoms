@@ -1,7 +1,22 @@
-[gd_resource type="Resource" script_class="CombatantConfig" load_steps=6 format=3]
+[gd_resource type="Resource" script_class="CombatantConfig" load_steps=9 format=3]
 
 [ext_resource type="Script" path="res://Scripts/Config/CombatantConfig.cs" id="1"]
 [ext_resource type="Script" path="res://Scripts/Config/CombatActionConfig.cs" id="2"]
+[ext_resource type="Script" path="res://Scripts/Config/PassiveConfig.cs" id="3"]
+
+[sub_resource type="Resource" id="Reflect"]
+script = ExtResource("3")
+DisplayName = "荆甲"
+Effect = 0
+Chance = 1.0
+Damage = 20
+
+[sub_resource type="Resource" id="Critical"]
+script = ExtResource("3")
+DisplayName = "无双"
+Effect = 1
+Chance = 0.32
+CriticalMultiplier = 1.8
 
 [sub_resource type="Resource" id="Basic"]
 script = ExtResource("2")
@@ -49,6 +64,7 @@ Speed = 330.0
 
 [resource]
 script = ExtResource("1")
+Passives = Array[ExtResource("3")]([SubResource("Reflect"), SubResource("Critical")])
 MaxHealth = 120
 MoveSpeed = 145.0
 HurtDuration = 0.2

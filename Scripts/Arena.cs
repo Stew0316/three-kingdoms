@@ -16,6 +16,8 @@ public partial class Arena : Node2D
     public double BattleSeconds { get; private set; }
     // 进程级测试启动守卫，防止测试中的反复重开递归创建新测试器。
     private static bool _testsStarted;
+    public CombatResolver Resolver { get; private set; }
+    [Export] public bool Hd2D { get; set; } // 独立三维演武场启用，旧二维场景保留对照。
 
     /// <summary>绑定角色与死亡信号；仅在显式命令行参数存在时启动测试或截图。</summary>
     public override void _Ready()
@@ -23,8 +25,10 @@ public partial class Arena : Node2D
         Player = GetNode<Combatant>(SceneNodePaths.Player);
         Enemy = GetNode<Combatant>(SceneNodePaths.Enemy);
         Enemy.GetNode<WeiYanController>(NodeNames.Controller).Target = Player;
-        Player.Health.Died += () => EndBattle(false);
-        Enemy.Health.Died += () => EndBattle(true);
+        Resolver = new CombatResolver();
+        foreach (var unit in new[] { Player, Enemy }) { Resolver.Register(unit); unit.Resolver = Resolver; }
+        Resolver.Settled += () => { if (Player.IsDead || Enemy.IsDead) EndBattle(!Player.IsDead); };
+        if (Hd2D) AddChild(new Hd2DStage { Name = "HD2DStage" });
         if (!_testsStarted && Array.Exists(OS.GetCmdlineUserArgs(), a => a == DevelopmentArguments.CombatTest))
         {
             _testsStarted = true;
@@ -62,10 +66,12 @@ public partial class Arena : Node2D
         bool attackPreview = Array.Exists(OS.GetCmdlineUserArgs(), a => a == DevelopmentArguments.CaptureAttack);
         bool slashPreview = Array.Exists(OS.GetCmdlineUserArgs(), a => a == DevelopmentArguments.CaptureSlash);
         bool bonePreview = Array.Exists(OS.GetCmdlineUserArgs(), a => a == DevelopmentArguments.CaptureBones);
+        bool motionPreview = Array.Exists(OS.GetCmdlineUserArgs(), a => a == "--capture-motion");
+        bool counterPreview = Array.Exists(OS.GetCmdlineUserArgs(), a => a == "--capture-counter");
         if (bonePreview)
         {
-            Player.GetNode<CharacterRig>(NodeNames.Rig).ShowBones = true;
-            Enemy.GetNode<CharacterRig>(NodeNames.Rig).ShowBones = true;
+            Player.Rig.ShowBones = true;
+            Enemy.Rig.ShowBones = true;
         }
         if (attackPreview || slashPreview)
         {
@@ -74,10 +80,24 @@ public partial class Arena : Node2D
             Enemy.TryAction(CombatAction.Sweep);
             for (int i = 0; i < (slashPreview ? 44 : 18); i++) await ToSignal(GetTree(), SceneTree.SignalName.PhysicsFrame);
         }
+        if(motionPreview)
+        {
+            Player.SetMoveInput(Vector2.Right);
+            for(int i=0;i<24;i++) await ToSignal(GetTree(),SceneTree.SignalName.PhysicsFrame);
+        }
+        if(counterPreview)
+        {
+            Player.Position=new(300,252); Enemy.Position=new(350,252);
+            Resolver.RollOverride=()=>0;
+            Enemy.ReceiveDamage(new DamageInfo(Player,1,Vector2.Right,DamageKind.Attack));
+            for(int i=0;i<9;i++) await ToSignal(GetTree(),SceneTree.SignalName.PhysicsFrame);
+        }
+        for(int i=0;i<3;i++) await ToSignal(RenderingServer.Singleton, RenderingServer.SignalName.FramePostDraw);
         await ToSignal(RenderingServer.Singleton, RenderingServer.SignalName.FramePostDraw);
         string path = attackPreview ? PreviewPaths.Attack : PreviewPaths.Arena;
         if (slashPreview) path = PreviewPaths.Slash;
         if (bonePreview) path = PreviewPaths.Bones;
+        if(Hd2D) path="res://Build/HD2D-"+(motionPreview ? "motion" : counterPreview ? "counter" : slashPreview ? "slash" : bonePreview ? "bones" : "arena")+"-preview.png";
         GetViewport().GetTexture().GetImage().SavePng(path);
         GD.Print($"场景预览已保存：{path}");
         GetTree().Quit();
@@ -86,6 +106,7 @@ public partial class Arena : Node2D
     /// <summary>绘制静态场地装饰；这里的线条和石板不充当物理碰撞体。</summary>
     public override void _Draw()
     {
+        if (Hd2D) return;
         DrawRect(new Rect2(0, 0, 640, 360), new Color(ArenaVisualConstants.Background));
         DrawRect(new Rect2(16, 83, 608, 241), new Color(ArenaVisualConstants.OuterFloor));
         DrawRect(new Rect2(24, 101, 592, 211), new Color(ArenaVisualConstants.InnerFloor));

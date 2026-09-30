@@ -7,5 +7,10 @@ using Godot;
 public readonly record struct DamageInfo(
     Node2D Attacker,
     int Amount,
-    Vector2 KnockbackDirection
+    Vector2 KnockbackDirection,
+    DamageKind Kind = DamageKind.Direct,
+    bool IsCritical = false
 );
+
+/// <summary>只有 Attack 参与暴击与受击被动；派生伤害不会互相触发。</summary>
+public enum DamageKind { Direct, Attack, Reflected, Counter }

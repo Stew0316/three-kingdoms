@@ -23,11 +23,11 @@
   - 基础资源，例如是本工作室的logo等这样非常通用资源，不只是在本游戏里使用的内容
 - Source
   - City是城池资源
-  - People是人物资源；LvBu / WeiYan 中保存当前对战使用的写实透明 PNG 原型，生成记录与缩放/骨骼接入说明见 People/README.md；二维骨骼及刀光脚本位于 Scripts/Presentation
+  - People是人物资源；LvBu / WeiYan 中保存当前对战使用的写实透明 PNG 原型；新拆件生成因网络失败尚未完成，接入与提示词见 People/拆件生成记录.md；16 关节骨架与旧图回退、HD2D桥接、光环粒子和残影位于 Scripts/Presentation
   - Terrain是地形资源
   - StyleGuide是美术风格样板和生成记录；候选图不等于正式游戏资产
 - Resources
-  - Config保存 Godot 可在 Inspector 编辑的 `.tres` 配置实例；对应的 C# 配置类型放在 `Scripts/Config`
+  - Config保存 Godot 可在 Inspector 编辑的 `.tres` 配置实例；包含角色主动/被动战斗参数和独立表现配置，对应的 C# 配置类型放在 `Scripts/Config`
 - Scripts
   - c#脚本代码放入其中
   - Utils
@@ -38,6 +38,7 @@
     - 定义的静态值
 - Scene
   - 场景
+  - HD2DArena.tscn为默认HD2D演武场入口；Arena.tscn保留二维对照，战斗共用唯一二维物理世界
 - Demand
   - 一些需求，一些想法文档
 - Components

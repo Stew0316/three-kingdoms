@@ -48,7 +48,7 @@ public partial class Hitbox : Area2D
                 && direction.Dot(offset.Normalized()) < Mathf.Cos(spec.HalfAngle))) continue;
             if (!_hitTargets.Add(target.GetInstanceId())) continue;
             hurtbox.TakeDamage(new DamageInfo(_owner, spec.Damage,
-                offset.IsZeroApprox() ? direction : offset.Normalized()));
+                offset.IsZeroApprox() ? direction : offset.Normalized(), DamageKind.Attack));
         }
     }
 }

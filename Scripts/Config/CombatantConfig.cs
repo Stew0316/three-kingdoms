@@ -4,6 +4,8 @@ using Godot;
 [GlobalClass]
 public partial class CombatantConfig : Resource
 {
+    // 可组合的被动定义；每个单位的随机状态在运行时结算器中保存。
+    [Export] public Godot.Collections.Array<PassiveConfig> Passives { get; set; } = new();
     // 角色进入场景时使用的生命上限。
     [Export] public int MaxHealth { get; set; } = 100;
     // 普通移动状态下的速度，单位为场景像素/秒。

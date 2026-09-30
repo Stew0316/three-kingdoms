@@ -1,12 +1,14 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource type="PackedScene" path="res://Components/Characters/Combatant.tscn" id="1"]
 [ext_resource type="Texture2D" path="res://Source/People/LvBu/lubu-prototype.png" id="2"]
 [ext_resource type="Script" path="res://Scripts/Characters/LvBuController.cs" id="3"]
 [ext_resource type="Resource" path="res://Resources/Config/Combat/lubu.tres" id="4"]
+[ext_resource type="Resource" path="res://Resources/Config/Combat/lubu-presentation.tres" id="5"]
 
 [node name="LvBu" instance=ExtResource("1")]
 Config = ExtResource("4")
+Presentation = ExtResource("5")
 
 [node name="Visual" parent="." index="1"]
 texture = ExtResource("2")

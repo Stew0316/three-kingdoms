@@ -7,9 +7,12 @@ public partial class CombatFeedback : Node2D
     private float _remaining;
     // 最近一次实际提交给反馈组件的伤害数值，用于飘字。
     private int _damage;
+    private bool _critical;
+    private DamageKind _kind;
     public override void _Ready() => ZIndex = PresentationZIndexes.CombatFeedback;
     /// <summary>显示 damage 伤害值，并重置为 0.6 秒反馈。</summary>
-    public void ShowDamage(int damage) { _damage = damage; _remaining = .6f; }
+    public void ShowDamage(int damage, bool critical = false, DamageKind kind = DamageKind.Direct)
+    { _damage = damage; _critical = critical; _kind = kind; _remaining = .6f; }
     /// <summary>按 delta 秒衰减寿命，随场景暂停自动停止。</summary>
     public override void _Process(double delta)
     {
@@ -23,7 +26,9 @@ public partial class CombatFeedback : Node2D
         if (_remaining <= 0) return;
         float alpha = Mathf.Min(1, _remaining * 3);
         DrawString(ThemeDB.FallbackFont, new Vector2(-10, -72 - (1 - _remaining / .6f) * 22),
-            $"-{_damage}", HorizontalAlignment.Left, -1, 16, new Color(PresentationPalette.DamageText, alpha));
+            $"{(_critical ? "暴击 " : _kind == DamageKind.Reflected ? "反伤 " : _kind == DamageKind.Counter ? "反击 " : "")}-{_damage}",
+            HorizontalAlignment.Left, -1, _critical ? 19 : 14,
+            new Color(_critical ? new Color("ffcc66") : PresentationPalette.DamageText, alpha));
         if (_remaining < .43f) return;
         for (int i = 0; i < 6; i++)
         {

@@ -1,7 +1,24 @@
-[gd_resource type="Resource" script_class="CombatantConfig" load_steps=6 format=3]
+[gd_resource type="Resource" script_class="CombatantConfig" load_steps=9 format=3]
 
 [ext_resource type="Script" path="res://Scripts/Config/CombatantConfig.cs" id="1"]
 [ext_resource type="Script" path="res://Scripts/Config/CombatActionConfig.cs" id="2"]
+[ext_resource type="Script" path="res://Scripts/Config/PassiveConfig.cs" id="3"]
+
+[sub_resource type="Resource" id="Counter"]
+script = ExtResource("3")
+DisplayName = "狂骨旋斩"
+Effect = 2
+Chance = 0.6
+Damage = 30
+Radius = 68.0
+VisualDuration = 0.48
+
+[sub_resource type="Resource" id="Critical"]
+script = ExtResource("3")
+DisplayName = "奋勇"
+Effect = 1
+Chance = 0.15
+CriticalMultiplier = 2.4
 
 [sub_resource type="Resource" id="Basic"]
 script = ExtResource("2")
@@ -49,6 +66,7 @@ Speed = 330.0
 
 [resource]
 script = ExtResource("1")
+Passives = Array[ExtResource("3")]([SubResource("Counter"), SubResource("Critical")])
 MaxHealth = 100
 MoveSpeed = 105.0
 HurtDuration = 0.2

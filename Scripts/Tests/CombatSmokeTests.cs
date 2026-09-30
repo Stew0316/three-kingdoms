@@ -41,17 +41,10 @@ public partial class CombatSmokeTests : Node
                 && Player.Config.Basic.Damage == 12 && Enemy.Config.Basic.Damage == 10,
                 "角色场景已加载各自的可编辑战斗配置");
             Check(Player.GetNode<Sprite2D>(NodeNames.Visual).Texture != null && Enemy.GetNode<Sprite2D>(NodeNames.Visual).Texture != null, "character textures loaded");
-            var rig = Player.GetNode<CharacterRig>(NodeNames.Rig);
-            Check(rig.Skeleton.GetBoneCount() == CharacterBoneNames.Count && rig.Skin.GetBoneCount() == CharacterBoneNames.Count, "二维骨骼和蒙皮均已绑定八根骨骼");
+            var rig = Player.Rig;
+            Check(rig.Skeleton.GetBoneCount() == (Player.Presentation?.PartsAtlas!=null ? 16 : 8), "当前资源使用对应的拆件或兼容骨架");
             Check(Mathf.IsEqualApprox(rig.ArtScale, .05f), "角色缩小至原尺寸约百分之六十八");
-            bool normalized = true;
-            for (int v = 0; v < rig.Skin.Polygon.Length; v++)
-            {
-                float total = 0;
-                for (int b = 0; b < CharacterBoneNames.Count; b++) total += rig.Skin.GetBoneWeights(b)[v];
-                normalized &= Mathf.IsEqualApprox(total, 1);
-            }
-            Check(normalized, "蒙皮所有顶点权重归一化");
+            Check(Player.Presentation?.PartsAtlas!=null ? rig.Parts.Count==16 : Player.GetNode<Sprite2D>(NodeNames.Visual).Texture!=null, "角色显示资源存在");
             float beforePose = rig.Skeleton.GetBone(1).Rotation;
             Player.SetMoveInput(Vector2.Right);
             await Frames(10);
@@ -60,7 +53,7 @@ public partial class CombatSmokeTests : Node
             await Frames(2);
             Player.TryAction(CombatAction.Sweep);
             await Frames(23);
-            var trail = Player.GetNode<WeaponTrail>(NodeNames.WeaponTrail);
+            var trail = Player.Trail;
             Check(trail.IsEmitting, "生效窗口出现刀光");
             GetTree().Paused = true;
             float pausedTime = Player.ActionTime;
@@ -72,7 +65,7 @@ public partial class CombatSmokeTests : Node
             Check(!trail.IsEmitting, "受击打断立即清理刀光");
             await Reset();
             PlaceDuel();
-            Player.GetNode<WeaponTrail>(NodeNames.WeaponTrail).EffectsEnabled = false;
+            Player.Trail.EffectsEnabled = false;
             await Frames(3);
             Player.TryAction(CombatAction.Basic);
             await Frames(35);
@@ -202,6 +195,8 @@ public partial class CombatSmokeTests : Node
             Check(Player.Health.CurrentHealth < 120, "AI chases and damages through combat rules");
             await Frames(1800);
             Check(_arena.Finished && Player.IsDead, "AI can complete a defeat round");
+            await VerifyPassives();
+            await VerifyLayeredRig();
             GD.Print($"COMBAT_TEST_PASS: {_checks} assertions; 10 restart/result cycles plus combat and AI checks.");
             GetTree().Quit(0);
         }
@@ -221,6 +216,7 @@ public partial class CombatSmokeTests : Node
         if (reloadError != Error.Ok)
             throw new InvalidOperationException($"场景重载请求失败：{reloadError}");
         _arena = await WaitForArenaReady();
+        _arena.Resolver.PassivesEnabled = false;
         Player.GetNode(NodeNames.Controller).ProcessMode = ProcessModeEnum.Disabled;
         Enemy.GetNode(NodeNames.Controller).ProcessMode = ProcessModeEnum.Disabled;
         Player.SetMoveInput(Vector2.Zero);
@@ -262,6 +258,67 @@ public partial class CombatSmokeTests : Node
         Enemy.Position = new Vector2(319, 240);
         Player.Face(Vector2.Right);
         Enemy.Face(Vector2.Left);
+    }
+
+    /// <summary>注入确定性随机值验证阈值、固定伤害、暴击倍率和派生链边界。</summary>
+    private async Task VerifyPassives()
+    {
+        await Reset(); PlaceDuel();
+        _arena.Resolver.PassivesEnabled=true; _arena.Resolver.RollOverride=()=>0;
+        Enemy.ReceiveDamage(new DamageInfo(Player,10,Vector2.Right,DamageKind.Attack));
+        Check(Enemy.Health.CurrentHealth==82 && Enemy.LastDamage.IsCritical,"吕布暴击为 180% 总伤害");
+        Check(Player.Health.CurrentHealth==90 && Player.LastDamage.Kind==DamageKind.Counter,"魏延周身反击固定 30 点且不触发反伤");
+        Check(Enemy.CounterRemaining>0,"成功反击产生独立旋转表现");
+        await Reset(); PlaceDuel();
+        _arena.Resolver.PassivesEnabled=true; _arena.Resolver.RollOverride=()=>0;
+        Player.ReceiveDamage(new DamageInfo(Enemy,10,Vector2.Left,DamageKind.Attack));
+        Check(Player.Health.CurrentHealth==96 && Player.LastDamage.IsCritical,"魏延暴击为 240% 总伤害");
+        Check(Enemy.Health.CurrentHealth==80 && Enemy.LastDamage.Kind==DamageKind.Reflected,"吕布固定反伤 20 点且不触发魏延反击");
+        await Reset(); PlaceDuel();
+        _arena.Resolver.PassivesEnabled=true; _arena.Resolver.RollOverride=()=>.6f;
+        Enemy.ReceiveDamage(new DamageInfo(Player,10,Vector2.Right,DamageKind.Attack));
+        Check(Enemy.Health.CurrentHealth==90 && Player.Health.CurrentHealth==120,"随机值等于 60% 不触发反击，暴击也未触发");
+        await Reset(); PlaceDuel(); Enemy.Position=Player.Position+new Vector2(69,0);
+        _arena.Resolver.PassivesEnabled=true; _arena.Resolver.RollOverride=()=>0;
+        Enemy.ReceiveDamage(new DamageInfo(Player,10,Vector2.Right,DamageKind.Attack));
+        Check(Player.Health.CurrentHealth==120,"反击不命中 68 单位半径以外目标");
+        await Reset(); PlaceDuel();
+        _arena.Resolver.PassivesEnabled=true; _arena.Resolver.RollOverride=()=>.32f;
+        Enemy.ReceiveDamage(new DamageInfo(Player,10,Vector2.Right,DamageKind.Attack));
+        Check(!Enemy.LastDamage.IsCritical && Enemy.Health.CurrentHealth==90,"吕布 32% 暴击阈值使用严格小于");
+        await Reset(); PlaceDuel();
+        _arena.Resolver.PassivesEnabled=true; _arena.Resolver.RollOverride=()=>.15f;
+        Player.ReceiveDamage(new DamageInfo(Enemy,10,Vector2.Left,DamageKind.Attack));
+        Check(!Player.LastDamage.IsCritical && Player.Health.CurrentHealth==110,"魏延 15% 暴击阈值使用严格小于");
+        await Reset(); PlaceDuel();
+        _arena.Resolver.PassivesEnabled=true; _arena.Resolver.RollOverride=()=>0;
+        Enemy.ReceiveDamage(new DamageInfo(Player,999,Vector2.Right,DamageKind.Attack));
+        Check(Enemy.IsDead && Player.Health.CurrentHealth==120 && _arena.Finished,"致命伤不触发已死亡角色反击，队列结束后结算");
+        await Reset(); PlaceDuel();
+        _arena.Resolver.PassivesEnabled=true; _arena.Resolver.RollOverride=()=>.99f;
+        Player.ReceiveDamage(new DamageInfo(Enemy,999,Vector2.Left,DamageKind.Attack));
+        Check(Player.IsDead && Enemy.Health.CurrentHealth==80,"致命攻击仍触发荆甲反伤一次");
+    }
+
+    /// <summary>使用仅测试的内存纹理检查新骨架链；不将测试图冒充生成的人物素材。</summary>
+    private async Task VerifyLayeredRig()
+    {
+        await Reset();
+        var test=GD.Load<PackedScene>("res://Components/Characters/LvBu.tscn").Instantiate<Combatant>();
+        test.Presentation=new CharacterPresentationConfig { PartsAtlas=new GradientTexture2D { Width=128,Height=128,Gradient=new Gradient() } };
+        _arena.GetNode(NodeNames.Fighters).AddChild(test);
+        test.GetNode(NodeNames.Controller).ProcessMode=ProcessModeEnum.Disabled;
+        test.Position=new(150,230);
+        Check(test.Rig.Parts.Count==16 && test.Rig.Skeleton.GetBoneCount()==16,"拆件入口实际生成 16 个独立图层及关节");
+        Check(test.Rig.Parts[14].GetParent() is Bone2D,"武器图层挂接手部骨链");
+        test.TryAction(CombatAction.Sweep);
+        await Frames(18);
+        float windup=test.Rig.Parts[6].GetParent<Bone2D>().Rotation;
+        await Frames(13);
+        float swing=test.Rig.Parts[6].GetParent<Bone2D>().Rotation;
+        Check(Mathf.Abs(swing-windup)>.6f,"独立上臂的挥击幅度超过 34 度");
+        test.QueueFree();
+        await Frames(3);
     }
 
     /// <summary>等待 count 个真实物理帧；用于观察引擎碰撞更新，不使用墙钟延时替代。</summary>

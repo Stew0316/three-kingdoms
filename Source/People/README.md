@@ -1,5 +1,7 @@
 # S1 武将 PNG 原型
 
+2026-09-30 后续：HD2D 场景已接入，新增 16 关节拆件骨架入口，但三次内置生图因网络失败均未产出新图。当前两个 `*-presentation.tres` 未配置 PartsAtlas，仍使用原图与 `LegacyPortraitRig`。生成提示词、后续接入和实际边界见 [拆件生成记录](拆件生成记录.md)，不要将未生成素材的骨架代码当作完成的大幅动作动画。
+
 日期：2026-09-28。生成方式：内置 GPT 图像生成工具（非 CLI），两张独立生成，无输入参考图。保留原始透明 alpha，未抠图、未二次压缩。
 
 ## 本轮用户要求
@@ -28,4 +30,3 @@ Use case: historical-scene. Asset type: transparent PNG single-character cutout 
 ### 吕布
 
 Use case: historical-scene. Asset type: transparent PNG single-character cutout for a 2D top-down action RPG prototype. Create Lü Bu (吕布), a powerful adult Chinese male general of the Three Kingdoms, original historically inspired design, realistic human proportions, strong stern face, dark hair, distinctive crown with two swept pheasant plumes, dark charcoal lamellar armor with restrained antique-gold fittings and deep crimson cloth and short cape, holding one fangtian ji halberd in a compact combat-ready stance. Full body including both boots and entire halberd visible. Three-quarter view facing screen-right, slightly elevated camera about 20 degrees, natural realistic painted game rendering with clean readable silhouette and clear material textures, not chibi, not pixel art. One centered character only, vertical 1024x1536 composition, generous transparent margins around plumes weapon and feet. Soft upper-left daylight. Genuinely transparent alpha background, no background scene, no ground plane, no shadow baked behind character, no text, no watermark, no border, no duplicate views. Boots end near 90 percent canvas height. Make character convincing as a real warrior, no oversized fantasy armor, do not copy existing franchise designs.
-

@@ -11,7 +11,7 @@ config_version=5
 [application]
 
 config/name="Three-Kingdoms"
-run/main_scene="res://Scene/Arena.tscn"
+run/main_scene="res://Scene/HD2DArena.tscn"
 config/features=PackedStringArray("4.7", "C#", "Forward Plus")
 config/icon="res://icon.svg"
 
@@ -123,4 +123,4 @@ limits/message_queue/max_size_mb=128
 [rendering]
 
 rendering_device/driver.windows="d3d12"
-rendering/2d/snap/snap_2d_transforms_to_pixel=true
+rendering/2d/snap/snap_2d_transforms_to_pixel=false

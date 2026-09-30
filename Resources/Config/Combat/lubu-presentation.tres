@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="CharacterPresentationConfig" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://Scripts/Config/CharacterPresentationConfig.cs" id="1"]
+
+[resource]
+script = ExtResource("1")
+AuraColor = Color(1, 0.57, 0.16, 1)
+ParticleColor = Color(1, 0.77, 0.3, 1)
+OrbitParticles = false
+Afterimages = true
+AfterimageColor = Color(0.12, 0.45, 1, 0.5)
+AfterimageInterval = 0.075
+AfterimageLifetime = 0.32
+AuraRadius = 21.0
+ParticleCount = 24
+

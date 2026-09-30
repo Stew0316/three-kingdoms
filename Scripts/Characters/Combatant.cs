@@ -9,6 +9,7 @@ public partial class Combatant : CharacterBody2D
     [Export] public bool IsEnemy { get; set; }
     // 角色静态战斗数据，由 .tres 提供；运行时只读，不保存当前生命或冷却。
     [Export] public CombatantConfig Config { get; set; }
+    [Export] public CharacterPresentationConfig Presentation { get; set; } // 美术图集与装饰效果。
     // 原始立绘是否朝左，用于计算水平镜像，避免把素材初始方向当作战斗方向。
     [Export] public bool ArtFacesLeft { get; set; }
     // 当前状态，只允许通过 SetState 切换。
@@ -51,6 +52,20 @@ public partial class Combatant : CharacterBody2D
     private float _visualTime;
     public float VisualTime => _visualTime; // 表现层共用的动作时钟，受打击停顿和暂停约束。
     public Vector2 CastDirection => _castDirection; // 本次施法锁定方向，供刀光读取。
+    public CombatResolver Resolver { get; set; } // 由当前遭遇注入，不跨场景共享。
+    public float CounterRemaining { get; private set; } // 反击动画剩余时间，不驱动伤害。
+    public float CounterDuration { get; private set; }
+    public float CounterRadius { get; private set; }
+    public DamageInfo LastDamage { get; private set; } // 最近实际结算结果，用于反馈与验证。
+    public CharacterRig Rig { get; private set; } // 三维桥接后仍持有表现引用。
+    public WeaponTrail Trail { get; private set; }
+
+    public void PlayCounterSpin(float radius, float duration)
+    {
+        CounterRadius = Mathf.Max(1, radius);
+        CounterDuration = Mathf.Max(.05f, duration);
+        CounterRemaining = CounterDuration;
+    }
     // 静态图资源及镜像/颜色入口；接入骨骼后由 Rig 读取，原 Sprite 隐藏。
     private Sprite2D _visual;
     // 主动攻击区域，负责候选目标筛选和单次施法去重。
@@ -73,6 +88,8 @@ public partial class Combatant : CharacterBody2D
         CollisionLayer = IsEnemy ? PhysicsLayers.EnemyBody : PhysicsLayers.PlayerBody;
         CollisionMask = IsEnemy ? PhysicsLayers.EnemyBodyMask : PhysicsLayers.PlayerBodyMask;
         Health = GetNode<Health>(NodeNames.Health);
+        Rig = GetNode<CharacterRig>(NodeNames.Rig);
+        Trail = GetNode<WeaponTrail>(NodeNames.WeaponTrail);
         Health.Configure(Config.MaxHealth);
         _visual = GetNode<Sprite2D>(NodeNames.Visual);
         _hitbox = GetNode<Hitbox>(NodeNames.AttackHitbox);
@@ -122,6 +139,7 @@ public partial class Combatant : CharacterBody2D
     {
         float dt = (float)delta;
         if (_hitStop > 0) { _hitStop -= dt; return; }
+        CounterRemaining = Mathf.Max(0, CounterRemaining - dt);
         for (int i = 0; i < _cooldowns.Length; i++) _cooldowns[i] = Mathf.Max(0, _cooldowns[i] - dt);
         if (IsDead || BattleFinished) { Velocity = Vector2.Zero; QueueRedraw(); return; }
 
@@ -159,10 +177,19 @@ public partial class Combatant : CharacterBody2D
     /// <summary>处理 info 中的伤害及击退方向；死亡或结算后不再接受伤害。</summary>
     public void ReceiveDamage(DamageInfo info)
     {
+        if (Resolver != null) Resolver.Submit(this, info);
+        else ApplyResolvedDamage(info);
+    }
+
+    /// <summary>仅供结算器提交已计算的结果；派生伤害不附带硬直和打击停顿。</summary>
+    internal void ApplyResolvedDamage(DamageInfo info)
+    {
         if (IsDead || BattleFinished || info.Amount <= 0) return;
+        LastDamage = info;
         // ApplyDamage 可能同步触发 Die 和整场结算，后续必须再次检查 IsDead。
         Health.ApplyDamage(info);
-        _feedback.ShowDamage(info.Amount);
+        _feedback.ShowDamage(info.Amount, info.IsCritical, info.Kind);
+        if (info.Kind is DamageKind.Reflected or DamageKind.Counter) return;
         _hitStop = Config.HitStopDuration;
         if (info.Attacker is Combatant attacker) attacker._hitStop = attacker.Config.HitStopDuration;
         if (IsDead) return;
@@ -191,6 +218,7 @@ public partial class Combatant : CharacterBody2D
     public void FinishBattle()
     {
         BattleFinished = true;
+        CounterRemaining = 0;
         _moveInput = Vector2.Zero;
         Velocity = Vector2.Zero;
         _hitbox.Clear();

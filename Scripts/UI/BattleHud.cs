@@ -51,6 +51,11 @@ public partial class BattleHud : CanvasLayer
         _enemyBar = AddBar(root, new Rect2(421, 45, 190, 6), new Color(BattleUiColors.EnemyHealth));
         _skills = AddLabel(root, string.Empty, new Rect2(105, 66, 430, 17), 11, new Color(BattleUiColors.SkillText), HorizontalAlignment.Center);
         _state = AddLabel(root, string.Empty, new Rect2(26, 100, 550, 18), 10, new Color(BattleUiColors.DebugText));
+        var configuredPlayer=_arena.GetNode<Combatant>(SceneNodePaths.Player);
+        var configuredEnemy=_arena.GetNode<Combatant>(SceneNodePaths.Enemy);
+        AddPanel(root,new Rect2(22,301,596,23),new Color("1c2929"));
+        AddLabel(root, DescribePassives(configuredPlayer.Config), new Rect2(30,304,282,16),10,new Color("edbd78"));
+        AddLabel(root, DescribePassives(configuredEnemy.Config), new Rect2(322,304,286,16),10,new Color("91ddbd"),HorizontalAlignment.Right);
         AddLabel(root, BattleTexts.Controls, new Rect2(14, 329, 612, 16), 11, new Color(BattleUiColors.ControlText), HorizontalAlignment.Center);
         AddLabel(root, BattleTexts.DebugControls, new Rect2(14, 345, 612, 14), 9, new Color(BattleUiColors.HelpText), HorizontalAlignment.Center);
 
@@ -75,6 +80,20 @@ public partial class BattleHud : CanvasLayer
         UpdateEnemyHealth(enemy.Health.CurrentHealth, enemy.Health.MaxHealth);
     }
 
+    /// <summary>HUD 从相同 Resource 展示数值，避免文案与配置分叉。</summary>
+    private static string DescribePassives(CombatantConfig config)
+    {
+        var parts=new System.Collections.Generic.List<string>();
+        foreach(var passive in config.Passives)
+            parts.Add(passive.Effect switch
+            {
+                PassiveConfig.EffectKind.Reflect => $"反伤 {passive.Damage}",
+                PassiveConfig.EffectKind.CounterSpin => $"旋斩 {passive.Chance:P0} / {passive.Damage}",
+                _ => $"暴击 {passive.Chance:P0} / {passive.CriticalMultiplier:P0}"
+            });
+        return string.Join(" · ",parts);
+    }
+
     /// <summary>处理尚未被其他控件消费的 input；重开前先消费事件，避免访问已离树的 HUD。</summary>
     public override void _UnhandledInput(InputEvent input)
     {
@@ -92,7 +111,7 @@ public partial class BattleHud : CanvasLayer
         {
             foreach (var actor in new[] { _arena.Player, _arena.Enemy })
             {
-                var rig = actor.GetNode<CharacterRig>(NodeNames.Rig);
+                var rig = actor.Rig;
                 rig.ShowBones = !rig.ShowBones;
             }
             GetViewport().SetInputAsHandled();

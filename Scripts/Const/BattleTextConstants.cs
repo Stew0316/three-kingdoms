@@ -38,26 +38,26 @@ public static class BattleTexts
 /// <summary>S1 HUD 的固定主题色。后续建立 Theme 资源后可迁移到 UI 资源。</summary>
 public static class BattleUiColors
 {
-    public const string Panel = "1d282b";
-    public const string PlayerName = "a7ded2";
-    public const string EnemyName = "e1a48c";
-    public const string Title = "e0ca93";
-    public const string SecondaryText = "a5b2ad";
-    public const string PlayerHealthText = "c5d1c8";
-    public const string EnemyHealthText = "d4c6b5";
-    public const string PlayerHealth = "70b8a7";
-    public const string EnemyHealth = "c87960";
-    public const string SkillText = "ded0ac";
-    public const string DebugText = "f3dfb4";
-    public const string ControlText = "d8cfb6";
-    public const string HelpText = "9ba9a1";
-    public const string OverlayPanel = "202c2e";
-    public const string OverlayTitle = "e4cb8f";
-    public const string OverlayText = "bdc9bd";
-    public const string BarBackground = "111b1e";
-    public const string ButtonNormal = "48534a";
-    public const string ButtonHover = "65715e";
-    public const string ButtonPressed = "343f38";
+    public const string Panel = "f8edca";
+    public const string PlayerName = "9d4037";
+    public const string EnemyName = "34634d";
+    public const string Title = "594936";
+    public const string SecondaryText = "776853";
+    public const string PlayerHealthText = "493e31";
+    public const string EnemyHealthText = "493e31";
+    public const string PlayerHealth = "df6753";
+    public const string EnemyHealth = "62a068";
+    public const string SkillText = "4e493d";
+    public const string DebugText = "49392c";
+    public const string ControlText = "fff3d5";
+    public const string HelpText = "e1d6b8";
+    public const string OverlayPanel = "f7e8bd";
+    public const string OverlayTitle = "65432d";
+    public const string OverlayText = "665746";
+    public const string BarBackground = "5b5a45";
+    public const string ButtonNormal = "77985f";
+    public const string ButtonHover = "8eb26f";
+    public const string ButtonPressed = "5c7f49";
 }
 
 /// <summary>系统字体候选名称，按顺序尝试匹配。</summary>

@@ -53,9 +53,9 @@ public partial class BattleHud : CanvasLayer
         _state = AddLabel(root, string.Empty, new Rect2(26, 100, 550, 18), 10, new Color(BattleUiColors.DebugText));
         var configuredPlayer=_arena.GetNode<Combatant>(SceneNodePaths.Player);
         var configuredEnemy=_arena.GetNode<Combatant>(SceneNodePaths.Enemy);
-        AddPanel(root,new Rect2(22,301,596,23),new Color("1c2929"));
-        AddLabel(root, DescribePassives(configuredPlayer.Config), new Rect2(30,304,282,16),10,new Color("edbd78"));
-        AddLabel(root, DescribePassives(configuredEnemy.Config), new Rect2(322,304,286,16),10,new Color("91ddbd"),HorizontalAlignment.Right);
+        AddPanel(root,new Rect2(22,301,596,23),new Color("f5e4b9"));
+        AddLabel(root, DescribePassives(configuredPlayer.Config), new Rect2(30,304,282,16),10,new Color("8f3c34"));
+        AddLabel(root, DescribePassives(configuredEnemy.Config), new Rect2(322,304,286,16),10,new Color("32674e"),HorizontalAlignment.Right);
         AddLabel(root, BattleTexts.Controls, new Rect2(14, 329, 612, 16), 11, new Color(BattleUiColors.ControlText), HorizontalAlignment.Center);
         AddLabel(root, BattleTexts.DebugControls, new Rect2(14, 345, 612, 14), 9, new Color(BattleUiColors.HelpText), HorizontalAlignment.Center);
 
@@ -156,7 +156,11 @@ public partial class BattleHud : CanvasLayer
     private void Restart() { GetTree().Paused = false; GetTree().ReloadCurrentScene(); }
 
     /// <summary>以 color 创建统一圆角底色样式，每次返回独立资源。</summary>
-    private static StyleBoxFlat Box(Color color) => new() { BgColor = color, CornerRadiusTopLeft = 4, CornerRadiusTopRight = 4, CornerRadiusBottomLeft = 4, CornerRadiusBottomRight = 4 };
+    private static StyleBoxFlat Box(Color color) => new()
+    {
+        BgColor=color,BorderColor=new Color("5c6849"),BorderWidthLeft=2,BorderWidthTop=2,BorderWidthRight=2,BorderWidthBottom=2,
+        CornerRadiusTopLeft=5,CornerRadiusTopRight=5,CornerRadiusBottomLeft=5,CornerRadiusBottomRight=5
+    };
     /// <summary>在 parent 下添加装饰面板；rect 为位置和尺寸，color 为底色，不接收鼠标。</summary>
     private static void AddPanel(Control parent, Rect2 rect, Color color)
     {

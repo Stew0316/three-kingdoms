@@ -1,4 +1,4 @@
-[gd_scene load_steps=11 format=3]
+[gd_scene load_steps=13 format=3]
 
 [ext_resource type="Script" path="res://Scripts/Characters/Combatant.cs" id="1"]
 [ext_resource type="Script" path="res://Scripts/Combat/Health.cs" id="2"]
@@ -7,6 +7,8 @@
 [ext_resource type="Script" path="res://Scripts/Combat/CombatFeedback.cs" id="5"]
 [ext_resource type="Script" path="res://Scripts/Presentation/CharacterRig.cs" id="6"]
 [ext_resource type="Script" path="res://Scripts/Presentation/WeaponTrail.cs" id="7"]
+[ext_resource type="Script" path="res://Scripts/Presentation/GroundEffects.cs" id="8"]
+[ext_resource type="Script" path="res://Scripts/Presentation/AfterimageTrail2D.cs" id="9"]
 
 [sub_resource type="CircleShape2D" id="Body"]
 radius = 12.0
@@ -52,8 +54,15 @@ shape = SubResource("Attack")
 [node name="Feedback" type="Node2D" parent="."]
 script = ExtResource("5")
 
+[node name="GroundEffects" type="Node2D" parent="."]
+show_behind_parent = true
+script = ExtResource("8")
+
 [node name="Rig" type="Node2D" parent="."]
 script = ExtResource("6")
 
 [node name="WeaponTrail" type="Node2D" parent="."]
 script = ExtResource("7")
+
+[node name="AfterimageTrail2D" type="Node2D" parent="."]
+script = ExtResource("9")

@@ -10,6 +10,8 @@ public static class NodeNames
     public const string Controller = "Controller";
     public const string Rig = "Rig";
     public const string WeaponTrail = "WeaponTrail";
+    public const string GroundEffects = "GroundEffects";
+    public const string AfterimageTrail2D = "AfterimageTrail2D";
     public const string ColorRect = "ColorRect";
     public const string Fighters = "Fighters";
     public const string LvBu = "LvBu";

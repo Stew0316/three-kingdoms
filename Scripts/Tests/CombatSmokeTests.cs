@@ -43,8 +43,10 @@ public partial class CombatSmokeTests : Node
             Check(Player.GetNode<Sprite2D>(NodeNames.Visual).Texture != null && Enemy.GetNode<Sprite2D>(NodeNames.Visual).Texture != null, "character textures loaded");
             var rig = Player.Rig;
             Check(rig.Skeleton.GetBoneCount() == (Player.Presentation?.PartsAtlas!=null ? 16 : 8), "当前资源使用对应的拆件或兼容骨架");
-            Check(Mathf.IsEqualApprox(rig.ArtScale, .05f), "角色缩小至原尺寸约百分之六十八");
+            Check(Mathf.IsEqualApprox(rig.ArtScale, Player.Presentation.CharacterScale) && rig.ArtScale<.05f, "二维角色尺寸由表现配置缩小");
             Check(Player.Presentation?.PartsAtlas!=null ? rig.Parts.Count==16 : Player.GetNode<Sprite2D>(NodeNames.Visual).Texture!=null, "角色显示资源存在");
+            Check(Enemy.Presentation?.PartsAtlas==null || Enemy.Rig.Parts.Count==16,"魏延拆件采样完整加载 16 个图层");
+            Check(Player.GetNodeOrNull<GroundEffects>(NodeNames.GroundEffects)!=null && Player.GetNodeOrNull<AfterimageTrail2D>(NodeNames.AfterimageTrail2D)!=null,"二维场景直接挂载光环粒子和骨骼残影");
             float beforePose = rig.Skeleton.GetBone(1).Rotation;
             Player.SetMoveInput(Vector2.Right);
             await Frames(10);
@@ -135,15 +137,15 @@ public partial class CombatSmokeTests : Node
             Check(Enemy.Health.CurrentHealth == 76, "sweep reaches farther and hits once");
 
             await Reset();
-            Player.Position = new Vector2(590, 220);
+            Player.Position = new Vector2(560, 220);
             Enemy.Position = new Vector2(200, 220);
             Player.Face(Vector2.Right);
             Player.TryAction(CombatAction.Dash);
             await Frames(55);
-            Check(Player.Position.X <= 604.2f && Player.Position.X >= 590, "dash stops at wall");
+            Check(Player.Position.X <= 580.2f && Player.Position.X >= 560, "dash stops at wall");
             Player.ReceiveDamage(new DamageInfo(Enemy, 1, Vector2.Right));
             await Frames(22);
-            Check(Player.Position.X <= 604.2f, "knockback stops at wall");
+            Check(Player.Position.X <= 580.2f, "knockback stops at wall");
 
             await Reset();
             PlaceDuel();
@@ -310,12 +312,12 @@ public partial class CombatSmokeTests : Node
         test.GetNode(NodeNames.Controller).ProcessMode=ProcessModeEnum.Disabled;
         test.Position=new(150,230);
         Check(test.Rig.Parts.Count==16 && test.Rig.Skeleton.GetBoneCount()==16,"拆件入口实际生成 16 个独立图层及关节");
-        Check(test.Rig.Parts[14].GetParent() is Bone2D,"武器图层挂接手部骨链");
+        Check(test.Rig.Joints[14].GetParent()==test.Rig.Joints[8],"武器关节仍挂接手部骨链");
         test.TryAction(CombatAction.Sweep);
         await Frames(18);
-        float windup=test.Rig.Parts[6].GetParent<Bone2D>().Rotation;
+        float windup=test.Rig.Joints[6].Rotation;
         await Frames(13);
-        float swing=test.Rig.Parts[6].GetParent<Bone2D>().Rotation;
+        float swing=test.Rig.Joints[6].Rotation;
         Check(Mathf.Abs(swing-windup)>.6f,"独立上臂的挥击幅度超过 34 度");
         test.QueueFree();
         await Frames(3);

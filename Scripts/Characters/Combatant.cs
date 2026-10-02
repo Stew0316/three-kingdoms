@@ -57,7 +57,7 @@ public partial class Combatant : CharacterBody2D
     public float CounterDuration { get; private set; }
     public float CounterRadius { get; private set; }
     public DamageInfo LastDamage { get; private set; } // 最近实际结算结果，用于反馈与验证。
-    public CharacterRig Rig { get; private set; } // 三维桥接后仍持有表现引用。
+    public CharacterRig Rig { get; private set; } // 二维正式场景与历史三维桥接共用的骨骼表现引用。
     public WeaponTrail Trail { get; private set; }
 
     public void PlayCounterSpin(float radius, float duration)
@@ -209,7 +209,8 @@ public partial class Combatant : CharacterBody2D
         CollisionMask = PhysicsLayers.None;
         _hurtbox.SetDeferred(Area2D.PropertyName.Monitorable, false);
         _visual.Modulate = PresentationPalette.DeathTint;
-        _visual.Rotation = IsEnemy ? -.95f : .95f;
+        // 不翻转 Sprite2D；骨骼层改用纵向压缩和下沉表现倒地。
+        _visual.Rotation = 0;
         _visual.Position = new Vector2(0, -22);
         QueueRedraw();
     }
@@ -248,39 +249,9 @@ public partial class Combatant : CharacterBody2D
             ? PresentationPalette.HurtFlash : Colors.White;
     }
 
-    /// <summary>绘制脚底标记与真实判定参数对应的预警；装饰刀光由 WeaponTrail 单独绘制。</summary>
+    /// <summary>角色节点不再直接绘制纸片式地面效果；光环、阴影、粒子和预警统一由 GroundEffects 表现层绘制。</summary>
     public override void _Draw()
     {
-        DrawSetTransform(Vector2.Zero, 0, new Vector2(1, .4f));
-        DrawCircle(Vector2.Zero, 19, PresentationPalette.GroundShadow);
-        DrawSetTransform(Vector2.Zero);
-        if (IsDead) return;
-        Color teamColor = IsEnemy ? new Color(PresentationColors.EnemyTeam) : new Color(PresentationColors.PlayerTeam);
-        DrawArc(Vector2.Zero, 15, 0, Mathf.Tau, 40, teamColor, 1.3f, true);
-        Vector2 tip = FacingDirection * 23;
-        Vector2 side = FacingDirection.Orthogonal() * 3;
-        DrawColoredPolygon(new[] { tip, FacingDirection * 17 + side, FacingDirection * 17 - side }, teamColor);
-        if (BattleFinished || CurrentState != State.Attack || ActionTime >= Spec.Prepare + Spec.Active) return;
-        Color color = IsEnemy ? PresentationPalette.EnemyAttack : PresentationPalette.PlayerAttack;
-        bool active = IsAttackActive;
-        float angle = _castDirection.Angle();
-        const int segments = 36;
-        var points = new Vector2[segments + 2];
-        points[0] = Vector2.Zero;
-        for (int i = 0; i <= segments; i++)
-            points[i + 1] = Vector2.FromAngle(angle - Spec.HalfAngle + 2 * Spec.HalfAngle * i / segments) * Spec.Range;
-        DrawColoredPolygon(points, new Color(color, active ? .30f : .12f));
-        DrawArc(Vector2.Zero, Spec.Range, angle - Spec.HalfAngle, angle + Spec.HalfAngle, segments, color, active ? 3 : 1, true);
-        DrawLine(Vector2.Zero, points[1], color, 1, true);
-        DrawLine(Vector2.Zero, points[^1], color, 1, true);
-        if (!active && Spec.Prepare > 0)
-            DrawArc(Vector2.Zero, Spec.Range * ActionTime / Spec.Prepare,
-                angle - Spec.HalfAngle, angle + Spec.HalfAngle, segments, new Color(color, .55f), 1, true);
-        if (CurrentAction == CombatAction.Dash)
-        {
-            Vector2 end = _castDirection * Spec.Speed * Spec.Active;
-            DrawLine(Vector2.Zero, end, new Color(color, .8f), 2, true);
-            DrawCircle(end, 3, color);
-        }
+        // 保留空绘制入口，便于以后添加碰撞/导航调试显示；正式表现不与规则节点耦合。
     }
 }

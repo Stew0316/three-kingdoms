@@ -17,7 +17,7 @@ public partial class Arena : Node2D
     // 进程级测试启动守卫，防止测试中的反复重开递归创建新测试器。
     private static bool _testsStarted;
     public CombatResolver Resolver { get; private set; }
-    [Export] public bool Hd2D { get; set; } // 独立三维演武场启用，旧二维场景保留对照。
+    [Export] public bool Hd2D { get; set; } // 仅供历史技术样板启用；正式入口使用二维俯视演武场。
 
     /// <summary>绑定角色与死亡信号；仅在显式命令行参数存在时启动测试或截图。</summary>
     public override void _Ready()
@@ -29,6 +29,8 @@ public partial class Arena : Node2D
         foreach (var unit in new[] { Player, Enemy }) { Resolver.Register(unit); unit.Resolver = Resolver; }
         Resolver.Settled += () => { if (Player.IsDead || Enemy.IsDead) EndBattle(!Player.IsDead); };
         if (Hd2D) AddChild(new Hd2DStage { Name = "HD2DStage" });
+        if (Array.Exists(OS.GetCmdlineUserArgs(), a => a == "--rig-visual-test"))
+            CallDeferred(MethodName.StartRigVisualTests);
         if (!_testsStarted && Array.Exists(OS.GetCmdlineUserArgs(), a => a == DevelopmentArguments.CombatTest))
         {
             _testsStarted = true;
@@ -56,6 +58,9 @@ public partial class Arena : Node2D
 
     /// <summary>把测试器挂到场景树根部，使它能跨越 Arena 的重载持续执行。</summary>
     private void StartTests() => GetTree().Root.AddChild(new CombatSmokeTests());
+
+    /// <summary>使用真实渲染帧验收手脚可见性，只有显式开发参数会启动。</summary>
+    private void StartRigVisualTests() => GetTree().Root.AddChild(new RigVisualTests());
 
     /// <summary>关闭控制器并摆放固定画面，等待渲染完成后保存截图并退出测试进程。</summary>
     private async void CapturePreview()
@@ -103,38 +108,60 @@ public partial class Arena : Node2D
         GetTree().Quit();
     }
 
-    /// <summary>绘制静态场地装饰；这里的线条和石板不充当物理碰撞体。</summary>
+    /// <summary>绘制宝可梦式二维俯视演武场；地图装饰和物理边界仍分别管理。</summary>
     public override void _Draw()
     {
         if (Hd2D) return;
-        DrawRect(new Rect2(0, 0, 640, 360), new Color(ArenaVisualConstants.Background));
-        DrawRect(new Rect2(16, 83, 608, 241), new Color(ArenaVisualConstants.OuterFloor));
-        DrawRect(new Rect2(24, 101, 592, 211), new Color(ArenaVisualConstants.InnerFloor));
-        // 石板低对比处理，交战范围保持干净。装饰与物理边界分别管理。
+        DrawRect(new Rect2(0,0,640,360),new Color(ArenaVisualConstants.GrassDark));
+        // 16 像素网格草地使用固定随机明暗，强调 GBA 时代地图块感但不要求逐格移动。
         var random = new RandomNumberGenerator { Seed = ArenaVisualConstants.StonePatternSeed };
-        for (int row = 0; row < 8; row++)
-        for (int col = 0; col < 16; col++)
+        for(int row=4;row<22;row++) for(int col=0;col<40;col++)
         {
-            float x = 25 + col * 40 - (row % 2) * 20;
-            float y = 102 + row * 27;
-            if (x < 25 || x + 38 > 615 || y + 25 > 311) continue;
-            float value = random.RandfRange(-.025f, .025f);
-            DrawRect(new Rect2(x, y, 38, 25), new Color(.49f + value, .45f + value, .35f + value));
+            float value=random.RandfRange(-.025f,.025f);
+            DrawRect(new Rect2(col*16,row*16,16,16),new Color(.47f+value,.68f+value,.34f+value));
+            if((row*7+col*13)%23==0) DrawLine(new Vector2(col*16+5,row*16+13),new Vector2(col*16+7,row*16+9),new Color(ArenaVisualConstants.GrassBlade),1);
         }
-        DrawArc(new Vector2(320, 214), 78, 0, Mathf.Tau, 96, ArenaVisualConstants.RingPrimary, 1, true);
-        DrawArc(new Vector2(320, 214), 83, 0, Mathf.Tau, 96, ArenaVisualConstants.RingSecondary, 1, true);
-        DrawLine(new Vector2(310, 214), new Vector2(330, 214), ArenaVisualConstants.RingCross);
-        DrawLine(new Vector2(320, 204), new Vector2(320, 224), ArenaVisualConstants.RingCross);
-        DrawRect(new Rect2(16, 83, 608, 15), new Color(ArenaVisualConstants.Border));
-        DrawLine(new Vector2(16, 83), new Vector2(624, 83), new Color(ArenaVisualConstants.BorderHighlight), 2);
-        DrawRect(new Rect2(16, 98, 8, 226), new Color(ArenaVisualConstants.SideWall));
-        DrawRect(new Rect2(616, 98, 8, 226), new Color(ArenaVisualConstants.SideWall));
-        DrawRect(new Rect2(16, 312, 608, 12), new Color(ArenaVisualConstants.Border));
-        foreach (int x in new[] { 36, 604 })
+
+        // 围墙、院门和草木从上往下分层，角色由 YSort 在院内穿行。
+        DrawRect(new Rect2(32,84,576,244),new Color(ArenaVisualConstants.WallShadow));
+        DrawRect(new Rect2(40,96,560,224),new Color(ArenaVisualConstants.CourtyardEdge));
+        DrawRect(new Rect2(56,108,528,196),new Color(ArenaVisualConstants.Courtyard));
+        for(int row=0;row<8;row++) for(int col=0;col<22;col++)
         {
-            DrawLine(new Vector2(x, 48), new Vector2(x, 95), new Color(ArenaVisualConstants.BannerPole), 2);
-            DrawColoredPolygon(new[] { new Vector2(x + 2, 48), new Vector2(x + 20, 48),
-                new Vector2(x + 20, 72), new Vector2(x + 11, 67), new Vector2(x + 2, 72) }, new Color(ArenaVisualConstants.Banner));
+            float x=57+col*24-(row%2)*12,y=109+row*24;
+            if(x<57 || x+22>583) continue;
+            float value=random.RandfRange(-.035f,.035f);
+            DrawRect(new Rect2(x,y,22,22),new Color(.76f+value,.69f+value,.48f+value));
+            DrawLine(new Vector2(x,y+22),new Vector2(x+22,y+22),new Color(ArenaVisualConstants.TileJoint),1);
+            DrawLine(new Vector2(x+22,y),new Vector2(x+22,y+22),new Color(ArenaVisualConstants.TileJoint),1);
         }
+        DrawArc(new Vector2(320,208),70,0,Mathf.Tau,64,ArenaVisualConstants.RingPrimary,3,false);
+        DrawArc(new Vector2(320,208),76,0,Mathf.Tau,64,ArenaVisualConstants.RingSecondary,2,false);
+        DrawLine(new Vector2(300,208),new Vector2(340,208),ArenaVisualConstants.RingCross,2);
+        DrawLine(new Vector2(320,188),new Vector2(320,228),ArenaVisualConstants.RingCross,2);
+
+        // 北侧训练馆屋檐和入口用纯色块表达，不引入 3D 摄像机与模型管线。
+        DrawRect(new Rect2(176,64,288,28),new Color(ArenaVisualConstants.RoofDark));
+        DrawColoredPolygon(new[]{new Vector2(160,82),new Vector2(480,82),new Vector2(456,59),new Vector2(184,59)},new Color(ArenaVisualConstants.Roof));
+        DrawLine(new Vector2(160,82),new Vector2(480,82),new Color(ArenaVisualConstants.RoofHighlight),4);
+        DrawRect(new Rect2(277,72,86,28),new Color(ArenaVisualConstants.GateDark));
+        DrawRect(new Rect2(289,77,62,23),new Color(ArenaVisualConstants.Gate));
+        for(int x=52;x<=588;x+=32) DrawBush(new Vector2(x,91),(x/32)%2==0);
+        foreach(int x in new[]{48,592})
+        {
+            DrawLine(new Vector2(x,70),new Vector2(x,120),new Color(ArenaVisualConstants.BannerPole),3);
+            DrawColoredPolygon(new[]{new Vector2(x+3,70),new Vector2(x+23,70),new Vector2(x+23,93),new Vector2(x+13,88),new Vector2(x+3,93)},new Color(x<320 ? ArenaVisualConstants.PlayerBanner : ArenaVisualConstants.EnemyBanner));
+        }
+    }
+
+    /// <summary>以少量色块绘制可重复灌木，保持地图块轮廓清晰。</summary>
+    private void DrawBush(Vector2 center,bool light)
+    {
+        Color dark=new(ArenaVisualConstants.BushDark),mid=new(ArenaVisualConstants.Bush),shine=new(ArenaVisualConstants.BushHighlight);
+        DrawCircle(center+new Vector2(1,3),10,dark);
+        DrawCircle(center+new Vector2(-5,0),7,mid);
+        DrawCircle(center+new Vector2(5,-1),8,mid);
+        DrawRect(new Rect2(center.X-8,center.Y+5,16,5),dark);
+        if(light) DrawCircle(center+new Vector2(-3,-3),2,shine);
     }
 }

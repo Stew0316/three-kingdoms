@@ -23,7 +23,7 @@
   - 基础资源，例如是本工作室的logo等这样非常通用资源，不只是在本游戏里使用的内容
 - Source
   - City是城池资源
-  - People是人物资源；LvBu / WeiYan 中保存当前对战使用的写实透明 PNG 原型；新拆件生成因网络失败尚未完成，接入与提示词见 People/拆件生成记录.md；16 关节骨架与旧图回退、HD2D桥接、光环粒子和残影位于 Scripts/Presentation
+  - People是人物资源；LvBu / WeiYan 中的 *-parts-v2.png 为当前对战使用的 16 关节透明拆件图集，旧 prototype 图保留回退；生成与接入记录见 People/拆件生成记录.md；骨架、二维光环粒子、二维残影和历史HD2D桥接位于 Scripts/Presentation，尺寸、采样区域与冠饰挂点在角色表现配置中编辑
   - Terrain是地形资源
   - StyleGuide是美术风格样板和生成记录；候选图不等于正式游戏资产
 - Resources
@@ -38,7 +38,7 @@
     - 定义的静态值
 - Scene
   - 场景
-  - HD2DArena.tscn为默认HD2D演武场入口；Arena.tscn保留二维对照，战斗共用唯一二维物理世界
+  - 正式主路线采用火红/叶绿式二维俯视 TileMap 与即时战斗；Arena.tscn 是当前二维俯视演武场和启动入口，HD2DArena.tscn 仅保留为历史表现技术样板，正式世界地图入口后续独立建立
 - Demand
   - 一些需求，一些想法文档
 - Components

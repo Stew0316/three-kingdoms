@@ -1,9 +1,12 @@
-[gd_resource type="Resource" script_class="CharacterPresentationConfig" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="CharacterPresentationConfig" load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://Scripts/Config/CharacterPresentationConfig.cs" id="1"]
+[ext_resource type="Texture2D" path="res://Source/People/LvBu/lubu-parts-v2.png" id="2"]
 
 [resource]
 script = ExtResource("1")
+PartsAtlas = ExtResource("2")
+AtlasRegions = Array[Rect2]([Rect2(0, 0, 313, 312), Rect2(313, 0, 314, 224), Rect2(627, 0, 313, 312), Rect2(940, 0, 314, 318), Rect2(0, 320, 313, 190), Rect2(313, 315, 314, 310), Rect2(627, 320, 313, 192), Rect2(940, 315, 314, 310), Rect2(0, 627, 313, 305), Rect2(313, 627, 314, 305), Rect2(627, 627, 313, 305), Rect2(940, 627, 314, 305), Rect2(0, 940, 313, 314), Rect2(313, 940, 314, 314), Rect2(710, 930, 165, 324), Rect2(940, 940, 314, 314)])
 AuraColor = Color(1, 0.57, 0.16, 1)
 ParticleColor = Color(1, 0.77, 0.3, 1)
 OrbitParticles = false
@@ -13,4 +16,9 @@ AfterimageInterval = 0.075
 AfterimageLifetime = 0.32
 AuraRadius = 21.0
 ParticleCount = 24
-
+CharacterScale = 0.038
+DepthScale = 0.92
+CartoonFilter = true
+CartoonColorSteps = 7.0
+CartoonSaturation = 1.15
+CartoonOutlineColor = Color(0.1, 0.075, 0.06, 0.92)

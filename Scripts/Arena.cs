@@ -16,8 +16,12 @@ public partial class Arena : Node2D
     public double BattleSeconds { get; private set; }
     // 进程级测试启动守卫，防止测试中的反复重开递归创建新测试器。
     private static bool _testsStarted;
+    private static bool _walkTestsStarted; // 步态回归会重开场景，避免再次创建测试器。
     public CombatResolver Resolver { get; private set; }
     [Export] public bool Hd2D { get; set; } // 仅供历史技术样板启用；正式入口使用二维俯视演武场。
+    [Export] public bool SoloPractice { get; set; } // 单人步态练习：保留魏延节点，但关闭显示、处理与碰撞，方便恢复对战。
+    public bool IsSoloPractice => SoloPractice && !Array.Exists(OS.GetCmdlineUserArgs(),
+        a => a == DevelopmentArguments.CombatTest || a == "--rig-visual-test" || a == "--with-opponent");
 
     /// <summary>绑定角色与死亡信号；仅在显式命令行参数存在时启动测试或截图。</summary>
     public override void _Ready()
@@ -26,11 +30,32 @@ public partial class Arena : Node2D
         Enemy = GetNode<Combatant>(SceneNodePaths.Enemy);
         Enemy.GetNode<WeiYanController>(NodeNames.Controller).Target = Player;
         Resolver = new CombatResolver();
-        foreach (var unit in new[] { Player, Enemy }) { Resolver.Register(unit); unit.Resolver = Resolver; }
-        Resolver.Settled += () => { if (Player.IsDead || Enemy.IsDead) EndBattle(!Player.IsDead); };
+        Resolver.Register(Player); Player.Resolver = Resolver;
+        if (IsSoloPractice)
+        {
+            Enemy.Hide();
+            Enemy.ProcessMode = ProcessModeEnum.Disabled;
+            Enemy.CollisionLayer = 0; Enemy.CollisionMask = 0;
+            foreach (var name in new[] { NodeNames.Hurtbox, NodeNames.AttackHitbox })
+            {
+                var area = Enemy.GetNode<Area2D>(name);
+                area.CollisionLayer = 0; area.CollisionMask = 0;
+                area.Monitoring = false; area.Monitorable = false;
+            }
+        }
+        else
+        {
+            Resolver.Register(Enemy); Enemy.Resolver = Resolver;
+            Resolver.Settled += () => { if (Player.IsDead || Enemy.IsDead) EndBattle(!Player.IsDead); };
+        }
         if (Hd2D) AddChild(new Hd2DStage { Name = "HD2DStage" });
         if (Array.Exists(OS.GetCmdlineUserArgs(), a => a == "--rig-visual-test"))
             CallDeferred(MethodName.StartRigVisualTests);
+        if (!_walkTestsStarted && Array.Exists(OS.GetCmdlineUserArgs(), a => a == "--walk-test"))
+        {
+            _walkTestsStarted = true;
+            CallDeferred(MethodName.StartWalkTests);
+        }
         if (!_testsStarted && Array.Exists(OS.GetCmdlineUserArgs(), a => a == DevelopmentArguments.CombatTest))
         {
             _testsStarted = true;
@@ -61,6 +86,7 @@ public partial class Arena : Node2D
 
     /// <summary>使用真实渲染帧验收手脚可见性，只有显式开发参数会启动。</summary>
     private void StartRigVisualTests() => GetTree().Root.AddChild(new RigVisualTests());
+    private void StartWalkTests() => GetTree().Root.AddChild(new WalkVisualTests());
 
     /// <summary>关闭控制器并摆放固定画面，等待渲染完成后保存截图并退出测试进程。</summary>
     private async void CapturePreview()

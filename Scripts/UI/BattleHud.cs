@@ -42,20 +42,21 @@ public partial class BattleHud : CanvasLayer
         AddChild(root);
         AddPanel(root, new Rect2(16, 10, 608, 53), new Color(BattleUiColors.Panel));
         AddLabel(root, BattleTexts.PlayerName, new Rect2(29, 16, 110, 22), 18, new Color(BattleUiColors.PlayerName));
-        AddLabel(root, BattleTexts.EnemyName, new Rect2(501, 16, 110, 22), 18, new Color(BattleUiColors.EnemyName), HorizontalAlignment.Right);
-        AddLabel(root, BattleTexts.ArenaTitle, new Rect2(248, 15, 144, 23), 18, new Color(BattleUiColors.Title), HorizontalAlignment.Center);
+        AddLabel(root, _arena.IsSoloPractice ? "单人练习" : BattleTexts.EnemyName, new Rect2(501, 16, 110, 22), 18, new Color(BattleUiColors.EnemyName), HorizontalAlignment.Right);
+        AddLabel(root, _arena.IsSoloPractice ? "吕布步态练习" : BattleTexts.ArenaTitle, new Rect2(230, 15, 180, 23), 18, new Color(BattleUiColors.Title), HorizontalAlignment.Center);
         _clock = AddLabel(root, string.Empty, new Rect2(268, 41, 104, 18), 10, new Color(BattleUiColors.SecondaryText), HorizontalAlignment.Center);
         _playerHealth = AddLabel(root, string.Empty, new Rect2(100, 21, 119, 18), 10, new Color(BattleUiColors.PlayerHealthText), HorizontalAlignment.Right);
         _enemyHealth = AddLabel(root, string.Empty, new Rect2(421, 21, 99, 18), 10, new Color(BattleUiColors.EnemyHealthText));
         _playerBar = AddBar(root, new Rect2(29, 45, 190, 6), new Color(BattleUiColors.PlayerHealth));
         _enemyBar = AddBar(root, new Rect2(421, 45, 190, 6), new Color(BattleUiColors.EnemyHealth));
+        _enemyBar.Visible = _enemyHealth.Visible = !_arena.IsSoloPractice;
         _skills = AddLabel(root, string.Empty, new Rect2(105, 66, 430, 17), 11, new Color(BattleUiColors.SkillText), HorizontalAlignment.Center);
         _state = AddLabel(root, string.Empty, new Rect2(26, 100, 550, 18), 10, new Color(BattleUiColors.DebugText));
         var configuredPlayer=_arena.GetNode<Combatant>(SceneNodePaths.Player);
         var configuredEnemy=_arena.GetNode<Combatant>(SceneNodePaths.Enemy);
         AddPanel(root,new Rect2(22,301,596,23),new Color("f5e4b9"));
         AddLabel(root, DescribePassives(configuredPlayer.Config), new Rect2(30,304,282,16),10,new Color("8f3c34"));
-        AddLabel(root, DescribePassives(configuredEnemy.Config), new Rect2(322,304,286,16),10,new Color("32674e"),HorizontalAlignment.Right);
+        AddLabel(root, _arena.IsSoloPractice ? "魏延已停用 · 自由移动观察步态" : DescribePassives(configuredEnemy.Config), new Rect2(322,304,286,16),10,new Color("32674e"),HorizontalAlignment.Right);
         AddLabel(root, BattleTexts.Controls, new Rect2(14, 329, 612, 16), 11, new Color(BattleUiColors.ControlText), HorizontalAlignment.Center);
         AddLabel(root, BattleTexts.DebugControls, new Rect2(14, 345, 612, 14), 9, new Color(BattleUiColors.HelpText), HorizontalAlignment.Center);
 
@@ -123,12 +124,12 @@ public partial class BattleHud : CanvasLayer
     {
         // 子节点 Ready 先于 Arena.Ready；运行帧开始后主场景引用才可用。
         if (_arena.Player == null) return;
-        _clock.Text = string.Format(BattleTexts.BattleClockFormat,
+        _clock.Text = _arena.IsSoloPractice ? $"练习 {_arena.BattleSeconds:0.0}s" : string.Format(BattleTexts.BattleClockFormat,
             BattleTexts.PlayerName, BattleTexts.EnemyName, _arena.BattleSeconds);
         _skills.Text = string.Format(BattleTexts.SkillStatusFormat,
             ReadyText(CombatAction.Dash), ReadyText(CombatAction.Sweep), ReadyText(CombatAction.Dodge));
         _state.Visible = _showDebug;
-        _state.Text = string.Format(BattleTexts.DebugStateFormat,
+        _state.Text = _arena.IsSoloPractice ? $"吕布：{_arena.Player.Phase}　实际速度 {_arena.Player.WalkVelocity.Length():0}　步态 {_arena.Player.Rig.WalkPhase:0.00}" : string.Format(BattleTexts.DebugStateFormat,
             BattleTexts.PlayerName, _arena.Player.CurrentState, _arena.Player.Phase,
             BattleTexts.EnemyName, _arena.Enemy.CurrentState,
             _arena.Enemy.GetNode<WeiYanController>(NodeNames.Controller).Decision);

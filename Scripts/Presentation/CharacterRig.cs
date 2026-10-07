@@ -22,9 +22,22 @@ public partial class CharacterRig : Node2D
     private readonly float[] _angles = new float[16];
     private Node2D _overlay;
     private float _lastTime;
+    private float _walkPhase; // 路程驱动的左右脚循环，不跟随待机时间自行推进。
+    private float _lastWalkDistance;
+    private float _walkWeight; // 起停过渡，只混合步幅，不延迟输入与碰撞移动。
+    private Vector2 _walkDirection = Vector2.Right; // 最近的实际行走方向；停下后保留以收势。
+    private float _martialWeight; // 从宽站姿过渡到攻击/受击姿态的权重。
+    public float WalkPhase => _walkPhase; // 调试与回归读取，不控制游戏规则。
+    public float WalkWeight => _walkWeight;
     private Sprite2D _source;
     private LegacyPortraitRig _legacy; // 生图服务不可用或未配置拆件时保留原有蒙皮动画。
     private ShaderMaterial _cartoonMaterial; // 所有拆件共享的轻量卡通化材质，参数来自表现配置。
+    private float _pelvisHeight = 27; // 初始腰骨高度，所有状态复用同一比例。
+    private float _thighLength = 12; // 固定大腿长度，与蒙皮尺寸在初始化时一致。
+    private float _lowerLegLength = 14; // 膝到靴底的固定长度，动作中不改变。
+    public float RestPelvisHeight => _pelvisHeight;
+    public float ThighLength => _thighLength;
+    public float LowerLegLength => _lowerLegLength;
 
     public override void _Ready()
     {
@@ -35,11 +48,25 @@ public partial class CharacterRig : Node2D
         Skeleton = new Skeleton2D { Name = "Skeleton2D" }; AddChild(Skeleton);
         Vector2[] joints = { new(0,-27), new(0,-15), new(1,-13), new(-9,-7), new(0,14), new(0,14),
             new(9,-6), new(0,12), new(0,12), new(-7,3), new(0,12), new(7,3), new(0,12), new(-5,-10), new(0,1), new(0,-12) };
+        if (Actor.Presentation?.CalibratedLegProportions == true)
+        {
+            var proportions = Actor.Presentation;
+            _pelvisHeight = proportions.PelvisHeight;
+            _thighLength = proportions.ThighLength;
+            _lowerLegLength = proportions.LowerLegLength;
+            joints[0] = new Vector2(0, -_pelvisHeight);
+            // 髋点位于骨盆内侧，不能跟随脚距一起向外挪；腿从胯下连接。
+            joints[9] = new Vector2(-proportions.HipHalfWidth, 2);
+            joints[11] = new Vector2(proportions.HipHalfWidth, 2);
+            joints[10] = joints[12] = new Vector2(0, _thighLength);
+        }
         string[] names = { "腰", "胸", "头", "远上臂", "远前臂", "远手", "近上臂", "近前臂", "近手", "远大腿", "远小腿", "近大腿", "近小腿", "披风", "武器", "冠翎" };
         for (int i=0;i<16;i++)
         {
             var bone = new Bone2D { Name = names[i], Position = joints[i] };
-            bone.SetAutocalculateLengthAndAngle(false); bone.SetLength(11); bone.Rest = bone.Transform;
+            bone.SetAutocalculateLengthAndAngle(false);
+            bone.SetLength(i is 9 or 11 ? _thighLength : i is 10 or 12 ? _lowerLegLength : 11);
+            bone.Rest = bone.Transform;
             (_parents[i] < 0 ? (Node)Skeleton : _bones[_parents[i]]).AddChild(bone); _bones[i] = bone;
         }
         _drawLayers = new Node2D { Name="部件绘制层" }; AddChild(_drawLayers);
@@ -63,6 +90,14 @@ public partial class CharacterRig : Node2D
         Rect2[] rectangles = { new(-11,-3,22,17),new(-11,-13,22,23),new(-7,-16,14,19),
             new(-5,-3,10,16),new(-4,-3,8,16),new(-4,-3,8,8),new(-6,-3,12,16),new(-4,-3,8,16),new(-4,-3,8,8),
             new(-5,-3,10,17),new(-5,-2,11,16),new(-5,-3,10,17),new(-5,-2,11,16),new(-16,-2,26,42),new(-6,-54,12,87),new(-7,-27,19,30) };
+        if (Actor.Presentation.CalibratedLegProportions)
+        {
+            // 只在绑定时校准体型；裙甲止于大腿中段，让膝关节和大腿连接可读。
+            rectangles[0] = new Rect2(-10, -3, 20, 15);
+            rectangles[2] = new Rect2(-6, -14, 12, 17);
+            rectangles[9] = rectangles[11] = new Rect2(-4.5f, -2, 9, _thighLength + 3);
+            rectangles[10] = rectangles[12] = new Rect2(-4.5f, -2, 10, _lowerLegLength + 2);
+        }
         // 骨骼只负责变换；部件以兄弟节点顺序完成角色内部遮挡，全部使用 Z=0 参与整个人物的 YSort。
         // 持长兵器时远前臂也跨在胸前，不能与披风一起藏在躯干后面。
         int[] drawOrder = { 13,9,10,11,12,0,1,3,4,2,15,6,7,14,5,8 };
@@ -81,6 +116,8 @@ public partial class CharacterRig : Node2D
             var sprite=new Sprite2D { Name="拆件", Texture=new AtlasTexture { Atlas=atlas,Region=region },
                 Centered=false, Position=rect.Position, Scale=rect.Size/region.Size, TextureFilter=TextureFilterEnum.Linear,
                 Material=_cartoonMaterial };
+            // 原图远侧靴尖朝右、近侧朝左；只翻近侧贴图，避免两脚呈镜像内扣。
+            sprite.FlipH = b == 12 && Actor.Presentation.AlignBootsForward;
             sprite.Name=_bones[b].Name+"图层";
             _partOffsets[b]=sprite.Transform;
             _partByBone[b]=sprite;
@@ -96,7 +133,11 @@ public partial class CharacterRig : Node2D
     {
         Transform2D inverse=_drawLayers.GlobalTransform.AffineInverse();
         for(int i=0;i<_partByBone.Length;i++)
-            if(_partByBone[i]!=null) _partByBone[i].Transform=inverse*_bones[i].GlobalTransform*_partOffsets[i];
+            if(_partByBone[i]!=null)
+            {
+                Transform2D offset = _partOffsets[i];
+                _partByBone[i].Transform=inverse*_bones[i].GlobalTransform*offset;
+            }
     }
 
     /// <summary>压缩写实贴图色阶并在透明边缘内侧加深轮廓，降低卡牌立绘感。</summary>
@@ -137,45 +178,21 @@ public partial class CharacterRig : Node2D
         if (Skeleton == null) return;
         if (_legacy != null) { _legacy.ShowBones=ShowBones; return; }
         float elapsed = Mathf.Max(0, Actor.VisualTime - _lastTime); _lastTime = Actor.VisualTime;
+        bool martial = Actor.Presentation?.MartialWalk == true;
+        float travelled = Mathf.Max(0, Actor.WalkDistance - _lastWalkDistance);
+        _lastWalkDistance = Actor.WalkDistance;
+        if (martial && elapsed > 0)
+        {
+            _walkPhase = Mathf.PosMod(_walkPhase + travelled / Mathf.Max(1, Actor.Presentation.WalkCycleDistance), 1);
+            bool walking = Actor.CurrentState == Combatant.State.Move && Actor.WalkVelocity.LengthSquared() > 1;
+            _walkWeight = Mathf.MoveToward(_walkWeight, walking ? 1 : 0, elapsed * 12);
+            if (walking) _walkDirection = Actor.WalkVelocity.Normalized();
+            float stance = Actor.CurrentState is Combatant.State.Idle or Combatant.State.Move ? 1 : 0;
+            _martialWeight = Mathf.MoveToward(_martialWeight, stance, elapsed * 14);
+        }
         float t=Actor.VisualTime, walk=Actor.CurrentState==Combatant.State.Move ? 1 : 0;
         float stride=Mathf.Sin(t*12)*walk;
-        System.Array.Clear(_angles);
-        _angles[1]=Mathf.Sin(t*2.8f)*.025f + walk*.06f; _angles[2]=-_angles[1]*.5f;
-        // 武器顶端指向前上方，避免待机时用柄端迎敌或刀刃横穿面部。
-        const float weaponRest = 1.2f;
-        _angles[6]=.45f; _angles[7]=-1.45f; _angles[14]=weaponRest;
-        _angles[9]=stride*.52f; _angles[11]=-stride*.52f;
-        _angles[10]=Mathf.Max(0,-stride)*.65f; _angles[12]=Mathf.Max(0,stride)*.65f;
-        _angles[13]=.12f+Mathf.Sin(t*4)*.09f+walk*.25f; _angles[15]=Mathf.Sin(t*5)*.12f;
-        if(Actor.CurrentState is Combatant.State.Attack or Combatant.State.Dodge)
-        {
-            var s=Actor.Spec; float at=Actor.ActionTime;
-            float wind=Smooth(at/Mathf.Max(s.Prepare,.001f));
-            float hit=Smooth((at-s.Prepare)/Mathf.Max(s.Active,.001f));
-            float recovery=Smooth((at-s.Prepare-s.Active)/Mathf.Max(s.Recover,.001f));
-            float pose=(-wind+hit*2.1f)*(1-recovery);
-            _angles[0]=pose*.18f; _angles[1]=pose*.38f; _angles[2]=-pose*.2f;
-            _angles[6]=.45f+pose*1.15f; _angles[7]=-1.45f+pose*.65f; _angles[14]=weaponRest+pose*.8f;
-            _angles[9]=-.35f*wind*(1-recovery); _angles[11]=.3f*wind*(1-recovery);
-            _angles[12]=.22f*wind*(1-recovery); _angles[13]=.2f-pose*.45f;
-            if(Actor.CurrentAction is CombatAction.Dash or CombatAction.Dodge) { _angles[1]=.35f; _angles[9]=-.7f; _angles[11]=.7f; }
-        }
-        if(Actor.CurrentState==Combatant.State.Hurt)
-        {
-            // 受击只做肩胸收缩和抬臂防御，不旋转或翻转整张人物纸片。
-            _angles[0]=Actor.LastDamage.KnockbackDirection.X*.08f;
-            _angles[1]=-.19f; _angles[2]=.11f; _angles[6]=.2f;
-        }
-        if(Actor.CounterRemaining>0)
-        {
-            // 反击螺旋通过躯干扭转、披风摆动和武器绕手旋转表达，不再把 Sprite2D 横向压缩到负值。
-            float p=1-Actor.CounterRemaining/Actor.CounterDuration;
-            float wave=Mathf.Sin(p*Mathf.Tau);
-            _angles[0]=wave*.20f; _angles[1]=wave*.24f;
-            _angles[6]=.3f+wave*.28f; _angles[7]=-1.2f-wave*.22f;
-            _angles[14]=weaponRest+p*Mathf.Tau*1.15f;
-            _angles[13]=-.45f-wave*.28f;
-        }
+        SamplePoseTargets(martial, t, stride);
         float blend=1-Mathf.Exp(-24*elapsed);
         for(int i=0;i<16;i++) _bones[i].Rotation=Mathf.LerpAngle(_bones[i].Rotation,_angles[i]*MotionStrength,blend);
         SolveSupportArm();
@@ -191,8 +208,125 @@ public partial class CharacterRig : Node2D
         float verticalLean=Actor.CurrentState==Combatant.State.Move ? Actor.FacingDirection.Y*1.1f : 0;
         Position=new Vector2(Actor.CurrentState==Combatant.State.Hurt ? Actor.LastDamage.KnockbackDirection.X*1.8f : 0,
             Actor.IsDead ? 2 : -Mathf.Abs(stride)*1.25f+verticalLean);
+        if (martial)
+        {
+            // 站立与移动各有重心，短过渡连接；出招/受击时退出行走修正，交还动作姿态。
+            float settle = Mathf.Lerp(Actor.Presentation.StandCrouch, Actor.Presentation.WalkCrouch, _walkWeight)
+                + .18f * _walkWeight * Mathf.Cos(_walkPhase * Mathf.Tau * 2);
+            _bones[0].Position = new Vector2(0, -_pelvisHeight + settle * _martialWeight);
+            Position = Position.Lerp(Vector2.Zero, _martialWeight);
+            ApplyMartialLeg(9, 10, -1, _walkPhase, facing);
+            ApplyMartialLeg(11, 12, 1, Mathf.PosMod(_walkPhase + .5f, 1), facing);
+        }
         SyncParts();
         _overlay.QueueRedraw();
+    }
+
+    private const float WeaponRestAngle = 1.2f; // 基础持械角：刃端指向前上方。
+
+    /// <summary>唯一姿态选择入口：同一骨架复用关节，各状态只生成目标值，不各自争抢骨骼写入。</summary>
+    private void SamplePoseTargets(bool martial, float time, float stride)
+    {
+        System.Array.Clear(_angles);
+        SampleStandPose(time, martial);
+        switch (Actor.CurrentState)
+        {
+            case Combatant.State.Move: SampleMovePose(stride, martial); break;
+            case Combatant.State.Attack:
+            case Combatant.State.Dodge: SampleActionPose(); break;
+            case Combatant.State.Hurt: SampleHurtPose(); break;
+        }
+        // 反击是显式的上身覆盖层，只覆盖列出的关节，不混入行走腿部循环。
+        if(Actor.CounterRemaining>0) SampleCounterPose();
+    }
+
+    /// <summary>站立警戒：持械稳定、轻微呼吸，腿部不播放移动循环。</summary>
+    private void SampleStandPose(float time, bool martial)
+    {
+        _angles[1] = martial ? .035f + Mathf.Sin(time * 2.8f) * .008f : Mathf.Sin(time * 2.8f) * .025f;
+        _angles[2] = -_angles[1] * .5f;
+        _angles[6]=.45f; _angles[7]=-1.45f; _angles[14]=WeaponRestAngle;
+        _angles[13]=.12f+Mathf.Sin(time*4)*.09f;
+        _angles[15]=Mathf.Sin(time*5)*.12f;
+    }
+
+    /// <summary>移动姿态只负责行走目标；吕布采用沉胯换步，未启用的角色保留原步态。</summary>
+    private void SampleMovePose(float stride, bool martial)
+    {
+        if (martial)
+        {
+            float transfer = Mathf.Sin(_walkPhase * Mathf.Tau) * _walkWeight;
+            _angles[0] = transfer * .018f;
+            _angles[1] = .035f + _walkWeight * .04f - transfer * .025f;
+            _angles[2] = -_angles[1] * .6f;
+            _angles[13] = .12f + _walkWeight * .10f + transfer * .045f;
+        }
+        else
+        {
+            _angles[1] += .06f; _angles[2] = -_angles[1] * .5f;
+            _angles[9]=stride*.52f; _angles[11]=-stride*.52f;
+            _angles[10]=Mathf.Max(0,-stride)*.65f; _angles[12]=Mathf.Max(0,stride)*.65f;
+            _angles[13] += .25f;
+        }
+    }
+
+    /// <summary>出招与闪避独立读取动作时钟，保留原前摇、生效与后摇，行走循环不驱动攻击。</summary>
+    private void SampleActionPose()
+    {
+        var s=Actor.Spec; float at=Actor.ActionTime;
+        float wind=Smooth(at/Mathf.Max(s.Prepare,.001f));
+        float hit=Smooth((at-s.Prepare)/Mathf.Max(s.Active,.001f));
+        float recovery=Smooth((at-s.Prepare-s.Active)/Mathf.Max(s.Recover,.001f));
+        float pose=(-wind+hit*2.1f)*(1-recovery);
+        _angles[0]=pose*.18f; _angles[1]=pose*.38f; _angles[2]=-pose*.2f;
+        _angles[6]=.45f+pose*1.15f; _angles[7]=-1.45f+pose*.65f; _angles[14]=WeaponRestAngle+pose*.8f;
+        _angles[9]=-.35f*wind*(1-recovery); _angles[11]=.3f*wind*(1-recovery);
+        _angles[12]=.22f*wind*(1-recovery); _angles[13]=.2f-pose*.45f;
+        if(Actor.CurrentAction is CombatAction.Dash or CombatAction.Dodge) { _angles[1]=.35f; _angles[9]=-.7f; _angles[11]=.7f; }
+    }
+
+    /// <summary>受击目标与行走目标分离；肩胸收缩、抬臂防御，不翻转整个人物。</summary>
+    private void SampleHurtPose()
+    {
+        _angles[0]=Actor.LastDamage.KnockbackDirection.X*.08f;
+        _angles[1]=-.19f; _angles[2]=.11f; _angles[6]=.2f;
+    }
+
+    /// <summary>反击的局部上身覆盖层：躯干扭转、披风随动，兵器绕手旋转。</summary>
+    private void SampleCounterPose()
+    {
+        float p=1-Actor.CounterRemaining/Actor.CounterDuration;
+        float wave=Mathf.Sin(p*Mathf.Tau);
+        _angles[0]=wave*.20f; _angles[1]=wave*.24f;
+        _angles[6]=.3f+wave*.28f; _angles[7]=-1.2f-wave*.22f;
+        _angles[14]=WeaponRestAngle+p*Mathf.Tau*1.15f;
+        _angles[13]=-.45f-wave*.28f;
+    }
+
+    /// <summary>固定骨长的两段腿求解：以落脚点弯曲髋膝，超出可达范围时约束落点，不拉伸腿段。</summary>
+    private void ApplyMartialLeg(int thigh, int shin, float side, float phase, float facing)
+    {
+        var config = Actor.Presentation;
+        // 62% 周期承重，38% 周期低抬脚前摆；两脚错开半周期，保留双脚接地的时间。
+        const float support = .62f;
+        float swing = Mathf.Clamp((phase - support) / (1 - support), 0, 1);
+        float stride = phase < support ? Mathf.Lerp(1, -1, phase / support) : Mathf.Lerp(-1, 1, Smooth(swing));
+        float lift = Mathf.Pow(Mathf.Sin(swing * Mathf.Pi), 2) * config.WalkFootLift * _walkWeight;
+        Vector2 direction = new(_walkDirection.X * facing, _walkDirection.Y * .45f);
+        float width = Mathf.Lerp(config.StandStanceWidth, config.WalkStanceWidth, _walkWeight);
+        Vector2 sole = new Vector2(side * width, side * .5f)
+            + direction * (stride * config.WalkStride * _walkWeight) - new Vector2(0, lift);
+        // 在骨盆局部坐标求解，左右镜像不改变膝盖朝向；两腿均向角色前方屈膝。
+        Vector2 target = _bones[thigh].GetParent<Node2D>().ToLocal(Skeleton.ToGlobal(sole));
+        Vector2 offset = target - _bones[thigh].Position;
+        float distance = Mathf.Clamp(offset.Length(), Mathf.Abs(_thighLength - _lowerLegLength) + .01f,
+            _thighLength + _lowerLegLength - .01f);
+        float kneeAngle = Mathf.Acos(Mathf.Clamp((distance * distance - _thighLength * _thighLength
+            - _lowerLegLength * _lowerLegLength) / (2 * _thighLength * _lowerLegLength), -1, 1));
+        float thighAngle = offset.Angle() - Mathf.Pi / 2
+            - Mathf.Atan2(_lowerLegLength * Mathf.Sin(kneeAngle), _thighLength + _lowerLegLength * Mathf.Cos(kneeAngle));
+        _bones[thigh].Rotation = Mathf.LerpAngle(_bones[thigh].Rotation, thighAngle, _martialWeight);
+        _bones[shin].Rotation = Mathf.LerpAngle(_bones[shin].Rotation, kneeAngle, _martialWeight);
     }
 
     /// <summary>远手对齐兵器上的独立握点，在胸部局部坐标内求解两节 IK；横向镜像不改变求解结果。</summary>

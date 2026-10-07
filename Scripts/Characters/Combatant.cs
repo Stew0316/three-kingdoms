@@ -58,6 +58,8 @@ public partial class Combatant : CharacterBody2D
     public float CounterRadius { get; private set; }
     public DamageInfo LastDamage { get; private set; } // 最近实际结算结果，用于反馈与验证。
     public CharacterRig Rig { get; private set; } // 二维正式场景与历史三维桥接共用的骨骼表现引用。
+    public float WalkDistance { get; private set; } // 主动行走实际路程；碰墙、攻击位移和击退不计入步态。
+    public Vector2 WalkVelocity { get; private set; } // 碰撞后的主动行走速度，供表现层判断是否真正迈步。
     public WeaponTrail Trail { get; private set; }
 
     public void PlayCounterSpin(float radius, float duration)
@@ -138,6 +140,7 @@ public partial class Combatant : CharacterBody2D
     public override void _PhysicsProcess(double delta)
     {
         float dt = (float)delta;
+        WalkVelocity = Vector2.Zero;
         if (_hitStop > 0) { _hitStop -= dt; return; }
         CounterRemaining = Mathf.Max(0, CounterRemaining - dt);
         for (int i = 0; i < _cooldowns.Length; i++) _cooldowns[i] = Mathf.Max(0, _cooldowns[i] - dt);
@@ -168,7 +171,12 @@ public partial class Combatant : CharacterBody2D
         {
             Velocity = _moveInput * Config.MoveSpeed;
             SetState(_moveInput.IsZeroApprox() ? State.Idle : State.Move);
+            Vector2 beforeMove = GlobalPosition;
             MoveAndSlide();
+            Vector2 travel = GlobalPosition - beforeMove;
+            WalkVelocity = travel / Mathf.Max(dt, .001f);
+            // 墙体安全边距会产生亚像素往返修正；忽略低于 1 像素/秒的抖动，避免顶墙累积假步长。
+            if (WalkVelocity.LengthSquared() > 1) WalkDistance += travel.Length();
         }
         UpdateVisual(dt);
         QueueRedraw();

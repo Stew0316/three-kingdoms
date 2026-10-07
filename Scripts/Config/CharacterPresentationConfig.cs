@@ -18,6 +18,23 @@ public partial class CharacterPresentationConfig : Resource
     [Export] public float AuraRadius { get; set; } = 21;
     [Export] public int ParticleCount { get; set; } = 24;
     [Export] public float MotionStrength { get; set; } = 1;
+    [ExportGroup("人体比例")]
+    [Export] public bool CalibratedLegProportions { get; set; } // 使用独立校准的髋点与固定腿长；只对选定角色启用。
+    [Export(PropertyHint.Range, "28,44,0.5")] public float PelvisHeight { get; set; } = 36; // 腰骨离角色脚点的高度，骨架单位。
+    [Export(PropertyHint.Range, "3,7,0.25")] public float HipHalfWidth { get; set; } = 4.5f; // 左右髋关节离骨盆中线的距离，不等于脚距。
+    [Export(PropertyHint.Range, "12,22,0.5")] public float ThighLength { get; set; } = 17; // 固定髋到膝长度，动作中禁止拉伸。
+    [Export(PropertyHint.Range, "12,22,0.5")] public float LowerLegLength { get; set; } = 18; // 固定膝到靴底长度，动作中禁止压缩。
+    [ExportGroup("武将步态")]
+    [Export] public bool MartialWalk { get; set; } // 开启低重心、宽站姿的步态；不改变其他角色的动作。
+    [Export(PropertyHint.Range, "4,16,0.5")] public float StandStanceWidth { get; set; } = 10; // 站立警戒时的半脚距，独立于移动步幅。
+    [Export(PropertyHint.Range, "0,5,0.25")] public float StandCrouch { get; set; } = .75f; // 站立时轻微屈膝，移动时再降低重心。
+    [Export(PropertyHint.Range, "4,16,0.5")] public float WalkStanceWidth { get; set; } = 12; // 两脚距身体中线的距离，骨架单位。
+    [Export(PropertyHint.Range, "0,5,0.25")] public float WalkCrouch { get; set; } = 2.5f; // 腰胯下沉量，脚底仍停留在地面。
+    [Export(PropertyHint.Range, "32,100,1")] public float WalkCycleDistance { get; set; } = 72; // 完成左右各一步所需的实际移动距离，世界像素。
+    [Export(PropertyHint.Range, "1,8,0.25")] public float WalkStride { get; set; } = 4.5f; // 单脚前后移动的半幅，骨架单位。
+    [Export(PropertyHint.Range, "0,5,0.25")] public float WalkFootLift { get; set; } = 2; // 摆动脚离地高度，避免高抬腿和蹦跳。
+    [Export] public bool AlignBootsForward { get; set; } // 校正近侧小腿贴图：双脚同向，整个人物镜像时一起转向。
+    [ExportGroup("外观")]
     [Export(PropertyHint.Range, "0.025,0.06,0.001")] public float CharacterScale { get; set; } = .038f; // 二维世界中的角色整体尺寸，不影响碰撞和技能范围。
     [Export(PropertyHint.Range, "0.75,1,0.01")] public float DepthScale { get; set; } = .92f; // 轻微压缩纵向比例，使正面拆件更接近俯视小人而非卡牌立绘。
     [Export(PropertyHint.Range, "6,16,0.5")] public float SupportGripDistance { get; set; } = 10; // 远手沿武器向上握持的距离，骨架单位；避免两只手重叠成一团。

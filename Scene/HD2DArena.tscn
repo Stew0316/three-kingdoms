@@ -4,3 +4,4 @@
 
 [node name="HD2DArena" instance=ExtResource("1")]
 Hd2D = true
+SoloPractice = false

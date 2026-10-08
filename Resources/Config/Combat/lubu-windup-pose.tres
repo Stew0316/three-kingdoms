@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="CharacterPoseConfig" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://Scripts/Config/CharacterPoseConfig.cs" id="1"]
+
+[resource]
+script = ExtResource("1")
+PelvisOffset = Vector2(-1, 7.0)
+ChestDegrees = 10.0
+HeadDegrees = -8.0
+FarHand = Vector2(-16, -41)
+FreeHand = Vector2(15, -28)
+FarFoot = Vector2(-24, 0)
+NearFoot = Vector2(24, 0)
+WeaponDegrees = 103.0
+BladeDistance = 56.0
+GripSeparation = 30.0
+TwoHandWeight = 1.0

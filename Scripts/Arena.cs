@@ -51,6 +51,8 @@ public partial class Arena : Node2D
         if (Hd2D) AddChild(new Hd2DStage { Name = "HD2DStage" });
         if (Array.Exists(OS.GetCmdlineUserArgs(), a => a == "--rig-visual-test"))
             CallDeferred(MethodName.StartRigVisualTests);
+        if (Array.Exists(OS.GetCmdlineUserArgs(), a => a == "--pose-test"))
+            CallDeferred(MethodName.StartReferencePoseTests);
         if (!_walkTestsStarted && Array.Exists(OS.GetCmdlineUserArgs(), a => a == "--walk-test"))
         {
             _walkTestsStarted = true;
@@ -87,6 +89,8 @@ public partial class Arena : Node2D
     /// <summary>使用真实渲染帧验收手脚可见性，只有显式开发参数会启动。</summary>
     private void StartRigVisualTests() => GetTree().Root.AddChild(new RigVisualTests());
     private void StartWalkTests() => GetTree().Root.AddChild(new WalkVisualTests());
+    /// <summary>按真实动作时钟检查三种参考姿态，并输出局部截图和连续动画帧。</summary>
+    private void StartReferencePoseTests() => GetTree().Root.AddChild(new ReferencePoseTests());
 
     /// <summary>关闭控制器并摆放固定画面，等待渲染完成后保存截图并退出测试进程。</summary>
     private async void CapturePreview()

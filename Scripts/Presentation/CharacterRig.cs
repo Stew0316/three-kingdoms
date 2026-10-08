@@ -60,6 +60,21 @@ public partial class CharacterRig : Node2D
             joints[11] = new Vector2(proportions.HipHalfWidth, 2);
             joints[10] = joints[12] = new Vector2(0, _thighLength);
         }
+        if (Actor.Presentation?.ReferencePoseSet == true)
+        {
+            // 依据三姿态样板重新绑定上半身；手脚目标共用脚底原点，不从旧持械角度继承。
+            joints[1] = new Vector2(0, -11);
+            joints[2] = new Vector2(3, -12);
+            joints[3] = new Vector2(-7, -6);
+            joints[6] = new Vector2(8, -5);
+            joints[4] = joints[7] = new Vector2(0, 12);
+            joints[5] = joints[8] = new Vector2(0, 12);
+            joints[13] = new Vector2(-5, -9);
+            joints[15] = new Vector2(-1, -10);
+            // 长戟独立于手臂骨链：先确定武器与握点，再由双臂追踪，允许单手释放。
+            _parents[14] = -1;
+            joints[14] = Vector2.Zero;
+        }
         string[] names = { "腰", "胸", "头", "远上臂", "远前臂", "远手", "近上臂", "近前臂", "近手", "远大腿", "远小腿", "近大腿", "近小腿", "披风", "武器", "冠翎" };
         for (int i=0;i<16;i++)
         {
@@ -94,9 +109,21 @@ public partial class CharacterRig : Node2D
         {
             // 只在绑定时校准体型；裙甲止于大腿中段，让膝关节和大腿连接可读。
             rectangles[0] = new Rect2(-10, -3, 20, 15);
+            rectangles[1] = new Rect2(-11, -13, 22, 28); // 胸甲下缘覆盖腰带，转腰时不能露出背景裂缝。
             rectangles[2] = new Rect2(-6, -14, 12, 17);
             rectangles[9] = rectangles[11] = new Rect2(-4.5f, -2, 9, _thighLength + 3);
             rectangles[10] = rectangles[12] = new Rect2(-4.5f, -2, 10, _lowerLegLength + 2);
+        }
+        if (Actor.Presentation.ReferencePoseSet)
+        {
+            rectangles[0] = new Rect2(-10, -3, 20, 17);
+            rectangles[1] = new Rect2(-10, -12, 20, 25);
+            rectangles[2] = new Rect2(-5.5f, -10, 11, 14);
+            rectangles[3] = rectangles[6] = new Rect2(-5, -3, 10, 16);
+            rectangles[4] = rectangles[7] = new Rect2(-3.5f, -2, 7, 15);
+            rectangles[5] = rectangles[8] = new Rect2(-2.5f, -2, 5, 6);
+            rectangles[13] = new Rect2(-19, -2, 28, 49);
+            rectangles[14] = new Rect2(-5, -42, 10, 86);
         }
         // 骨骼只负责变换；部件以兄弟节点顺序完成角色内部遮挡，全部使用 Z=0 参与整个人物的 YSort。
         // 持长兵器时远前臂也跨在胸前，不能与披风一起藏在躯干后面。
@@ -116,15 +143,23 @@ public partial class CharacterRig : Node2D
             var sprite=new Sprite2D { Name="拆件", Texture=new AtlasTexture { Atlas=atlas,Region=region },
                 Centered=false, Position=rect.Position, Scale=rect.Size/region.Size, TextureFilter=TextureFilterEnum.Linear,
                 Material=_cartoonMaterial };
-            // 原图远侧靴尖朝右、近侧朝左；只翻近侧贴图，避免两脚呈镜像内扣。
+            // 旧 v2 图集双靴相向时只翻近侧；原生同向的 v3 图集关闭该配置。
             sprite.FlipH = b == 12 && Actor.Presentation.AlignBootsForward;
+            sprite.FlipV = b == 15 && Actor.Presentation.FlipCrestVertical;
+            if (Actor.Presentation.ReferencePoseSet && Actor.Presentation.ReferenceAccessories != null)
+                BindReferenceAccessory(b, sprite);
             sprite.Name=_bones[b].Name+"图层";
             _partOffsets[b]=sprite.Transform;
             _partByBone[b]=sprite;
             _parts.Add(sprite);
         }
         foreach(int boneIndex in drawOrder)
-            if(_partByBone[boneIndex] is Sprite2D part) { _drawLayers.AddChild(part); _drawOrderedParts.Add(part); }
+            if(_partByBone[boneIndex] is Sprite2D part)
+            {
+                _drawLayers.AddChild(part); _drawOrderedParts.Add(part);
+                if (Actor.Presentation.ReferencePoseSet && boneIndex is 10 or 12)
+                    BuildReferenceFoot(boneIndex, part);
+            }
         SyncParts();
     }
 
@@ -138,6 +173,7 @@ public partial class CharacterRig : Node2D
                 Transform2D offset = _partOffsets[i];
                 _partByBone[i].Transform=inverse*_bones[i].GlobalTransform*offset;
             }
+        if (Actor.Presentation.ReferencePoseSet) SyncReferenceFeet(inverse);
     }
 
     /// <summary>压缩写实贴图色阶并在透明边缘内侧加深轮廓，降低卡牌立绘感。</summary>
@@ -189,6 +225,13 @@ public partial class CharacterRig : Node2D
             if (walking) _walkDirection = Actor.WalkVelocity.Normalized();
             float stance = Actor.CurrentState is Combatant.State.Idle or Combatant.State.Move ? 1 : 0;
             _martialWeight = Mathf.MoveToward(_martialWeight, stance, elapsed * 14);
+        }
+        if (Actor.Presentation?.ReferencePoseSet == true)
+        {
+            ProcessReferencePose(elapsed);
+            SyncParts();
+            _overlay.QueueRedraw();
+            return;
         }
         float t=Actor.VisualTime, walk=Actor.CurrentState==Combatant.State.Move ? 1 : 0;
         float stride=Mathf.Sin(t*12)*walk;

@@ -8,6 +8,7 @@ public partial class CharacterPresentationConfig : Resource
     // 按图集从左至右、从上至下的 16 格顺序指定采样区域；空数组时使用等分网格。
     [Export] public Godot.Collections.Array<Rect2> AtlasRegions { get; set; } = new();
     [Export] public Rect2 CrestRect { get; set; } = new(-7,-27,19,30); // 冠饰相对冠顶骨的显示范围，适配上扬雉翎或下垂盔缨。
+    [Export] public bool FlipCrestVertical { get; set; } // 图集冠翎根部位于上端时翻转采样，让根部靠近冠顶。
     [Export] public Color AuraColor { get; set; } = new("ffb34f");
     [Export] public Color ParticleColor { get; set; } = new("ffe5ad");
     [Export] public bool OrbitParticles { get; set; } // true 为环绕叶片，false 为上升火星。
@@ -18,6 +19,15 @@ public partial class CharacterPresentationConfig : Resource
     [Export] public float AuraRadius { get; set; } = 21;
     [Export] public int ParticleCount { get; set; } = 24;
     [Export] public float MotionStrength { get; set; } = 1;
+    [ExportGroup("参考图关键姿态")]
+    [Export] public bool ReferencePoseSet { get; set; } // 使用三姿态资源和独立持械约束，替代通用角度公式。
+    [Export] public CharacterPoseConfig StandingPose { get; set; } // 单手竖戟站立。
+    [Export] public CharacterPoseConfig MovingPose { get; set; } // 单手低持拖戟行走。
+    [Export] public CharacterPoseConfig WindupPose { get; set; } // 双手横戟、宽脚距沉胯蓄势。
+    [Export] public Texture2D ReferenceAccessories { get; set; } // 由三姿态原画提取的长戟和双翎配件。
+    [Export] public Rect2 ReferenceWeaponRegion { get; set; } // 配件图中的完整武器区域。
+    [Export] public Rect2 ReferenceCrestRegion { get; set; } // 配件图中的双翎区域。
+    [Export] public Vector2 ReferenceCrestRoot { get; set; } // 双翎根部在采样区域内的像素坐标。
     [ExportGroup("人体比例")]
     [Export] public bool CalibratedLegProportions { get; set; } // 使用独立校准的髋点与固定腿长；只对选定角色启用。
     [Export(PropertyHint.Range, "28,44,0.5")] public float PelvisHeight { get; set; } = 36; // 腰骨离角色脚点的高度，骨架单位。

@@ -27,7 +27,10 @@ public partial class WalkVisualTests : Node
                 && _arena.Enemy.GetNode<Area2D>(NodeNames.Hurtbox).CollisionLayer == 0, "魏延处理、实体碰撞和受击关闭");
             await Frames(15);
             float standingHip = Player.Rig.Joints[0].Position.Y;
-            Check(!Player.Rig.Parts[10].FlipH && Player.Rig.Parts[12].FlipH, "只校正反向小腿，两只靴尖同向");
+            Check(!Player.Rig.Parts[10].FlipH && Player.Rig.Parts[12].FlipH == Player.Presentation.AlignBootsForward,
+                "小腿方向遵循实际素材配置，不强制镜像新素材");
+            Vector2 farLegScale = Player.Rig.Parts[9].Scale;
+            Vector2 nearLegScale = Player.Rig.Parts[11].Scale;
             if (HasRenderer) await Screenshot("lubu-practice");
             // 清除遮挡腿部的装饰，只在此测试进程中生效；正式练习场仍保留光环。
             Player.GetNode<GroundEffects>(NodeNames.GroundEffects).Hide();
@@ -41,9 +44,12 @@ public partial class WalkVisualTests : Node
                 Player.SetMoveInput(direction);
                 await Frames(15);
                 Check(Player.WalkDistance > before + 20, $"方向 {direction} 按实际位移推进步态");
-                Check(Mathf.Abs(Player.Rig.Parts[10].GlobalRotation - Player.Rig.Parts[12].GlobalRotation) < .2f,
-                    $"方向 {direction} 两只靴底保持同向且不过度旋转");
-                Check(Player.Rig.Joints[0].Position.Y > standingHip + 1, $"方向 {direction} 移动重心低于站立");
+                Check(Player.Rig.Joints[10].Position.IsEqualApprox(new Vector2(0, Player.Rig.ThighLength))
+                    && Player.Rig.Joints[12].Position.IsEqualApprox(new Vector2(0, Player.Rig.ThighLength)),
+                    $"方向 {direction} 大腿骨长固定，膝点不伸缩");
+                Check(Player.Rig.Parts[9].Scale.Abs().IsEqualApprox(farLegScale.Abs())
+                    && Player.Rig.Parts[11].Scale.Abs().IsEqualApprox(nearLegScale.Abs()), $"方向 {direction} 大腿图层不随步幅拉伸");
+                Check(Player.Rig.Joints[0].Position.Y > standingHip + .7f, $"方向 {direction} 移动适度沉胯");
             }
             Player.SetMoveInput(Vector2.Zero);
             await Frames(20);
@@ -54,8 +60,22 @@ public partial class WalkVisualTests : Node
             Check(Mathf.Abs(Player.Rig.Joints[0].Position.Y - standingHip) < .1f, "停步回到独立站立姿态");
             Check(Player.TryAction(CombatAction.Basic), "站立可正常进入攻击姿态");
             await Frames(7);
-            Check(Mathf.IsEqualApprox(Player.Rig.Joints[0].Position.Y, -27)
-                && Mathf.IsEqualApprox(Player.Rig.Joints[10].Position.Y, 12), "攻击时行走沉胯与腿长修正已退出");
+            if (Player.Presentation.ReferencePoseSet)
+            {
+                // 新样板以沉胯横戟蓄势，不能再用旧动作的站直腰高作为攻击验收标准。
+                Check(Player.Rig.Joints[0].Position.Y > standingHip + 2
+                    && Mathf.IsEqualApprox(Player.Rig.Joints[10].Position.Length(), Player.Rig.ThighLength)
+                    && Mathf.IsEqualApprox(Player.Rig.Joints[12].Position.Length(), Player.Rig.ThighLength)
+                    && Mathf.IsEqualApprox(Player.Rig.Joints[10].GetLength(), Player.Rig.LowerLegLength)
+                    && Mathf.IsEqualApprox(Player.Rig.Joints[12].GetLength(), Player.Rig.LowerLegLength),
+                    "参考攻击姿态比站立沉胯至少 2 个骨架单位，大小腿保持固定骨长");
+            }
+            else
+            {
+                Check(Mathf.IsEqualApprox(Player.Rig.Joints[0].Position.Y, -Player.Rig.RestPelvisHeight)
+                    && Mathf.IsEqualApprox(Player.Rig.Joints[10].Position.Y, Player.Rig.ThighLength),
+                    "旧攻击退出行走沉胯，沿用相同固定骨长");
+            }
             await Frames(30);
             Player.Position = new Vector2(570, 230);
             Player.SetMoveInput(Vector2.Right);
@@ -116,20 +136,20 @@ public partial class WalkVisualTests : Node
     /// <summary>输出一整轮正常尺寸截图与角色局部连拍，供肉眼检查承重、换脚和膝盖连接。</summary>
     private async Task CaptureCycle(string direction)
     {
-        using var sheet = Image.CreateEmpty(192 * 8, 288, false, Image.Format.Rgba8);
+        using var sheet = Image.CreateEmpty(240 * 8, 368, false, Image.Format.Rgba8);
         for (int frame = 0; frame < 32; frame++)
         {
             await Frames(1);
             await ToSignal(RenderingServer.Singleton, RenderingServer.SignalName.FramePostDraw);
             using var shot = GetViewport().GetTexture().GetImage();
             float scale = shot.GetWidth() / 640f;
-            var rect = new Rect2I((int)((Player.Position.X - 24) * scale), (int)((Player.Position.Y - 70) * scale),
-                (int)(48 * scale), (int)(72 * scale));
+            var rect = new Rect2I((int)((Player.Position.X - 30) * scale), (int)((Player.Position.Y - 88) * scale),
+                (int)(60 * scale), (int)(92 * scale));
             using var detail = shot.GetRegion(rect);
             detail.Convert(Image.Format.Rgba8); // D3D12 与 OpenGL 的读回格式可能不同，统一后再拼接。
-            detail.Resize(192, 288, Image.Interpolation.Nearest);
+            detail.Resize(240, 368, Image.Interpolation.Nearest);
             detail.SavePng($"res://Build/lubu-walk-{direction}-{frame:D2}.png");
-            if (frame % 4 == 0) sheet.BlitRect(detail, new Rect2I(0, 0, 192, 288), new Vector2I(frame / 4 * 192, 0));
+            if (frame % 4 == 0) sheet.BlitRect(detail, new Rect2I(0, 0, 240, 368), new Vector2I(frame / 4 * 240, 0));
         }
         sheet.SavePng($"res://Build/lubu-walk-{direction}-sheet.png");
     }

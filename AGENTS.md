@@ -24,12 +24,12 @@
   - logo-owl-l-v1.png 为参考 logo-l.png 熊版风格生成的猫头鹰 STEW Logo 候选；logo-owl-light-v2.png 和 logo-owl-dark-v2.png 为配套亮色与暗色背景版本，原图保留；生成记录见 Demand/美术/猫头鹰Logo生成记录.md
 - Source
   - City是城池资源
-  - People是人物资源；LvBu / WeiYan 中的 *-parts-v2.png 为当前对战使用的 16 关节透明拆件图集，旧 prototype 图保留回退；生成与接入记录见 People/拆件生成记录.md；骨架、二维光环粒子、二维残影和历史HD2D桥接位于 Scripts/Presentation，尺寸、采样区域与冠饰挂点在角色表现配置中编辑
+  - People是人物资源；吕布当前使用 LvBu/lubu-parts-v3.png，魏延保留 weiyan-parts-v2.png，均为 16 关节透明拆件；吕布三姿态比例样板为 lubu-pose-study-v3.png，旧 v2/prototype 保留回退；生成与接入记录见 People/拆件生成记录.md；骨架、二维光环粒子、二维残影和历史HD2D桥接位于 Scripts/Presentation，采样与比例在角色表现配置中编辑
   - Terrain是地形资源
   - StyleGuide是美术风格样板和生成记录；候选图不等于正式游戏资产
 - Resources
   - Config保存 Godot 可在 Inspector 编辑的 `.tres` 配置实例；包含角色主动/被动战斗参数和独立表现配置，对应的 C# 配置类型放在 `Scripts/Config`
-  - 吕布表现配置包含站立/移动的脚距、沉胯、步长、抬脚与小腿同向校正；当前关闭吕布残影，便于观察步态
+  - 吕布表现配置包含固定大腿/小腿长度、髋点、站立/移动脚距与沉胯；v3 双靴原生同向，无需镜像，冠翎单独翻转；当前关闭吕布残影，便于观察步态
 - Scripts
   - c#脚本代码放入其中
   - Utils

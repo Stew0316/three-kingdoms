@@ -24,12 +24,12 @@
   - logo-owl-l-v1.png 为参考 logo-l.png 熊版风格生成的猫头鹰 STEW Logo 候选；logo-owl-light-v2.png 和 logo-owl-dark-v2.png 为配套亮色与暗色背景版本，原图保留；生成记录见 Demand/美术/猫头鹰Logo生成记录.md
 - Source
   - City是城池资源
-  - People是人物资源；吕布当前使用 LvBu/lubu-parts-v3.png，魏延保留 weiyan-parts-v2.png，均为 16 关节透明拆件；吕布三姿态比例样板为 lubu-pose-study-v3.png，旧 v2/prototype 保留回退；生成与接入记录见 People/拆件生成记录.md；骨架、二维光环粒子、二维残影和历史HD2D桥接位于 Scripts/Presentation，采样与比例在角色表现配置中编辑
+  - People是人物资源；吕布身体使用 LvBu/lubu-parts-v3.png，长戟与后弯双翎使用 lubu-reference-accessories-v4.png；16 业务关节加独立靴掌图层，魏延保留 weiyan-parts-v2.png；lubu-pose-study-v3.png 为造型比例参考，当前持戟动作以 2026-10-09 的低位警戒、后收戟与绕身劈扫为准；旧图保留回退，生成与接入记录见 People/拆件生成记录.md
   - Terrain是地形资源
   - StyleGuide是美术风格样板和生成记录；候选图不等于正式游戏资产
 - Resources
   - Config保存 Godot 可在 Inspector 编辑的 `.tres` 配置实例；包含角色主动/被动战斗参数和独立表现配置，对应的 C# 配置类型放在 `Scripts/Config`
-  - 吕布表现配置包含固定大腿/小腿长度、髋点、站立/移动脚距与沉胯；v3 双靴原生同向，无需镜像，冠翎单独翻转；当前关闭吕布残影，便于观察步态
+  - 吕布表现配置引用站立、移动、后收蓄势、过顶、接触、随势六份姿态资源；同一骨架求解手脚和武器，站立双手低持、移动单手拖戟、攻击双手绕身劈扫；靴掌独立保持水平，v4 双翎以根部挂冠且不翻转；当前关闭吕布残影，刀光跟随真实戟尖
 - Scripts
   - c#脚本代码放入其中
   - Utils
@@ -41,7 +41,7 @@
 - Scene
   - 场景
   - 正式主路线采用火红/叶绿式二维俯视 TileMap 与即时战斗；Arena.tscn 是当前二维俯视演武场和启动入口，HD2DArena.tscn 仅保留为历史表现技术样板，正式世界地图入口后续独立建立
-  - Arena.tscn 当前默认 SoloPractice 单人练习，魏延隐藏且处理/碰撞/受击关闭；关闭该开关或使用 --with-opponent 可恢复对战；--walk-test 检查吕布步态，既有战斗/可见性测试自动恢复对手
+  - Arena.tscn 当前默认 SoloPractice 单人练习，魏延隐藏且处理/碰撞/受击关闭；关闭该开关或使用 --with-opponent 可恢复对战；--walk-test 检查步态，--pose-test 检查长戟挥击弧线、握点与暂停/受击，既有战斗/可见性测试自动恢复对手
 - Demand
   - 一些需求，一些想法文档
 - Components

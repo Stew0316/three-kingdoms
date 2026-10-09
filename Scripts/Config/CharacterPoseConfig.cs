@@ -5,6 +5,7 @@ using Godot;
 public partial class CharacterPoseConfig : Resource
 {
     [Export] public Vector2 PelvisOffset { get; set; } // 相对绑定腰高的重心偏移，正 Y 为沉胯。
+    [Export] public float PelvisDegrees { get; set; } // 腰胯带动角，先于长戟挥出，胸部在其上继续转动。
     [Export] public float ChestDegrees { get; set; } // 胸部相对骨盆的倾角。
     [Export] public float HeadDegrees { get; set; } // 头部相对胸部的补偿角。
     [Export] public Vector2 FarHand { get; set; } // 主持械手目标，位于画面后侧的手臂。

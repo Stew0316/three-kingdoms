@@ -20,11 +20,14 @@ public partial class CharacterPresentationConfig : Resource
     [Export] public int ParticleCount { get; set; } = 24;
     [Export] public float MotionStrength { get; set; } = 1;
     [ExportGroup("参考图关键姿态")]
-    [Export] public bool ReferencePoseSet { get; set; } // 使用三姿态资源和独立持械约束，替代通用角度公式。
-    [Export] public CharacterPoseConfig StandingPose { get; set; } // 单手竖戟站立。
-    [Export] public CharacterPoseConfig MovingPose { get; set; } // 单手低持拖戟行走。
-    [Export] public CharacterPoseConfig WindupPose { get; set; } // 双手横戟、宽脚距沉胯蓄势。
-    [Export] public Texture2D ReferenceAccessories { get; set; } // 由三姿态原画提取的长戟和双翎配件。
+    [Export] public bool ReferencePoseSet { get; set; } // 使用长兵器关键姿态和独立持械约束，替代通用角度公式。
+    [Export] public CharacterPoseConfig StandingPose { get; set; } // 双手在胸腰之间低持长戟警戒。
+    [Export] public CharacterPoseConfig MovingPose { get; set; } // 腰侧单手近水平拖戟行走。
+    [Export] public CharacterPoseConfig WindupPose { get; set; } // 双手收戟至身后，沉胯蓄势。
+    [Export] public CharacterPoseConfig StrikeHighPose { get; set; } // 挥击弧线经过上方的关键姿态。
+    [Export] public CharacterPoseConfig StrikeContactPose { get; set; } // 戟刃挥到前方的接触关键姿态。
+    [Export] public CharacterPoseConfig StrikeFollowPose { get; set; } // 扫击后的下压随势，不向前投掷武器。
+    [Export] public Texture2D ReferenceAccessories { get; set; } // 参考三姿态原画生成的长戟和双翎配件。
     [Export] public Rect2 ReferenceWeaponRegion { get; set; } // 配件图中的完整武器区域。
     [Export] public Rect2 ReferenceCrestRegion { get; set; } // 配件图中的双翎区域。
     [Export] public Vector2 ReferenceCrestRoot { get; set; } // 双翎根部在采样区域内的像素坐标。

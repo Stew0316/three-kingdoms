@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="CharacterPresentationConfig" load_steps=7 format=3]
+[gd_resource type="Resource" script_class="CharacterPresentationConfig" load_steps=10 format=3]
 
 [ext_resource type="Script" path="res://Scripts/Config/CharacterPresentationConfig.cs" id="1"]
 [ext_resource type="Texture2D" path="res://Source/People/LvBu/lubu-parts-v3.png" id="2"]
@@ -6,6 +6,9 @@
 [ext_resource type="Resource" path="res://Resources/Config/Combat/lubu-moving-pose.tres" id="4"]
 [ext_resource type="Resource" path="res://Resources/Config/Combat/lubu-windup-pose.tres" id="5"]
 [ext_resource type="Texture2D" path="res://Source/People/LvBu/lubu-reference-accessories-v4.png" id="6"]
+[ext_resource type="Resource" path="res://Resources/Config/Combat/lubu-strike-high-pose.tres" id="7"]
+[ext_resource type="Resource" path="res://Resources/Config/Combat/lubu-strike-contact-pose.tres" id="8"]
+[ext_resource type="Resource" path="res://Resources/Config/Combat/lubu-strike-follow-pose.tres" id="9"]
 
 [resource]
 script = ExtResource("1")
@@ -14,6 +17,9 @@ ReferencePoseSet = true
 StandingPose = ExtResource("3")
 MovingPose = ExtResource("4")
 WindupPose = ExtResource("5")
+StrikeHighPose = ExtResource("7")
+StrikeContactPose = ExtResource("8")
+StrikeFollowPose = ExtResource("9")
 ReferenceAccessories = ExtResource("6")
 ReferenceWeaponRegion = Rect2(300, 0, 174, 887)
 ReferenceCrestRegion = Rect2(635, 150, 1025, 725)

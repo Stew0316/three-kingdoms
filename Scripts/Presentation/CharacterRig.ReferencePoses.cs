@@ -6,13 +6,13 @@ public partial class CharacterRig
     private struct ReferenceFrame
     {
         public Vector2 Pelvis, FarHand, FreeHand, FarFoot, NearFoot;
-        public float Chest, Head, Weapon, Blade, Separation, Grip;
+        public float Waist, Chest, Head, Weapon, Blade, Separation, Grip;
 
         public static ReferenceFrame From(CharacterPoseConfig pose) => new()
         {
             Pelvis = pose.PelvisOffset, FarHand = pose.FarHand, FreeHand = pose.FreeHand,
             FarFoot = pose.FarFoot, NearFoot = pose.NearFoot,
-            Chest = Mathf.DegToRad(pose.ChestDegrees), Head = Mathf.DegToRad(pose.HeadDegrees),
+            Waist = Mathf.DegToRad(pose.PelvisDegrees), Chest = Mathf.DegToRad(pose.ChestDegrees), Head = Mathf.DegToRad(pose.HeadDegrees),
             Weapon = Mathf.DegToRad(pose.WeaponDegrees), Blade = pose.BladeDistance,
             Separation = pose.GripSeparation, Grip = pose.TwoHandWeight
         };
@@ -21,7 +21,8 @@ public partial class CharacterRig
         {
             Pelvis = a.Pelvis.Lerp(b.Pelvis, weight), FarHand = a.FarHand.Lerp(b.FarHand, weight),
             FreeHand = a.FreeHand.Lerp(b.FreeHand, weight), FarFoot = a.FarFoot.Lerp(b.FarFoot, weight),
-            NearFoot = a.NearFoot.Lerp(b.NearFoot, weight), Chest = Mathf.LerpAngle(a.Chest, b.Chest, weight),
+            NearFoot = a.NearFoot.Lerp(b.NearFoot, weight), Waist = Mathf.LerpAngle(a.Waist, b.Waist, weight),
+            Chest = Mathf.LerpAngle(a.Chest, b.Chest, weight),
             Head = Mathf.LerpAngle(a.Head, b.Head, weight), Weapon = Mathf.LerpAngle(a.Weapon, b.Weapon, weight),
             Blade = Mathf.Lerp(a.Blade, b.Blade, weight), Separation = Mathf.Lerp(a.Separation, b.Separation, weight),
             Grip = Mathf.Lerp(a.Grip, b.Grip, weight)
@@ -37,6 +38,8 @@ public partial class CharacterRig
     public Vector2 ReferencePrimaryGrip => _referenceFrame.FarHand; // 主握点，骨架局部坐标。
     public Vector2 ReferenceSecondaryGrip => _referenceFrame.FarHand
         + Vector2.Up.Rotated(_referenceFrame.Weapon) * _referenceFrame.Separation; // 副握点，骨架局部坐标。
+    public Vector2 ReferenceBladeTip => Skeleton.ToGlobal(_referenceFrame.FarHand
+        + Vector2.Up.Rotated(_referenceFrame.Weapon) * _referenceFrame.Blade); // 世界坐标戟尖，供刀光跟随真实挥击。
     private readonly Sprite2D[] _referenceFeet = new Sprite2D[2]; // 独立靴掌图层，业务骨链仍保持 16 关节。
     private readonly Transform2D[] _referenceFootOffsets = new Transform2D[2];
     private const float ReferenceFootHeight = 4; // 小腿末端的靴掌高度；其上方为固定胫骨段。
@@ -99,7 +102,7 @@ public partial class CharacterRig
         }
     }
 
-    /// <summary>从三张样板的关节目标产生实际动作；姿态时序只读取战斗时钟。</summary>
+    /// <summary>从长兵器关键姿态产生实际动作；姿态时序只读取战斗时钟。</summary>
     private void ProcessReferencePose(float elapsed)
     {
         var config = Actor.Presentation;
@@ -182,7 +185,7 @@ public partial class CharacterRig
         return (direction * (forward * Actor.Presentation.WalkStride) - new Vector2(0, lift)) * _walkWeight;
     }
 
-    /// <summary>三姿态间的起势、横扫和收势；普攻/突进沿用同一持械语言，伤害时序不变。</summary>
+    /// <summary>低位警戒、后收、过顶、斩入和随势；普攻/突进沿用同一持械语言，伤害时序不变。</summary>
     private ReferenceFrame SampleReferenceAction(ReferenceFrame standing, ReferenceFrame moving, ReferenceFrame windup)
     {
         float time = Actor.ActionTime;
@@ -198,40 +201,35 @@ public partial class CharacterRig
             float outWeight = Smooth((time - spec.Active) / Mathf.Max(spec.Recover, .001f));
             return ReferenceFrame.Mix(ReferenceFrame.Mix(_referenceActionStart, dodge, inWeight), standing, outWeight);
         }
+        // 长戟始终按近战劈扫处理；普攻缩短收戟幅度，突进也保留两手拧转，不能退回前送标枪。
+        if (Actor.CurrentAction == CombatAction.Basic)
+        {
+            windup.Weapon = Mathf.DegToRad(-38);
+            windup.FarHand = new Vector2(1, -35);
+        }
+        else if (Actor.CurrentAction == CombatAction.Dash)
+        {
+            windup.Weapon = Mathf.DegToRad(-60);
+            windup.FarHand = new Vector2(3, -34);
+        }
         if (time < spec.Prepare)
         {
-            // 前摇的后 28% 保留完整蓄势剪影，不让横戟姿势一闪而过。
+            // 前摇后段明确停在身后收戟姿势，双手低于面部，不能把武器举在肩上等待投出。
             return ReferenceFrame.Mix(_referenceActionStart, windup, Smooth(time / Mathf.Max(spec.Prepare * .72f, .001f)));
         }
-
-        var follow = windup;
-        follow.Pelvis = new Vector2(3, 5);
-        follow.Chest = .22f;
-        follow.Head = -.16f;
-        follow.FarHand = new Vector2(12, -33);
-        follow.Weapon = Mathf.DegToRad(-65);
-        follow.Separation = 26;
-        follow.FarFoot = new Vector2(-19, 0);
-        follow.NearFoot = new Vector2(24, 0);
-        if (Actor.CurrentAction == CombatAction.Dash)
-        {
-            follow.FarHand = new Vector2(-4, -38);
-            follow.Weapon = Mathf.DegToRad(86);
-            follow.Separation = 23;
-            follow.Chest = .32f;
-        }
-        else if (Actor.CurrentAction == CombatAction.Basic)
-        {
-            follow.FarHand = new Vector2(-10, -35);
-            follow.Weapon = Mathf.DegToRad(57);
-            follow.Separation = 27;
-        }
-        float strike = Smooth((time - spec.Prepare) / Mathf.Max(spec.Active, .001f));
-        var result = ReferenceFrame.Mix(windup, follow, strike);
+        var high = ReferenceFrame.From(Actor.Presentation.StrikeHighPose);
+        var contact = ReferenceFrame.From(Actor.Presentation.StrikeContactPose);
+        var follow = ReferenceFrame.From(Actor.Presentation.StrikeFollowPose);
+        float strike = Mathf.Clamp((time - spec.Prepare) / Mathf.Max(spec.Active, .001f), 0, 1);
+        // 显式绕身弧线：背后收戟→经过上方→前方切入→压低随势。每段不足180°，不会被最短角插值反向抄近路。
+        ReferenceFrame result;
+        if (strike < .26f) result = ReferenceFrame.Mix(windup, high, Smooth(strike / .26f));
+        else if (strike < .70f) result = ReferenceFrame.Mix(high, contact, Smooth((strike - .26f) / .44f));
+        else result = ReferenceFrame.Mix(contact, follow, Smooth((strike - .70f) / .23f));
         if (time >= spec.Prepare + spec.Active)
         {
             float recovery = (time - spec.Prepare - spec.Active) / Mathf.Max(spec.Recover, .001f);
-            // 后摇先保留随势，再回到单手站立；握柄权重同步退出。
+            // 刃端先完成随势，腰胯和双手再收回低位警戒，不松手抛出长戟。
             result = ReferenceFrame.Mix(follow, standing, Smooth((recovery - .12f) / .88f));
         }
         return result;
@@ -241,7 +239,7 @@ public partial class CharacterRig
     private void ApplyReferenceFrame(ReferenceFrame frame)
     {
         _bones[0].Position = new Vector2(0, -_pelvisHeight) + frame.Pelvis;
-        _bones[0].Rotation = 0;
+        _bones[0].Rotation = frame.Waist;
         _bones[1].Rotation = frame.Chest;
         _bones[2].Rotation = frame.Head;
         // 解算到踝点，靴掌单独保持接地，避免小腿一转就把整个鞋底翘起来。
@@ -262,7 +260,7 @@ public partial class CharacterRig
         _bones[13].Rotation = -.08f + _walkWeight * .10f + Mathf.Sin(Actor.VisualTime * 3.2f) * .025f;
         _bones[15].Rotation = Mathf.Sin(Actor.VisualTime * 3) * .025f;
 
-        // 同一长戟保持固定尺寸，仅沿柄改变主握位置，与三个参考姿势的持柄位置一致。
+        // 同一长戟保持固定尺寸，只按关键姿态沿柄改变主握位置。
         Transform2D weaponArt = _partOffsets[14];
         weaponArt.Origin = new Vector2(weaponArt.Origin.X, -frame.Blade);
         _partOffsets[14] = weaponArt;

@@ -1,5 +1,7 @@
 # S1 武将 PNG 原型
 
+2026-10-09：身体仍使用 `LvBu/lubu-parts-v3.png`；长戟与后弯双翎改用 `LvBu/lubu-reference-accessories-v4.png`（1774×887 RGBA，实际传入三姿态原图生成）。站立双手低持、行走腰侧拖戟、攻击后收再绕身劈扫，由六份姿态资源驱动同一骨架。小腿和靴掌在运行时分区采样。完整记录见 [长戟握持与攻击重做](../../Demand/Prompt/2026.10.09-吕布长戟握持与攻击重做.md)，下方为历史状态。
+
 2026-10-08：吕布已更换为 `LvBu/lubu-parts-v3.png`（1254×1254 RGBA），使用固定腿长与收窄髋点的比例配置。`LvBu/lubu-pose-study-v3.png` 为站立、前行、蓄势三姿态制作样板，不是动画帧图。魏延保持 v2；吕布 v2 与 prototype 保留。详情见 [武侠姿态参考与素材重建](../../Demand/Prompt/2026.10.08-武侠姿态参考与吕布素材重建.md)。
 
 2026-10-02 更新：吕布和魏延的 `*-parts-v2.png` 已通过内置生图生成并保存，均为 1254×1254 RGBA。两份 `*-presentation.tres` 已配置 PartsAtlas，默认使用 16 关节拆件动画；通过 AtlasRegions 校正部件采样，通过 CrestRect 调整冠饰。原图与 `LegacyPortraitRig` 保留作回退。成功提示词、历史失败记录和接入边界见 [拆件生成记录](拆件生成记录.md)。

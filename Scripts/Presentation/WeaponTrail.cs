@@ -1,4 +1,5 @@
 using Godot;
+using System.Collections.Generic;
 
 /// <summary>原创弧形刀光：宽拖尾、亮刃和火星，只读施法时钟，不产生伤害。</summary>
 public partial class WeaponTrail : Node2D
@@ -6,6 +7,9 @@ public partial class WeaponTrail : Node2D
     [Export] public bool EffectsEnabled { get; set; } = true; // 关闭装饰后保留 Combatant 的危险预警。
     public bool IsEmitting { get; private set; } // 供调试与回归检查使用。
     private Combatant _actor; // 特效跟随的角色。
+    private readonly List<(Vector2 Tip, float Time)> _bladeSamples = new(); // 新长戟刀光读取真实戟尖，不另画不相干的地面大圆。
+    private float _lastBladeTime = -1;
+    private float _lastActionTime;
     /// <summary>绑定宿主并使用加色混合，让亮刃在地面之上形成短时发光效果。</summary>
     public override void _Ready()
     {
@@ -20,12 +24,30 @@ public partial class WeaponTrail : Node2D
         float time = _actor.ActionTime - _actor.Spec.Prepare;
         IsEmitting = EffectsEnabled && !_actor.BattleFinished && _actor.CurrentState == Combatant.State.Attack
             && time >= 0 && time < _actor.Spec.Active + .15f;
+        if (_actor.Presentation.ReferencePoseSet)
+        {
+            bool newAction = _actor.ActionTime < _lastActionTime;
+            if (!IsEmitting || newAction) _bladeSamples.Clear();
+            // 暂停和打击停顿时不追加重合采样，也不让残光独自消失。
+            if (IsEmitting && _actor.VisualTime > _lastBladeTime)
+            {
+                if (_actor.IsAttackActive) _bladeSamples.Add((_actor.Rig.ReferenceBladeTip, _actor.VisualTime));
+                _bladeSamples.RemoveAll(sample => _actor.VisualTime - sample.Time > .09f);
+            }
+            _lastBladeTime = _actor.VisualTime;
+            _lastActionTime = _actor.ActionTime;
+        }
         QueueRedraw();
     }
     /// <summary>依照锁定方向绘制拖尾和亮刃，不查询目标，也不修改伤害。</summary>
     public override void _Draw()
     {
         if (!IsEmitting) return;
+        if (_actor.Presentation.ReferencePoseSet)
+        {
+            DrawReferenceBladeTrail();
+            return;
+        }
         float time = _actor.ActionTime - _actor.Spec.Prepare;
         // 刀光整个可见寿命的 0～1 进度，包括生效窗口和短暂残光。
         float progress = Mathf.Clamp(time / (_actor.Spec.Active + .15f), 0, 1);
@@ -64,6 +86,30 @@ public partial class WeaponTrail : Node2D
             Vector2 direction = Vector2.FromAngle(angle);
             Vector2 point = direction * (radius + progress * (i % 3) * 4);
             DrawLine(point, point + direction * (2 + i % 4), new Color(tint, fade * .6f), 1, true);
+        }
+    }
+    /// <summary>只连接真实戟尖走过的弧线，明亮部分落在刃端，长度和方向不再与武器脱节。</summary>
+    private void DrawReferenceBladeTrail()
+    {
+        if (_bladeSamples.Count < 2) return;
+        Color tint = new(PresentationColors.PlayerTrail);
+        for (int index = 1; index < _bladeSamples.Count; index++)
+        {
+            Vector2 start = ToLocal(_bladeSamples[index - 1].Tip);
+            Vector2 end = ToLocal(_bladeSamples[index].Tip);
+            Vector2 before = ToLocal(_bladeSamples[Mathf.Max(0, index - 2)].Tip);
+            Vector2 after = ToLocal(_bladeSamples[Mathf.Min(_bladeSamples.Count - 1, index + 1)].Tip);
+            float age = Mathf.Clamp(1 - (_actor.VisualTime - _bladeSamples[index].Time) / .09f, 0, 1);
+            Vector2 previous = start;
+            for (int step = 1; step <= 5; step++)
+            {
+                // 快速挥击只有数帧，用相邻真实采样平滑弧线，避免出现折角光条。
+                Vector2 next = start.CubicInterpolate(end, before, after, step / 5f);
+                DrawLine(previous, next, new Color(tint, age * .18f), 6, true);
+                DrawLine(previous, next, new Color(tint, age * .75f), 2.5f, true);
+                DrawLine(previous, next, new Color(1, .97f, .83f, age), .8f, true);
+                previous = next;
+            }
         }
     }
     /// <summary>绘制两端收尖的弧形带状网格。</summary>

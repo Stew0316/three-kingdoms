@@ -7,6 +7,7 @@ public partial class CharacterRig
     {
         public Vector2 Pelvis, FarHand, FreeHand, FarFoot, NearFoot;
         public float Waist, Chest, Head, Weapon, Blade, Separation, Grip;
+        public float FarFootRoll, NearFootRoll; // 靴掌独立绕接地点滚动，不继承小腿角度。
 
         public static ReferenceFrame From(CharacterPoseConfig pose) => new()
         {
@@ -25,7 +26,9 @@ public partial class CharacterRig
             Chest = Mathf.LerpAngle(a.Chest, b.Chest, weight),
             Head = Mathf.LerpAngle(a.Head, b.Head, weight), Weapon = Mathf.LerpAngle(a.Weapon, b.Weapon, weight),
             Blade = Mathf.Lerp(a.Blade, b.Blade, weight), Separation = Mathf.Lerp(a.Separation, b.Separation, weight),
-            Grip = Mathf.Lerp(a.Grip, b.Grip, weight)
+            Grip = Mathf.Lerp(a.Grip, b.Grip, weight),
+            FarFootRoll = Mathf.Lerp(a.FarFootRoll, b.FarFootRoll, weight),
+            NearFootRoll = Mathf.Lerp(a.NearFootRoll, b.NearFootRoll, weight)
         };
     }
 
@@ -43,6 +46,8 @@ public partial class CharacterRig
     private readonly Sprite2D[] _referenceFeet = new Sprite2D[2]; // 独立靴掌图层，业务骨链仍保持 16 关节。
     private readonly Transform2D[] _referenceFootOffsets = new Transform2D[2];
     private const float ReferenceFootHeight = 4; // 小腿末端的靴掌高度；其上方为固定胫骨段。
+    private const float ReferenceSupport = .54f; // 每只脚承重的周期占比，其余时间向前摆动。
+    public float ReferenceSupportFraction => ReferenceSupport; // 供步态验收区分承重和摆动阶段。
 
     /// <summary>直接采样已生成的参考配件，原始图片不改写，挂点不再取图像中心。</summary>
     private void BindReferenceAccessory(int bone, Sprite2D sprite)
@@ -63,7 +68,7 @@ public partial class CharacterRig
         }
     }
 
-    /// <summary>从同一小腿采样区分出靴掌，支持脚掌保持水平；使用原 PNG 的两个 AtlasTexture，不生成改图。</summary>
+    /// <summary>从同一小腿采样区分出靴掌，支持独立落地和蹬离；原 PNG 不变。</summary>
     private void BuildReferenceFoot(int bone, Sprite2D shin)
     {
         var original = (AtlasTexture)shin.Texture;
@@ -97,8 +102,9 @@ public partial class CharacterRig
             if (_referenceFeet[index] == null) continue;
             int bone = index == 0 ? 10 : 12;
             Vector2 ankle = Skeleton.ToLocal(_bones[bone].ToGlobal(new Vector2(0, _lowerLegLength - ReferenceFootHeight)));
+            float roll = index == 0 ? _referenceFrame.FarFootRoll : _referenceFrame.NearFootRoll;
             _referenceFeet[index].Transform = inverse * Skeleton.GlobalTransform
-                * new Transform2D(0, ankle) * _referenceFootOffsets[index];
+                * new Transform2D(roll, ankle) * _referenceFootOffsets[index];
         }
     }
 
@@ -139,9 +145,16 @@ public partial class CharacterRig
             if (_walkWeight > 0)
             {
                 target.FarFoot += ReferenceStep(_walkPhase, facing);
-                target.NearFoot += ReferenceStep(Mathf.PosMod(_walkPhase + .5f, 1), facing);
-                target.Pelvis.Y += .35f * (1 - Mathf.Cos(cycle * 2)) * _walkWeight;
-                target.Pelvis.X += Mathf.Sin(cycle) * .65f * _walkWeight;
+                float nearPhase = Mathf.PosMod(_walkPhase + .5f, 1);
+                target.NearFoot += ReferenceStep(nearPhase, facing);
+                target.FarFootRoll = ReferenceStepRoll(_walkPhase) * _walkWeight;
+                target.NearFootRoll = ReferenceStepRoll(nearPhase) * _walkWeight;
+                // 承重腿撑起身体，摆动腿才明显屈膝；腰高由固定腿长和落脚位置反求。
+                float waistY = ReferenceWalkWaist(target, _walkPhase, nearPhase);
+                float rise = (waistY - target.Pelvis.Y) * _walkWeight;
+                target.Pelvis.Y += rise;
+                target.FarHand.Y += rise;
+                target.FreeHand.Y += rise;
                 target.Chest -= Mathf.Sin(cycle) * .025f * _walkWeight;
                 target.FreeHand += new Vector2(Mathf.Sin(cycle) * 1.4f, .4f * Mathf.Cos(cycle)) * _walkWeight;
             }
@@ -166,6 +179,30 @@ public partial class CharacterRig
                 target.FarHand.X += Mathf.Sin(phase * Mathf.Tau) * 8;
             }
             _referenceFrame = ReferenceFrame.Mix(_referenceFrame, target, 1 - Mathf.Exp(-22 * elapsed));
+            if (Actor.CurrentState == Combatant.State.Move && _walkWeight >= .99f && Actor.CounterRemaining <= 0)
+            {
+                // 足底不能再经过低通滞后，否则落地后仍会漂移；起停和受击仍沿用姿态过渡。
+                _referenceFrame.FarFoot = target.FarFoot;
+                _referenceFrame.NearFoot = target.NearFoot;
+                _referenceFrame.FarFootRoll = target.FarFootRoll;
+                _referenceFrame.NearFootRoll = target.NearFootRoll;
+                float correction = target.Pelvis.Y - _referenceFrame.Pelvis.Y;
+                _referenceFrame.Pelvis.Y += correction;
+                _referenceFrame.FarHand.Y += correction;
+                _referenceFrame.FreeHand.Y += correction;
+            }
+            else if (Actor.CurrentState == Combatant.State.Idle && _walkWeight == 0 && Actor.CounterRemaining <= 0
+                && _referenceFrame.FarFoot.DistanceTo(standing.FarFoot) < .01f
+                && _referenceFrame.NearFoot.DistanceTo(standing.NearFoot) < .01f
+                && _referenceFrame.Pelvis.DistanceTo(standing.Pelvis) < .01f)
+            {
+                // 收势到位后固定下盘，清掉指数插值的微小残差；呼吸仍只在胸头层发生。
+                _referenceFrame.Pelvis = standing.Pelvis;
+                _referenceFrame.Waist = standing.Waist;
+                _referenceFrame.FarFoot = standing.FarFoot;
+                _referenceFrame.NearFoot = standing.NearFoot;
+                _referenceFrame.FarFootRoll = _referenceFrame.NearFootRoll = 0;
+            }
         }
         _referencePreviousState = Actor.CurrentState;
         _referencePreviousActionTime = Actor.ActionTime;
@@ -175,14 +212,58 @@ public partial class CharacterRig
     /// <summary>脚底的接触、经过和摆动循环；脚距由关键姿态决定，步幅不移动髋关节。</summary>
     private Vector2 ReferenceStep(float phase, float facing)
     {
-        const float support = .58f;
-        float swing = Mathf.Clamp((phase - support) / (1 - support), 0, 1);
-        float forward = phase < support ? Mathf.Lerp(1, -1, phase / support) : Mathf.Lerp(-1, 1, Smooth(swing));
-        Vector2 direction = new(_walkDirection.X * facing, _walkDirection.Y * .35f);
+        float swing = Mathf.Clamp((phase - ReferenceSupport) / (1 - ReferenceSupport), 0, 1);
+        float forward = phase < ReferenceSupport ? Mathf.Lerp(1, -1, phase / ReferenceSupport) : Mathf.Lerp(-1, 1, Smooth(swing));
+        // 地面纵深与抬脚不同：南北向缩短投影步深，避免把地面位移画成上下蹦跳。
+        Vector2 direction = new(_walkDirection.X * facing, _walkDirection.Y * .16f);
         // 上下移动仍保留侧面透视的换脚量，避免只有两脚一起纵向滑动。
         if (Mathf.Abs(direction.X) < .2f) direction.X = .45f;
         float lift = Mathf.Sin(swing * Mathf.Pi) * Actor.Presentation.WalkFootLift;
         return (direction * (forward * Actor.Presentation.WalkStride) - new Vector2(0, lift)) * _walkWeight;
+    }
+
+    /// <summary>轻微脚跟接地、全掌承重、抬跟蹬离；摆动末段回到下次接触角。</summary>
+    private static float ReferenceStepRoll(float phase)
+    {
+        float degrees;
+        if (phase < .09f) degrees = Mathf.Lerp(-8, 0, Smooth(phase / .09f));
+        else if (phase < .40f) degrees = 0;
+        else if (phase < ReferenceSupport) degrees = Mathf.Lerp(0, 12, Smooth((phase - .40f) / (ReferenceSupport - .40f)));
+        else degrees = Mathf.Lerp(12, -8, Smooth((phase - ReferenceSupport) / (1 - ReferenceSupport)));
+        return Mathf.DegToRad(degrees);
+    }
+
+    /// <summary>围绕后跟或前掌滚动时反求踝点，接触边保持在足底目标高度。</summary>
+    private static Vector2 ReferenceAnkle(Vector2 sole, float roll)
+    {
+        Vector2 pivot = new(roll < 0 ? -4.5f : 5.5f, ReferenceFootHeight);
+        return sole + new Vector2(pivot.X, 0) - pivot.Rotated(roll);
+    }
+
+    /// <summary>承重腿中段接近伸展，换脚略屈膝缓冲；双腿可达性只限制腰高，不缩放腿长。</summary>
+    private float ReferenceWalkWaist(ReferenceFrame frame, float farPhase, float nearPhase)
+    {
+        float shin = _lowerLegLength - ReferenceFootHeight;
+        float knee = Mathf.DegToRad(Actor.Presentation.WalkSupportKneeDegrees);
+        float reach = Mathf.Sqrt(_thighLength * _thighLength + shin * shin + 2 * _thighLength * shin * Mathf.Cos(knee));
+        Vector2 farAnkle = ReferenceAnkle(frame.FarFoot, frame.FarFootRoll);
+        Vector2 nearAnkle = ReferenceAnkle(frame.NearFoot, frame.NearFootRoll);
+        float WaistFor(Vector2 ankle, int hip, float length)
+        {
+            Vector2 offset = _bones[hip].Position.Rotated(frame.Waist);
+            float x = ankle.X - frame.Pelvis.X - offset.X;
+            return _pelvisHeight + ankle.Y - offset.Y - Mathf.Sqrt(Mathf.Max(1, length * length - x * x));
+        }
+        float farY = WaistFor(farAnkle, 9, reach);
+        float nearY = WaistFor(nearAnkle, 11, reach);
+        float waist;
+        const float transfer = ReferenceSupport - .5f;
+        if (farPhase < transfer) waist = Mathf.Lerp(nearY, farY, Smooth(farPhase / transfer));
+        else if (nearPhase < transfer) waist = Mathf.Lerp(farY, nearY, Smooth(nearPhase / transfer));
+        else waist = farPhase < ReferenceSupport ? farY : nearY;
+        // 摆动脚也必须够得到；留微小余量，避免膝盖被IK钳成完全直线。
+        float maximumReach = _thighLength + shin - .12f;
+        return Mathf.Max(waist, Mathf.Max(WaistFor(farAnkle, 9, maximumReach), WaistFor(nearAnkle, 11, maximumReach)));
     }
 
     /// <summary>低位警戒、后收、过顶、斩入和随势；普攻/突进沿用同一持械语言，伤害时序不变。</summary>
@@ -242,10 +323,9 @@ public partial class CharacterRig
         _bones[0].Rotation = frame.Waist;
         _bones[1].Rotation = frame.Chest;
         _bones[2].Rotation = frame.Head;
-        // 解算到踝点，靴掌单独保持接地，避免小腿一转就把整个鞋底翘起来。
-        Vector2 ankleOffset = new(0, -ReferenceFootHeight);
-        SolveReferenceChain(9, 10, frame.FarFoot + ankleOffset, _thighLength, _lowerLegLength - ReferenceFootHeight, 1);
-        SolveReferenceChain(11, 12, frame.NearFoot + ankleOffset, _thighLength, _lowerLegLength - ReferenceFootHeight, 1);
+        // 解算到独立靴掌的踝点，承重时全掌接地，落地/蹬离时绕跟或趾滚动。
+        SolveReferenceChain(9, 10, ReferenceAnkle(frame.FarFoot, frame.FarFootRoll), _thighLength, _lowerLegLength - ReferenceFootHeight, 1);
+        SolveReferenceChain(11, 12, ReferenceAnkle(frame.NearFoot, frame.NearFootRoll), _thighLength, _lowerLegLength - ReferenceFootHeight, 1);
 
         _bones[14].Position = frame.FarHand;
         _bones[14].Rotation = frame.Weapon;

@@ -2,7 +2,7 @@ using Godot;
 using System;
 using System.Threading.Tasks;
 
-/// <summary>显式 --walk-test 启动的步态回归：检查实际位移、顶墙、停步、暂停，并输出真实渲染图。</summary>
+/// <summary>显式 --walk-test 启动的步态回归：检查支撑与摆腿、固定骨长、起停暂停，并输出真实渲染图。</summary>
 public partial class WalkVisualTests : Node
 {
     private Arena _arena;
@@ -39,17 +39,13 @@ public partial class WalkVisualTests : Node
                 new Vector2(1, 1).Normalized(), new Vector2(-1, -1).Normalized(),
                 new Vector2(1, -1).Normalized(), new Vector2(-1, 1).Normalized() })
             {
-                Player.Position = new Vector2(320, 235);
+                // 给纵向循环留出完整步程，避免走到边界后把停步误判成步态失败。
+                Player.Position = new Vector2(320, 210) - direction * 50;
                 float before = Player.WalkDistance;
                 Player.SetMoveInput(direction);
                 await Frames(15);
                 Check(Player.WalkDistance > before + 20, $"方向 {direction} 按实际位移推进步态");
-                Check(Player.Rig.Joints[10].Position.IsEqualApprox(new Vector2(0, Player.Rig.ThighLength))
-                    && Player.Rig.Joints[12].Position.IsEqualApprox(new Vector2(0, Player.Rig.ThighLength)),
-                    $"方向 {direction} 大腿骨长固定，膝点不伸缩");
-                Check(Player.Rig.Parts[9].Scale.Abs().IsEqualApprox(farLegScale.Abs())
-                    && Player.Rig.Parts[11].Scale.Abs().IsEqualApprox(nearLegScale.Abs()), $"方向 {direction} 大腿图层不随步幅拉伸");
-                Check(Player.Rig.Joints[0].Position.Y > standingHip + .7f, $"方向 {direction} 移动适度沉胯");
+                await VerifyWalkingCycle(direction, farLegScale, nearLegScale);
             }
             Player.SetMoveInput(Vector2.Zero);
             await Frames(20);
@@ -58,6 +54,9 @@ public partial class WalkVisualTests : Node
             Check(Mathf.IsEqualApprox(stoppedPhase, Player.Rig.WalkPhase) && Player.Rig.WalkWeight < .01f,
                 "停步收势后相位不再自行摆动");
             Check(Mathf.Abs(Player.Rig.Joints[0].Position.Y - standingHip) < .1f, "停步回到独立站立姿态");
+            var stoppedLegs = LegTransforms();
+            await Frames(8);
+            Check(SameTransforms(stoppedLegs, LegTransforms()), "停步后双腿与独立靴掌稳定，不继续摆动");
             Check(Player.TryAction(CombatAction.Basic), "站立可正常进入攻击姿态");
             await Frames(7);
             if (Player.Presentation.ReferencePoseSet)
@@ -89,8 +88,10 @@ public partial class WalkVisualTests : Node
             await Frames(10);
             GetTree().Paused = true;
             float pausePhase = Player.Rig.WalkPhase;
+            var pausedLegs = LegTransforms();
             await Frames(5);
-            Check(Mathf.IsEqualApprox(pausePhase, Player.Rig.WalkPhase), "暂停冻结步态");
+            Check(Mathf.IsEqualApprox(pausePhase, Player.Rig.WalkPhase)
+                && SameTransforms(pausedLegs, LegTransforms()), "暂停同时冻结步态相位、双腿和靴掌");
             GetTree().Paused = false;
             Player.SetMoveInput(Vector2.Zero);
             Player.TryAction(CombatAction.Dodge);
@@ -131,6 +132,118 @@ public partial class WalkVisualTests : Node
             GetTree().Paused = false;
             GetTree().Quit(1);
         }
+    }
+
+    /// <summary>检查最终骨架而非复算 IK；整周期覆盖每条腿的承重伸展、前摆屈膝及落脚。</summary>
+    private async Task VerifyWalkingCycle(Vector2 direction, Vector2 farLegScale, Vector2 nearLegScale)
+    {
+        var rig = Player.Rig;
+        float startDistance = Player.WalkDistance;
+        float targetDistance = Player.Presentation.WalkCycleDistance * 1.2f;
+        float[] leastBend = { 180, 180 }, mostBend = { 0, 0 };
+        float[] leastFootAngle = { 180, 180 }, mostFootAngle = { -180, -180 };
+        float[] mostContrast = { 0, 0 };
+        float[] supportBendSum = { 0, 0 }, swingBendPeak = { 0, 0 }, contactError = { 0, 0 };
+        int[] supportSamples = { 0, 0 };
+        bool fixedLengths = true, fixedArtScale = true;
+        int samples = 0;
+        while (Player.WalkDistance - startDistance < targetDistance && samples < 180)
+        {
+            await Frames(1);
+            samples++;
+            fixedLengths &= HasFixedLegLengths();
+            fixedArtScale &= rig.Parts[9].Scale.Abs().IsEqualApprox(farLegScale.Abs())
+                && rig.Parts[11].Scale.Abs().IsEqualApprox(nearLegScale.Abs());
+            for (int leg = 0; leg < 2; leg++)
+            {
+                int knee = leg == 0 ? 10 : 12;
+                float bend = Mathf.Abs(Mathf.RadToDeg(rig.Joints[knee].Rotation));
+                leastBend[leg] = Mathf.Min(leastBend[leg], bend);
+                mostBend[leg] = Mathf.Max(mostBend[leg], bend);
+                float otherBend = Mathf.Abs(Mathf.RadToDeg(rig.Joints[leg == 0 ? 12 : 10].Rotation));
+                mostContrast[leg] = Mathf.Max(mostContrast[leg], otherBend - bend);
+                if (Player.Presentation.ReferencePoseSet)
+                {
+                    Sprite2D foot = Foot(leg);
+                    // 消除整个人物的左右镜像和透视缩放，只观察独立靴掌相对骨架的转动。
+                    Vector2 axis = rig.Skeleton.ToLocal(foot.ToGlobal(Vector2.Right))
+                        - rig.Skeleton.ToLocal(foot.GlobalPosition);
+                    float angle = Mathf.RadToDeg(axis.Angle());
+                    leastFootAngle[leg] = Mathf.Min(leastFootAngle[leg], angle);
+                    mostFootAngle[leg] = Mathf.Max(mostFootAngle[leg], angle);
+                    float phase = Mathf.PosMod(rig.WalkPhase + leg * .5f, 1);
+                    // 只在承重中段验收伸展；落地缓冲和后脚蹬离允许更大屈膝。
+                    if (phase >= .18f && phase <= .36f)
+                    {
+                        supportBendSum[leg] += bend;
+                        supportSamples[leg]++;
+                        Vector2 size = foot.Texture.GetSize();
+                        float heel = rig.Skeleton.ToLocal(foot.ToGlobal(new Vector2(0, size.Y))).Y;
+                        float toe = rig.Skeleton.ToLocal(foot.ToGlobal(size)).Y;
+                        contactError[leg] = Mathf.Max(contactError[leg], Mathf.Abs(Mathf.Max(heel, toe)));
+                    }
+                    if (phase > rig.ReferenceSupportFraction + .08f && phase < .95f)
+                        swingBendPeak[leg] = Mathf.Max(swingBendPeak[leg], bend);
+                }
+            }
+        }
+        Check(Player.WalkDistance - startDistance >= targetDistance, $"方向 {direction} 完成整轮真实行走采样");
+        Check(fixedLengths, $"方向 {direction} 整周期大小腿骨长固定，膝点不伸缩");
+        Check(fixedArtScale, $"方向 {direction} 整周期大腿图层不随步幅拉伸");
+        if (!Player.Presentation.ReferencePoseSet) return;
+        for (int leg = 0; leg < 2; leg++)
+        {
+            string name = leg == 0 ? "远腿" : "近腿";
+            float supportBend = supportBendSum[leg] / Mathf.Max(1, supportSamples[leg]);
+            GD.Print($"步态实测：{direction} {name} 屈膝 {leastBend[leg]:F1}°～{mostBend[leg]:F1}°，"
+                + $"承重均值 {supportBend:F1}°、摆动峰值 {swingBendPeak[leg]:F1}°，"
+                + $"两腿最大屈膝差 {mostContrast[leg]:F1}°，靴掌 {leastFootAngle[leg]:F1}°～{mostFootAngle[leg]:F1}°，接地误差 {contactError[leg]:F2}");
+            Check(leastBend[leg] < 35, $"方向 {direction} {name} 能伸展支撑身体，不全程半蹲");
+            Check(supportSamples[leg] >= 2 && supportBend is >= 8 and < 35,
+                $"方向 {direction} {name} 承重中段较直并保留膝关节余量");
+            Check(swingBendPeak[leg] > 40 && swingBendPeak[leg] - supportBend > 10,
+                $"方向 {direction} {name} 有明确前摆屈膝，不锁成直腿");
+            // 俯视纵向移动包含地面深度位移，不能把它误作抬脚高度；水平移动才有固定的屏幕接地线。
+            if (Mathf.Abs(direction.Y) < .01f)
+                Check(contactError[leg] < 1.25f, $"方向 {direction} {name} 承重中段靴底接地，不穿地或悬空");
+            Check(mostContrast[leg] > 12, $"方向 {direction} {name} 与另一腿交替伸屈，承重和迈步有区别");
+            Check(mostFootAngle[leg] - leastFootAngle[leg] > 5,
+                $"方向 {direction} {name} 靴掌参与落脚与蹬离，不全程平移");
+        }
+    }
+
+    private bool HasFixedLegLengths() => Player.Rig.Joints[10].Position.IsEqualApprox(new Vector2(0, Player.Rig.ThighLength))
+        && Player.Rig.Joints[12].Position.IsEqualApprox(new Vector2(0, Player.Rig.ThighLength))
+        && Mathf.IsEqualApprox(Player.Rig.Joints[9].GetLength(), Player.Rig.ThighLength)
+        && Mathf.IsEqualApprox(Player.Rig.Joints[11].GetLength(), Player.Rig.ThighLength)
+        && Mathf.IsEqualApprox(Player.Rig.Joints[10].GetLength(), Player.Rig.LowerLegLength)
+        && Mathf.IsEqualApprox(Player.Rig.Joints[12].GetLength(), Player.Rig.LowerLegLength);
+
+    private Sprite2D Foot(int leg)
+    {
+        string name = leg == 0 ? "远靴掌图层" : "近靴掌图层";
+        foreach (var part in Player.Rig.DrawOrderedParts)
+            if (part.Name == name) return part;
+        throw new InvalidOperationException($"参考骨架缺少{name}");
+    }
+
+    /// <summary>记录实际绘制所用的腿和脚，暂停验证同时覆盖相位之外的独立脚掌动画。</summary>
+    private Transform2D[] LegTransforms()
+    {
+        var rig = Player.Rig;
+        if (!Player.Presentation.ReferencePoseSet)
+            return new[] { rig.Joints[9].GlobalTransform, rig.Joints[10].GlobalTransform,
+                rig.Joints[11].GlobalTransform, rig.Joints[12].GlobalTransform };
+        return new[] { rig.Joints[9].GlobalTransform, rig.Joints[10].GlobalTransform,
+            rig.Joints[11].GlobalTransform, rig.Joints[12].GlobalTransform,
+            Foot(0).GlobalTransform, Foot(1).GlobalTransform };
+    }
+
+    private static bool SameTransforms(Transform2D[] before, Transform2D[] after)
+    {
+        for (int index = 0; index < before.Length; index++)
+            if (!before[index].IsEqualApprox(after[index])) return false;
+        return true;
     }
 
     /// <summary>输出一整轮正常尺寸截图与角色局部连拍，供肉眼检查承重、换脚和膝盖连接。</summary>

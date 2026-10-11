@@ -22,12 +22,12 @@ public partial class WalkVisualTests : Node
         {
             _arena = (Arena)GetTree().CurrentScene;
             Player.GetNode(NodeNames.Controller).ProcessMode = ProcessModeEnum.Disabled;
-            Check(_arena.IsSoloPractice && !_arena.Enemy.Visible, "默认单人练习，魏延隐藏");
+            Check(_arena.IsSoloPractice && !_arena.Enemy.Visible, "步态测试隔离对手，魏延隐藏");
             Check(_arena.Enemy.ProcessMode == ProcessModeEnum.Disabled && _arena.Enemy.CollisionLayer == 0
                 && _arena.Enemy.GetNode<Area2D>(NodeNames.Hurtbox).CollisionLayer == 0, "魏延处理、实体碰撞和受击关闭");
             await Frames(15);
             float standingHip = Player.Rig.Joints[0].Position.Y;
-            Check(!Player.Rig.Parts[10].FlipH && Player.Rig.Parts[12].FlipH == Player.Presentation.AlignBootsForward,
+            Check(!Player.Rig.Parts[10].FlipH && Player.Rig.Parts[12].FlipH == Player.Presentation.Model.AlignBootsForward,
                 "小腿方向遵循实际素材配置，不强制镜像新素材");
             Vector2 farLegScale = Player.Rig.Parts[9].Scale;
             Vector2 nearLegScale = Player.Rig.Parts[11].Scale;
@@ -59,7 +59,7 @@ public partial class WalkVisualTests : Node
             Check(SameTransforms(stoppedLegs, LegTransforms()), "停步后双腿与独立靴掌稳定，不继续摆动");
             Check(Player.TryAction(CombatAction.Basic), "站立可正常进入攻击姿态");
             await Frames(7);
-            if (Player.Presentation.ReferencePoseSet)
+            if (Player.Presentation.Animation.ReferencePoseSet)
             {
                 // 新样板以沉胯横戟蓄势，不能再用旧动作的站直腰高作为攻击验收标准。
                 Check(Player.Rig.Joints[0].Position.Y > standingHip + 2
@@ -139,7 +139,7 @@ public partial class WalkVisualTests : Node
     {
         var rig = Player.Rig;
         float startDistance = Player.WalkDistance;
-        float targetDistance = Player.Presentation.WalkCycleDistance * 1.2f;
+        float targetDistance = Player.Presentation.Animation.WalkCycleDistance * 1.2f;
         float[] leastBend = { 180, 180 }, mostBend = { 0, 0 };
         float[] leastFootAngle = { 180, 180 }, mostFootAngle = { -180, -180 };
         float[] mostContrast = { 0, 0 };
@@ -162,7 +162,7 @@ public partial class WalkVisualTests : Node
                 mostBend[leg] = Mathf.Max(mostBend[leg], bend);
                 float otherBend = Mathf.Abs(Mathf.RadToDeg(rig.Joints[leg == 0 ? 12 : 10].Rotation));
                 mostContrast[leg] = Mathf.Max(mostContrast[leg], otherBend - bend);
-                if (Player.Presentation.ReferencePoseSet)
+                if (Player.Presentation.Animation.ReferencePoseSet)
                 {
                     Sprite2D foot = Foot(leg);
                     // 消除整个人物的左右镜像和透视缩放，只观察独立靴掌相对骨架的转动。
@@ -190,7 +190,7 @@ public partial class WalkVisualTests : Node
         Check(Player.WalkDistance - startDistance >= targetDistance, $"方向 {direction} 完成整轮真实行走采样");
         Check(fixedLengths, $"方向 {direction} 整周期大小腿骨长固定，膝点不伸缩");
         Check(fixedArtScale, $"方向 {direction} 整周期大腿图层不随步幅拉伸");
-        if (!Player.Presentation.ReferencePoseSet) return;
+        if (!Player.Presentation.Animation.ReferencePoseSet) return;
         for (int leg = 0; leg < 2; leg++)
         {
             string name = leg == 0 ? "远腿" : "近腿";
@@ -231,7 +231,7 @@ public partial class WalkVisualTests : Node
     private Transform2D[] LegTransforms()
     {
         var rig = Player.Rig;
-        if (!Player.Presentation.ReferencePoseSet)
+        if (!Player.Presentation.Animation.ReferencePoseSet)
             return new[] { rig.Joints[9].GlobalTransform, rig.Joints[10].GlobalTransform,
                 rig.Joints[11].GlobalTransform, rig.Joints[12].GlobalTransform };
         return new[] { rig.Joints[9].GlobalTransform, rig.Joints[10].GlobalTransform,

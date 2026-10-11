@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="CombatActionConfig" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://Scripts/Config/CombatActionConfig.cs" id="1"]
+
+[resource]
+script = ExtResource("1")
+Prepare = 0.14
+Active = 0.1
+Recover = 0.23
+Cooldown = 0.48
+Range = 48.0
+HalfAngle = 0.95
+Damage = 12
+Speed = 0.0
+SkillId = "core:lubu/basic"
+DisplayName = "戟击"
+Motion = 0

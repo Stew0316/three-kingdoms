@@ -38,14 +38,14 @@ public partial class CombatSmokeTests : Node
             await Reset();
             Check(Player.Health.CurrentHealth == 120 && Enemy.Health.CurrentHealth == 100, "initial health");
             Check(Player.Config != null && Enemy.Config != null
-                && Player.Config.Basic.Damage == 12 && Enemy.Config.Basic.Damage == 10,
+                && Player.GetSkill(CombatAction.Basic).Damage == 12 && Enemy.GetSkill(CombatAction.Basic).Damage == 10,
                 "角色场景已加载各自的可编辑战斗配置");
             Check(Player.GetNode<Sprite2D>(NodeNames.Visual).Texture != null && Enemy.GetNode<Sprite2D>(NodeNames.Visual).Texture != null, "character textures loaded");
             var rig = Player.Rig;
-            Check(rig.Skeleton.GetBoneCount() == (Player.Presentation?.PartsAtlas!=null ? 16 : 8), "当前资源使用对应的拆件或兼容骨架");
-            Check(Mathf.IsEqualApprox(rig.ArtScale, Player.Presentation.CharacterScale) && rig.ArtScale<.05f, "二维角色尺寸由表现配置缩小");
-            Check(Player.Presentation?.PartsAtlas!=null ? rig.Parts.Count==16 : Player.GetNode<Sprite2D>(NodeNames.Visual).Texture!=null, "角色显示资源存在");
-            Check(Enemy.Presentation?.PartsAtlas==null || Enemy.Rig.Parts.Count==16,"魏延拆件采样完整加载 16 个图层");
+            Check(rig.Skeleton.GetBoneCount() == (Player.Presentation?.Model.PartsAtlas!=null ? 16 : 8), "当前资源使用对应的拆件或兼容骨架");
+            Check(Mathf.IsEqualApprox(rig.ArtScale, Player.Presentation.Model.CharacterScale) && rig.ArtScale<.05f, "二维角色尺寸由表现配置缩小");
+            Check(Player.Presentation?.Model.PartsAtlas!=null ? rig.Parts.Count==16 : Player.GetNode<Sprite2D>(NodeNames.Visual).Texture!=null, "角色显示资源存在");
+            Check(Enemy.Presentation?.Model.PartsAtlas==null || Enemy.Rig.Parts.Count==16,"魏延拆件采样完整加载 16 个图层");
             Check(Player.GetNodeOrNull<GroundEffects>(NodeNames.GroundEffects)!=null && Player.GetNodeOrNull<AfterimageTrail2D>(NodeNames.AfterimageTrail2D)!=null,"二维场景直接挂载光环粒子和骨骼残影");
             float beforePose = rig.Skeleton.GetBone(1).Rotation;
             Player.SetMoveInput(Vector2.Right);
@@ -307,7 +307,7 @@ public partial class CombatSmokeTests : Node
     {
         await Reset();
         var test=GD.Load<PackedScene>("res://Components/Characters/LvBu.tscn").Instantiate<Combatant>();
-        test.Presentation=new CharacterPresentationConfig { PartsAtlas=new GradientTexture2D { Width=128,Height=128,Gradient=new Gradient() } };
+        test.Presentation=new CharacterPresentationConfig { Model = new CharacterModelConfig { PartsAtlas=new GradientTexture2D { Width=128,Height=128,Gradient=new Gradient() } } };
         _arena.GetNode(NodeNames.Fighters).AddChild(test);
         test.GetNode(NodeNames.Controller).ProcessMode=ProcessModeEnum.Disabled;
         test.Position=new(150,230);

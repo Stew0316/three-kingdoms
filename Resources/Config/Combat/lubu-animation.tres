@@ -1,0 +1,36 @@
+[gd_resource type="Resource" script_class="CharacterAnimationConfig" load_steps=9 format=3]
+
+[ext_resource type="Script" path="res://Scripts/Config/CharacterAnimationConfig.cs" id="1"]
+[ext_resource type="Resource" path="res://Resources/Config/Combat/lubu-standing-pose.tres" id="3"]
+[ext_resource type="Resource" path="res://Resources/Config/Combat/lubu-moving-pose.tres" id="4"]
+[ext_resource type="Resource" path="res://Resources/Config/Combat/lubu-basic-animation.tres" id="basic"]
+[ext_resource type="Resource" path="res://Resources/Config/Combat/lubu-dash-animation.tres" id="dash"]
+[ext_resource type="Resource" path="res://Resources/Config/Combat/lubu-sweep-animation.tres" id="sweep"]
+[ext_resource type="Resource" path="res://Resources/Config/Combat/lubu-counter-animation.tres" id="counter"]
+
+[ext_resource type="Resource" path="res://Resources/Config/Combat/lubu-dodge-pose.tres" id="dodge"]
+
+[resource]
+script = ExtResource("1")
+ReferencePoseSet = true
+StandingPose = ExtResource("3")
+MovingPose = ExtResource("4")
+MartialWalk = true
+StandStanceWidth = 6.5
+StandCrouch = 0.25
+WalkStanceWidth = 7.5
+WalkCrouch = 1.5
+WalkCycleDistance = 64.0
+WalkStride = 12.5
+WalkFootLift = 3.5
+WalkSupportKneeDegrees = 24.0
+Basic = ExtResource("basic")
+Dash = ExtResource("dash")
+Sweep = ExtResource("sweep")
+Counter = ExtResource("counter")
+DodgePose = ExtResource("dodge")
+DodgeEnterSeconds = 0.045
+HurtPelvisShift = Vector2(1.5, 2)
+HurtChestDegrees = 9.167325
+HurtFreeHand = Vector2(12, -43)
+HurtWeaponDegrees = -14.323945

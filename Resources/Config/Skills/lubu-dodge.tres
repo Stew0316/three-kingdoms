@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="CombatActionConfig" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://Scripts/Config/CombatActionConfig.cs" id="1"]
+
+[resource]
+script = ExtResource("1")
+Prepare = 0.0
+Active = 0.18
+Recover = 0.1
+Cooldown = 1.2
+Range = 0.0
+HalfAngle = 0.0
+Damage = 0
+Speed = 330.0
+SkillId = "core:lubu/dodge"
+DisplayName = "闪避"
+Motion = 3

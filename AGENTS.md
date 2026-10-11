@@ -28,8 +28,10 @@
   - Terrain是地形资源
   - StyleGuide是美术风格样板和生成记录；候选图不等于正式游戏资产
 - Resources
-  - Config保存 Godot 可在 Inspector 编辑的 `.tres` 配置实例；包含角色主动/被动战斗参数和独立表现配置，对应的 C# 配置类型放在 `Scripts/Config`
-  - 吕布表现配置引用站立、移动、后收蓄势、过顶、接触、随势六份姿态资源；同一骨架求解手脚和武器，站立双手低持、移动单手拖戟、攻击双手绕身劈扫；移动腰高由承重腿反求，承重膝约24°、摆动腿屈膝，靴掌独立滚动落地与蹬离；v4 双翎以根部挂冠且不翻转；当前关闭吕布残影，刀光跟随真实戟尖
+  - Config保存 Godot 可在 Inspector 编辑的 `.tres`；Combat 下每位武将独立保存基础属性、`*-model` 模型绑定、`*-animation` 动作映射、`*-ui` 界面资料、`*-loadout` 默认装备，`*-presentation` 仅组合模型/动作和角色装饰效果；类型在 `Scripts/Config`
+  - Config/Skills 保存独立主动/被动技能定义，技能不引用武将模型；实例的 SkillLoadoutRuntime 持有可交换的装备与按技能ID独立冷却。输入槽 CombatAction 与动作语义 CombatMotion 分离，换技能后数值/名称跟随技能，模型/动作/UI身份保持武将自身配置；禁止修改共享资源或通过卸装清冷却，详见 Architecture/09-武将模型动作UI与技能组合.md
+  - 吕布独立动作资源描述低持、拖戟和绕身劈扫，承重膝约24°；魏延独立动作资源描述双手斜持、收刀短步与斜劈压斩，承重膝约27°；骨架求解器按资源采样，不再含 HalberdSweep/GuardedGlaive 身份风格分支。双人共用固定骨长、握点和靴掌求解基础代码
+  - 魏延 v2 头图保留完整原生盔缨，weiyan-model.tres 以独立头部尺寸绑定，并关闭重复冠饰 CrestVisible；远靴单独翻转朝前。吕布 v4 双翎独立配件保持原挂点与可见性。原PNG不改写
 - Scripts
   - c#脚本代码放入其中
   - Utils
@@ -41,7 +43,9 @@
 - Scene
   - 场景
   - 正式主路线采用火红/叶绿式二维俯视 TileMap 与即时战斗；Arena.tscn 是当前二维俯视演武场和启动入口，HD2DArena.tscn 仅保留为历史表现技术样板，正式世界地图入口后续独立建立
-  - Arena.tscn 当前默认 SoloPractice 单人练习，魏延隐藏且处理/碰撞/受击关闭；关闭该开关或使用 --with-opponent 可恢复对战；--walk-test 检查步态，--pose-test 检查长戟挥击弧线、握点与暂停/受击，既有战斗/可见性测试自动恢复对手
+  - Arena.tscn 当前默认 SoloPractice=false，正常启动直接开启魏延实战，无需参数，魏延显示、AI、碰撞与受击全部启用；仅手动开启 SoloPractice 或运行吕布专用 --walk-test / --pose-test 时隔离对手；战斗/可见性/魏延姿态测试保持对战模式
+  - --weiyan-pose-test 显式恢复魏延，检查八方向步态、双手持刀、普攻/技能/闪避/反击及暂停受击；有图形渲染器时在 Build/weiyan-frames 输出连续帧
+  - --module-test 验证双方主动/被动技能互换、跨输入槽装备、独立动画/伤害/冷却、共享资源隔离、盔缨与HUD刷新；正常启动仍直接实战，不需要参数
 - Demand
   - 一些需求，一些想法文档
 - Components

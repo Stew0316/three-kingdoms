@@ -45,7 +45,7 @@ public sealed class CombatResolver
         bool attack = info.Kind == DamageKind.Attack && source != null && GodotObject.IsInstanceValid(source)
             && source.IsEnemy != target.IsEnemy;
         if (attack && PassivesEnabled)
-            foreach (var passive in source.Config.Passives)
+            foreach (var passive in source.Skills.Passives)
                 if (passive.Effect == PassiveConfig.EffectKind.Critical && Roll(passive.Chance))
                 {
                     info = info with { Amount = Mathf.RoundToInt(info.Amount * Mathf.Max(1, passive.CriticalMultiplier)), IsCritical = true };
@@ -53,7 +53,7 @@ public sealed class CombatResolver
                 }
         target.ApplyResolvedDamage(info);
         if (!attack || !PassivesEnabled) return;
-        foreach (var passive in target.Config.Passives)
+        foreach (var passive in target.Skills.Passives)
         {
             if (passive.Effect == PassiveConfig.EffectKind.Reflect && !source.IsDead && Roll(passive.Chance))
                 _pending.Enqueue((source, new DamageInfo(target, passive.Damage, -info.KnockbackDirection, DamageKind.Reflected)));

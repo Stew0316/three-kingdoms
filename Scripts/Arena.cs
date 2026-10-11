@@ -19,9 +19,11 @@ public partial class Arena : Node2D
     private static bool _walkTestsStarted; // 步态回归会重开场景，避免再次创建测试器。
     public CombatResolver Resolver { get; private set; }
     [Export] public bool Hd2D { get; set; } // 仅供历史技术样板启用；正式入口使用二维俯视演武场。
-    [Export] public bool SoloPractice { get; set; } // 单人步态练习：保留魏延节点，但关闭显示、处理与碰撞，方便恢复对战。
-    public bool IsSoloPractice => SoloPractice && !Array.Exists(OS.GetCmdlineUserArgs(),
-        a => a == DevelopmentArguments.CombatTest || a == "--rig-visual-test" || a == "--with-opponent");
+    [Export] public bool SoloPractice { get; set; } // 默认关闭；仅手动启用时隐藏魏延并关闭处理与碰撞，供单人练习。
+    // 吕布专用回归隔离对手；正常启动直接实战，不依赖命令行参数。
+    public bool IsSoloPractice => (SoloPractice || Array.Exists(OS.GetCmdlineUserArgs(),
+        a => a == "--walk-test" || a == "--pose-test")) && !Array.Exists(OS.GetCmdlineUserArgs(),
+        a => a == DevelopmentArguments.CombatTest || a == "--rig-visual-test" || a == "--with-opponent" || a == "--weiyan-pose-test" || a == "--module-test");
 
     /// <summary>绑定角色与死亡信号；仅在显式命令行参数存在时启动测试或截图。</summary>
     public override void _Ready()
@@ -53,6 +55,10 @@ public partial class Arena : Node2D
             CallDeferred(MethodName.StartRigVisualTests);
         if (Array.Exists(OS.GetCmdlineUserArgs(), a => a == "--pose-test"))
             CallDeferred(MethodName.StartReferencePoseTests);
+        if (Array.Exists(OS.GetCmdlineUserArgs(), a => a == "--weiyan-pose-test"))
+            CallDeferred(MethodName.StartWeiYanPoseTests);
+        if (Array.Exists(OS.GetCmdlineUserArgs(), a => a == "--module-test"))
+            CallDeferred(MethodName.StartCharacterModuleTests);
         if (!_walkTestsStarted && Array.Exists(OS.GetCmdlineUserArgs(), a => a == "--walk-test"))
         {
             _walkTestsStarted = true;
@@ -91,6 +97,9 @@ public partial class Arena : Node2D
     private void StartWalkTests() => GetTree().Root.AddChild(new WalkVisualTests());
     /// <summary>按真实动作时钟检查三种参考姿态，并输出局部截图和连续动画帧。</summary>
     private void StartReferencePoseTests() => GetTree().Root.AddChild(new ReferencePoseTests());
+    /// <summary>显式恢复魏延，验收独立长刀姿态、步态与技能，不改变默认单人练习设置。</summary>
+    private void StartWeiYanPoseTests() => GetTree().Root.AddChild(new WeiYanPoseTests());
+    private void StartCharacterModuleTests() => GetTree().Root.AddChild(new CharacterModuleTests());
 
     /// <summary>关闭控制器并摆放固定画面，等待渲染完成后保存截图并退出测试进程。</summary>
     private async void CapturePreview()

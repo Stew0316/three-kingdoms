@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="CharacterUiConfig" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://Scripts/Config/CharacterUiConfig.cs" id="1"]
+[ext_resource type="Texture2D" path="res://Source/People/LvBu/lubu-prototype.png" id="portrait"]
+
+[resource]
+script = ExtResource("1")
+CharacterId = "core:lubu"
+DisplayName = "吕布"
+Portrait = ExtResource("portrait")
+NameColor = Color(0.62, 0.25, 0.22, 1)
+HealthColor = Color(0.62, 0.25, 0.22, 1)
+DetailColor = Color(0.62, 0.25, 0.22, 1)

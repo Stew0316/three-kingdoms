@@ -4,6 +4,10 @@ using Godot;
 [GlobalClass]
 public partial class CombatActionConfig : Resource
 {
+    [Export] public string SkillId { get; set; } = ""; // 稳定技能标识，用于独立冷却和装备校验。
+    [Export] public string DisplayName { get; set; } = "技能"; // HUD 跟随实际装备刷新。
+    [Export] public Texture2D Icon { get; set; } // 可选技能图标，属于技能而非武将。
+    [Export] public CombatMotion Motion { get; set; } // 语义动作请求，由当前武将的动画资源解释。
     // 动作进入有效判定前的准备时间，单位为秒。
     [Export] public float Prepare { get; set; }
     // 动作可造成伤害或位移的有效时间，单位为秒。

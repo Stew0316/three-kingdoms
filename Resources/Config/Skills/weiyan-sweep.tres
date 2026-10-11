@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="CombatActionConfig" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://Scripts/Config/CombatActionConfig.cs" id="1"]
+
+[resource]
+script = ExtResource("1")
+Prepare = 0.65
+Active = 0.14
+Recover = 0.4
+Cooldown = 6.0
+Range = 76.0
+HalfAngle = 1.75
+Damage = 18
+Speed = 0.0
+SkillId = "core:weiyan/sweep"
+DisplayName = "转腰横扫"
+Motion = 2

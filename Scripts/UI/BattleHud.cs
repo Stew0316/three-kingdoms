@@ -17,6 +17,7 @@ public partial class BattleHud : CanvasLayer
     private Label _state;
     // 突进、横扫和闪避的就绪/剩余冷却文本。
     private Label _skills;
+    private Label _playerPassives, _enemyPassives, _controls; // 技能换装后从运行时装备重新读取。
     // 对战双方名称与本场累计时间。
     private Label _clock;
     // 暂停/结算遮罩及按钮容器，可见时拦截鼠标操作。
@@ -35,29 +36,31 @@ public partial class BattleHud : CanvasLayer
     {
         ProcessMode = ProcessModeEnum.Always;
         _arena = GetParent<Arena>();
+        var configuredPlayer = _arena.GetNode<Combatant>(SceneNodePaths.Player);
+        var configuredEnemy = _arena.GetNode<Combatant>(SceneNodePaths.Enemy);
         var root = new Control { Name = NodeNames.Layout, MouseFilter = Control.MouseFilterEnum.Ignore };
         root.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
         var font = new SystemFont { FontNames = GameFontNames.CreateChineseFallbacks() };
         root.Theme = new Theme { DefaultFont = font, DefaultFontSize = 12 };
         AddChild(root);
         AddPanel(root, new Rect2(16, 10, 608, 53), new Color(BattleUiColors.Panel));
-        AddLabel(root, BattleTexts.PlayerName, new Rect2(29, 16, 110, 22), 18, new Color(BattleUiColors.PlayerName));
-        AddLabel(root, _arena.IsSoloPractice ? "单人练习" : BattleTexts.EnemyName, new Rect2(501, 16, 110, 22), 18, new Color(BattleUiColors.EnemyName), HorizontalAlignment.Right);
-        AddLabel(root, _arena.IsSoloPractice ? "吕布步态练习" : BattleTexts.ArenaTitle, new Rect2(230, 15, 180, 23), 18, new Color(BattleUiColors.Title), HorizontalAlignment.Center);
+        AddLabel(root, configuredPlayer.Ui.DisplayName, new Rect2(29, 16, 110, 22), 18, configuredPlayer.Ui.NameColor);
+        AddLabel(root, _arena.IsSoloPractice ? "单人练习" : configuredEnemy.Ui.DisplayName, new Rect2(501, 16, 110, 22), 18, configuredEnemy.Ui.NameColor, HorizontalAlignment.Right);
+        AddLabel(root, _arena.IsSoloPractice ? configuredPlayer.Ui.DisplayName + "步态练习" : BattleTexts.ArenaTitle, new Rect2(230, 15, 180, 23), 18, new Color(BattleUiColors.Title), HorizontalAlignment.Center);
         _clock = AddLabel(root, string.Empty, new Rect2(268, 41, 104, 18), 10, new Color(BattleUiColors.SecondaryText), HorizontalAlignment.Center);
         _playerHealth = AddLabel(root, string.Empty, new Rect2(100, 21, 119, 18), 10, new Color(BattleUiColors.PlayerHealthText), HorizontalAlignment.Right);
         _enemyHealth = AddLabel(root, string.Empty, new Rect2(421, 21, 99, 18), 10, new Color(BattleUiColors.EnemyHealthText));
-        _playerBar = AddBar(root, new Rect2(29, 45, 190, 6), new Color(BattleUiColors.PlayerHealth));
-        _enemyBar = AddBar(root, new Rect2(421, 45, 190, 6), new Color(BattleUiColors.EnemyHealth));
+        _playerBar = AddBar(root, new Rect2(29, 45, 190, 6), configuredPlayer.Ui.HealthColor);
+        _enemyBar = AddBar(root, new Rect2(421, 45, 190, 6), configuredEnemy.Ui.HealthColor);
         _enemyBar.Visible = _enemyHealth.Visible = !_arena.IsSoloPractice;
         _skills = AddLabel(root, string.Empty, new Rect2(105, 66, 430, 17), 11, new Color(BattleUiColors.SkillText), HorizontalAlignment.Center);
         _state = AddLabel(root, string.Empty, new Rect2(26, 100, 550, 18), 10, new Color(BattleUiColors.DebugText));
-        var configuredPlayer=_arena.GetNode<Combatant>(SceneNodePaths.Player);
-        var configuredEnemy=_arena.GetNode<Combatant>(SceneNodePaths.Enemy);
         AddPanel(root,new Rect2(22,301,596,23),new Color("f5e4b9"));
-        AddLabel(root, DescribePassives(configuredPlayer.Config), new Rect2(30,304,282,16),10,new Color("8f3c34"));
-        AddLabel(root, _arena.IsSoloPractice ? "魏延已停用 · 自由移动观察步态" : DescribePassives(configuredEnemy.Config), new Rect2(322,304,286,16),10,new Color("32674e"),HorizontalAlignment.Right);
-        AddLabel(root, BattleTexts.Controls, new Rect2(14, 329, 612, 16), 11, new Color(BattleUiColors.ControlText), HorizontalAlignment.Center);
+        _playerPassives = AddLabel(root, DescribePassives(configuredPlayer), new Rect2(30,304,282,16),10,configuredPlayer.Ui.DetailColor);
+        _enemyPassives = AddLabel(root, _arena.IsSoloPractice ? "对手已停用 · 自由移动观察步态" : DescribePassives(configuredEnemy), new Rect2(322,304,286,16),10,configuredEnemy.Ui.DetailColor,HorizontalAlignment.Right);
+        _playerPassives.ClipText = _enemyPassives.ClipText = true; // 长技能名不能挤出边框；悬停仍可查看完整内容。
+        _playerPassives.MouseFilter = _enemyPassives.MouseFilter = Control.MouseFilterEnum.Pass;
+        _controls = AddLabel(root, string.Empty, new Rect2(14, 329, 612, 16), 11, new Color(BattleUiColors.ControlText), HorizontalAlignment.Center);
         AddLabel(root, BattleTexts.DebugControls, new Rect2(14, 345, 612, 14), 9, new Color(BattleUiColors.HelpText), HorizontalAlignment.Center);
 
         _overlay = new Control { Visible = false, MouseFilter = Control.MouseFilterEnum.Stop };
@@ -82,16 +85,16 @@ public partial class BattleHud : CanvasLayer
     }
 
     /// <summary>HUD 从相同 Resource 展示数值，避免文案与配置分叉。</summary>
-    private static string DescribePassives(CombatantConfig config)
+    private static string DescribePassives(Combatant actor)
     {
         var parts=new System.Collections.Generic.List<string>();
-        foreach(var passive in config.Passives)
-            parts.Add(passive.Effect switch
+        foreach(var passive in actor.Skills.Passives)
+            parts.Add(passive.DisplayName + " " + (passive.Effect switch
             {
-                PassiveConfig.EffectKind.Reflect => $"反伤 {passive.Damage}",
-                PassiveConfig.EffectKind.CounterSpin => $"旋斩 {passive.Chance:P0} / {passive.Damage}",
-                _ => $"暴击 {passive.Chance:P0} / {passive.CriticalMultiplier:P0}"
-            });
+                PassiveConfig.EffectKind.Reflect => $"{passive.Damage}",
+                PassiveConfig.EffectKind.CounterSpin => $"{passive.Chance:P0}/{passive.Damage}",
+                _ => $"{passive.Chance:P0}×{passive.CriticalMultiplier:0.0}"
+            }));
         return string.Join(" · ",parts);
     }
 
@@ -124,14 +127,20 @@ public partial class BattleHud : CanvasLayer
     {
         // 子节点 Ready 先于 Arena.Ready；运行帧开始后主场景引用才可用。
         if (_arena.Player == null) return;
+        var configuredPlayer = _arena.Player;
+        var configuredEnemy = _arena.Enemy;
         _clock.Text = _arena.IsSoloPractice ? $"练习 {_arena.BattleSeconds:0.0}s" : string.Format(BattleTexts.BattleClockFormat,
-            BattleTexts.PlayerName, BattleTexts.EnemyName, _arena.BattleSeconds);
-        _skills.Text = string.Format(BattleTexts.SkillStatusFormat,
-            ReadyText(CombatAction.Dash), ReadyText(CombatAction.Sweep), ReadyText(CombatAction.Dodge));
+            configuredPlayer.Ui.DisplayName, configuredEnemy.Ui.DisplayName, _arena.BattleSeconds);
+        _skills.Text = $"K {SkillText(CombatAction.Dash)}    L {SkillText(CombatAction.Sweep)}    空格 {SkillText(CombatAction.Dodge)}";
+        _playerPassives.Text = DescribePassives(configuredPlayer);
+        _enemyPassives.Text = _arena.IsSoloPractice ? "对手已停用 · 自由移动观察步态" : DescribePassives(configuredEnemy);
+        _playerPassives.TooltipText = _playerPassives.Text;
+        _enemyPassives.TooltipText = _enemyPassives.Text;
+        _controls.Text = $"WASD / 方向键 移动    J / 左键 {SkillName(CombatAction.Basic)}    K {SkillName(CombatAction.Dash)}    L {SkillName(CombatAction.Sweep)}    空格 {SkillName(CombatAction.Dodge)}";
         _state.Visible = _showDebug;
-        _state.Text = _arena.IsSoloPractice ? $"吕布：{_arena.Player.Phase}　实际速度 {_arena.Player.WalkVelocity.Length():0}　步态 {_arena.Player.Rig.WalkPhase:0.00}" : string.Format(BattleTexts.DebugStateFormat,
-            BattleTexts.PlayerName, _arena.Player.CurrentState, _arena.Player.Phase,
-            BattleTexts.EnemyName, _arena.Enemy.CurrentState,
+        _state.Text = _arena.IsSoloPractice ? $"{configuredPlayer.Ui.DisplayName}：{_arena.Player.Phase}　实际速度 {_arena.Player.WalkVelocity.Length():0}　步态 {_arena.Player.Rig.WalkPhase:0.00}" : string.Format(BattleTexts.DebugStateFormat,
+            configuredPlayer.Ui.DisplayName, _arena.Player.CurrentState, _arena.Player.Phase,
+            configuredEnemy.Ui.DisplayName, _arena.Enemy.CurrentState,
             _arena.Enemy.GetNode<WeiYanController>(NodeNames.Controller).Decision);
         bool paused = GetTree().Paused;
         _overlay.Visible = _arena.Finished || paused;
@@ -142,6 +151,9 @@ public partial class BattleHud : CanvasLayer
             : BattleTexts.PausedSubtitle;
         _resume.Visible = !_arena.Finished;
     }
+
+    private string SkillName(CombatAction slot) => _arena.Player.GetSkill(slot)?.DisplayName ?? "空槽";
+    private string SkillText(CombatAction slot) => $"{SkillName(slot)} {ReadyText(slot)}";
 
     /// <summary>把 action 的剩余冷却格式化为“就绪”或保留一位小数的秒数。</summary>
     private string ReadyText(CombatAction action) => _arena.Player.Cooldown(action) <= 0

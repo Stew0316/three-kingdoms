@@ -24,7 +24,7 @@ public partial class WeaponTrail : Node2D
         float time = _actor.ActionTime - _actor.Spec.Prepare;
         IsEmitting = EffectsEnabled && !_actor.BattleFinished && _actor.CurrentState == Combatant.State.Attack
             && time >= 0 && time < _actor.Spec.Active + .15f;
-        if (_actor.Presentation.ReferencePoseSet)
+        if (_actor.Presentation.Animation.ReferencePoseSet)
         {
             bool newAction = _actor.ActionTime < _lastActionTime;
             if (!IsEmitting || newAction) _bladeSamples.Clear();
@@ -43,7 +43,7 @@ public partial class WeaponTrail : Node2D
     public override void _Draw()
     {
         if (!IsEmitting) return;
-        if (_actor.Presentation.ReferencePoseSet)
+        if (_actor.Presentation.Animation.ReferencePoseSet)
         {
             DrawReferenceBladeTrail();
             return;
@@ -60,12 +60,12 @@ public partial class WeaponTrail : Node2D
         // 亮刃前端的当前角度；提前完成扫动，剩余寿命用于消散。
         float head = center - half + 2 * half * Mathf.Min(1, progress * 1.6f);
         // 拖尾起始角，限制在攻击扇形内；横扫比普通攻击保留更长的弧。
-        float tail = Mathf.Max(center - half, head - (_actor.CurrentAction == CombatAction.Sweep ? 2.2f : 1.2f));
+        float tail = Mathf.Max(center - half, head - (_actor.CurrentMotion == CombatMotion.Sweep ? 2.2f : 1.2f));
         // 刀光外缘半径，沿用动作的世界像素范围，避免画面与判定明显脱节。
         float radius = _actor.Spec.Range;
         // 阵营基础色：敌方橙红、玩家暖金，亮刃另用接近白色的高光。
         Color tint = _actor.IsEnemy ? new Color(PresentationColors.EnemyTrail) : new Color(PresentationColors.PlayerTrail);
-        if (_actor.CurrentAction == CombatAction.Dash)
+        if (_actor.CurrentMotion == CombatMotion.Dash)
         {
             Vector2 tip = _actor.CastDirection * radius;
             DrawLine(-_actor.CastDirection * 25, tip, new Color(tint, fade * .25f), 12, true);
@@ -92,7 +92,7 @@ public partial class WeaponTrail : Node2D
     private void DrawReferenceBladeTrail()
     {
         if (_bladeSamples.Count < 2) return;
-        Color tint = new(PresentationColors.PlayerTrail);
+        Color tint = new(_actor.IsEnemy ? PresentationColors.EnemyTrail : PresentationColors.PlayerTrail);
         for (int index = 1; index < _bladeSamples.Count; index++)
         {
             Vector2 start = ToLocal(_bladeSamples[index - 1].Tip);

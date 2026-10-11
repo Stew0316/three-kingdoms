@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="CombatActionConfig" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://Scripts/Config/CombatActionConfig.cs" id="1"]
+
+[resource]
+script = ExtResource("1")
+Prepare = 0.48
+Active = 0.22
+Recover = 0.32
+Cooldown = 4.0
+Range = 40.0
+HalfAngle = 0.72
+Damage = 14
+Speed = 360.0
+SkillId = "core:weiyan/dash"
+DisplayName = "突进压斩"
+Motion = 1

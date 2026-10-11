@@ -1,30 +1,11 @@
-[gd_resource type="Resource" script_class="CharacterPresentationConfig" load_steps=10 format=3]
+[gd_resource type="Resource" script_class="CharacterPresentationConfig" load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://Scripts/Config/CharacterPresentationConfig.cs" id="1"]
-[ext_resource type="Texture2D" path="res://Source/People/LvBu/lubu-parts-v3.png" id="2"]
-[ext_resource type="Resource" path="res://Resources/Config/Combat/lubu-standing-pose.tres" id="3"]
-[ext_resource type="Resource" path="res://Resources/Config/Combat/lubu-moving-pose.tres" id="4"]
-[ext_resource type="Resource" path="res://Resources/Config/Combat/lubu-windup-pose.tres" id="5"]
-[ext_resource type="Texture2D" path="res://Source/People/LvBu/lubu-reference-accessories-v4.png" id="6"]
-[ext_resource type="Resource" path="res://Resources/Config/Combat/lubu-strike-high-pose.tres" id="7"]
-[ext_resource type="Resource" path="res://Resources/Config/Combat/lubu-strike-contact-pose.tres" id="8"]
-[ext_resource type="Resource" path="res://Resources/Config/Combat/lubu-strike-follow-pose.tres" id="9"]
+[ext_resource type="Resource" path="res://Resources/Config/Combat/lubu-model.tres" id="model"]
+[ext_resource type="Resource" path="res://Resources/Config/Combat/lubu-animation.tres" id="animation"]
 
 [resource]
 script = ExtResource("1")
-PartsAtlas = ExtResource("2")
-ReferencePoseSet = true
-StandingPose = ExtResource("3")
-MovingPose = ExtResource("4")
-WindupPose = ExtResource("5")
-StrikeHighPose = ExtResource("7")
-StrikeContactPose = ExtResource("8")
-StrikeFollowPose = ExtResource("9")
-ReferenceAccessories = ExtResource("6")
-ReferenceWeaponRegion = Rect2(300, 0, 174, 887)
-ReferenceCrestRegion = Rect2(635, 150, 1025, 725)
-ReferenceCrestRoot = Vector2(965, 486)
-AtlasRegions = Array[Rect2]([Rect2(0, 0, 313, 324), Rect2(313, 0, 314, 231), Rect2(627, 0, 313, 320), Rect2(940, 0, 314, 324), Rect2(0, 325, 313, 185), Rect2(313, 325, 314, 258), Rect2(627, 325, 313, 185), Rect2(940, 325, 314, 258), Rect2(0, 588, 313, 287), Rect2(313, 588, 314, 287), Rect2(627, 588, 313, 287), Rect2(940, 588, 314, 287), Rect2(0, 918, 313, 280), Rect2(313, 918, 314, 280), Rect2(627, 865, 313, 389), Rect2(940, 878, 314, 376)])
 AuraColor = Color(1, 0.57, 0.16, 1)
 ParticleColor = Color(1, 0.77, 0.3, 1)
 OrbitParticles = false
@@ -34,25 +15,5 @@ AfterimageInterval = 0.075
 AfterimageLifetime = 0.32
 AuraRadius = 21.0
 ParticleCount = 24
-CharacterScale = 0.038
-DepthScale = 0.92
-CartoonFilter = false
-CartoonColorSteps = 7.0
-CartoonSaturation = 1.15
-CartoonOutlineColor = Color(0.1, 0.075, 0.06, 0.92)
-MartialWalk = true
-StandStanceWidth = 6.5
-StandCrouch = 0.25
-WalkStanceWidth = 7.5
-WalkCrouch = 1.5
-WalkCycleDistance = 64.0
-WalkStride = 12.5
-WalkFootLift = 3.5
-WalkSupportKneeDegrees = 24.0
-AlignBootsForward = false
-FlipCrestVertical = true
-CalibratedLegProportions = true
-PelvisHeight = 36.0
-HipHalfWidth = 4.5
-ThighLength = 17.0
-LowerLegLength = 18.0
+Model = ExtResource("model")
+Animation = ExtResource("animation")

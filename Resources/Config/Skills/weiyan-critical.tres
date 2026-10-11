@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="PassiveConfig" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://Scripts/Config/PassiveConfig.cs" id="1"]
+
+[resource]
+script = ExtResource("1")
+DisplayName = "奋勇"
+Effect = 1
+Chance = 0.15
+CriticalMultiplier = 2.4
+SkillId = "core:weiyan/critical"

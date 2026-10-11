@@ -5,11 +5,14 @@ public partial class Combatant : CharacterBody2D
 {
     // Idle/Move 接收行动，Attack/Dodge 执行动作，Hurt 锁定受击，Dead 永久停止行动。
     public enum State { Idle, Move, Attack, Dodge, Hurt, Dead }
-    // 是否为敌方：用于选择阵营碰撞层、默认朝向与技能数值。
+    // 是否为敌方：仅选择阵营碰撞层和默认朝向，不决定模型或技能。
     [Export] public bool IsEnemy { get; set; }
     // 角色静态战斗数据，由 .tres 提供；运行时只读，不保存当前生命或冷却。
     [Export] public CombatantConfig Config { get; set; }
     [Export] public CharacterPresentationConfig Presentation { get; set; } // 美术图集与装饰效果。
+    [Export] public CharacterUiConfig Ui { get; set; } = new(); // 武将独立身份和界面主题。
+    [Export] public SkillLoadoutConfig Loadout { get; set; } // 默认装备，运行时复制槽位引用而非修改资源。
+    public SkillLoadoutRuntime Skills { get; private set; } // 每个单位独享装备与冷却状态。
     // 原始立绘是否朝左，用于计算水平镜像，避免把素材初始方向当作战斗方向。
     [Export] public bool ArtFacesLeft { get; set; }
     // 当前状态，只允许通过 SetState 切换。
@@ -26,6 +29,7 @@ public partial class Combatant : CharacterBody2D
     public bool CanAct => !BattleFinished && CurrentState is State.Idle or State.Move;
     // 最近一次成功启动的动作类型；是否仍执行要结合 CurrentState 判断。
     public CombatAction CurrentAction { get; private set; }
+    public CombatMotion CurrentMotion { get; private set; } // 本次技能请求的动作语义，与输入槽位分离。
     // 本次动作的数值快照，供命中判定与表现层共同读取。
     public AttackSpec Spec { get; private set; }
     // 本次动作从启动起累计的秒数，暂停和打击停顿时不推进。
@@ -38,8 +42,6 @@ public partial class Combatant : CharacterBody2D
         ? ActionTime < Spec.Prepare ? BattleTexts.Charging : ActionTime < Spec.Prepare + Spec.Active ? BattleTexts.Active : BattleTexts.Recovering
         : CurrentState switch { State.Hurt => BattleTexts.HurtState, State.Dead => BattleTexts.DeadState, State.Move => BattleTexts.MoveState, _ => BattleTexts.IdleState };
 
-    // 按 CombatAction 枚举索引保存各动作的剩余冷却秒数。
-    private readonly float[] _cooldowns = new float[4];
     // 控制器提交的移动意图，长度限制为 1 以避免斜向加速。
     private Vector2 _moveInput;
     // 施法开始时锁定的方向，攻击中不跟随新的转向输入。
@@ -87,6 +89,7 @@ public partial class Combatant : CharacterBody2D
             return;
         }
         MotionMode = MotionModeEnum.Floating;
+        Skills = new SkillLoadoutRuntime(Loadout);
         CollisionLayer = IsEnemy ? PhysicsLayers.EnemyBody : PhysicsLayers.PlayerBody;
         CollisionMask = IsEnemy ? PhysicsLayers.EnemyBodyMask : PhysicsLayers.PlayerBodyMask;
         Health = GetNode<Health>(NodeNames.Health);
@@ -104,7 +107,12 @@ public partial class Combatant : CharacterBody2D
     }
 
     /// <summary>查询 action 对应动作的剩余冷却秒数；0 表示冷却结束。</summary>
-    public float Cooldown(CombatAction action) => _cooldowns[(int)action];
+    public float Cooldown(CombatAction action) => Skills?.Cooldown(action) ?? 0;
+    public CombatActionConfig GetSkill(CombatAction slot) => Skills?.GetSkill(slot) ?? Loadout?.GetSkill(slot);
+
+    /// <summary>仅空闲或行走时换装；不改模型、属性、动作资源或本次施法快照，不清空旧技能冷却。</summary>
+    public bool TryEquipSkill(CombatAction slot, CombatActionConfig skill) => Skills != null && CanAct && CounterRemaining <= 0 && Skills.Equip(slot, skill);
+    public bool TryEquipPassive(int index, PassiveConfig skill) => Skills != null && CanAct && CounterRemaining <= 0 && Skills.EquipPassive(index, skill);
 
     /// <summary>接收移动意图 input；零向量表示停止，不会清除最后朝向。</summary>
     public void SetMoveInput(Vector2 input)
@@ -123,16 +131,17 @@ public partial class Combatant : CharacterBody2D
     public bool TryAction(CombatAction action)
     {
         if (!CanAct || Cooldown(action) > 0) return false;
-        CurrentAction = action;
-        CombatActionConfig actionConfig = Config.GetAction(action);
+        CombatActionConfig actionConfig = GetSkill(action);
         if (actionConfig == null) return false;
+        CurrentAction = action;
+        CurrentMotion = actionConfig.Motion;
         Spec = actionConfig.ToSpec();
         ActionTime = 0;
         _castDirection = FacingDirection;
-        _cooldowns[(int)action] = Spec.Cooldown;
+        Skills.StartCooldown(actionConfig, Spec.Cooldown);
         Velocity = Vector2.Zero;
         _hitbox.Begin(Spec);
-        SetState(action == CombatAction.Dodge ? State.Dodge : State.Attack);
+        SetState(CurrentMotion == CombatMotion.Dodge ? State.Dodge : State.Attack);
         return true;
     }
 
@@ -143,7 +152,7 @@ public partial class Combatant : CharacterBody2D
         WalkVelocity = Vector2.Zero;
         if (_hitStop > 0) { _hitStop -= dt; return; }
         CounterRemaining = Mathf.Max(0, CounterRemaining - dt);
-        for (int i = 0; i < _cooldowns.Length; i++) _cooldowns[i] = Mathf.Max(0, _cooldowns[i] - dt);
+        Skills.Tick(dt);
         if (IsDead || BattleFinished) { Velocity = Vector2.Zero; QueueRedraw(); return; }
 
         if (CurrentState == State.Hurt)

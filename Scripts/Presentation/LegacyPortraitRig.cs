@@ -166,7 +166,7 @@ public partial class LegacyPortraitRig : Node2D
             Combatant.State.Hurt => CharacterAnimations.Hurt,
             Combatant.State.Dead => CharacterAnimations.Dead,
             Combatant.State.Dodge => CharacterAnimations.Dash,
-            Combatant.State.Attack => _actor.CurrentAction == CombatAction.Dash ? CharacterAnimations.Dash : CharacterAnimations.Attack,
+            Combatant.State.Attack => _actor.CurrentMotion == CombatMotion.Dash ? CharacterAnimations.Dash : CharacterAnimations.Attack,
             _ => CharacterAnimations.Idle
         };
         if (_clip != next) { _clip = next; Animator.Play(next); }

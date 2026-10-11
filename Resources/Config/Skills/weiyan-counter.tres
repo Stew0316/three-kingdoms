@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="PassiveConfig" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://Scripts/Config/PassiveConfig.cs" id="1"]
+
+[resource]
+script = ExtResource("1")
+DisplayName = "狂骨旋斩"
+Effect = 2
+Chance = 0.6
+Damage = 30
+Radius = 68.0
+VisualDuration = 0.48
+SkillId = "core:weiyan/counter"

@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="CharacterModelConfig" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://Scripts/Config/CharacterModelConfig.cs" id="1"]
+[ext_resource type="Texture2D" path="res://Source/People/WeiYan/weiyan-parts-v2.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+PartsAtlas = ExtResource("2")
+CrestRect = Rect2(-10, -1, 16, 22)
+AtlasRegions = Array[Rect2]([Rect2(0, 0, 313, 322), Rect2(340, 0, 280, 220), Rect2(627, 0, 313, 322), Rect2(940, 0, 314, 324), Rect2(0, 322, 313, 273), Rect2(313, 322, 314, 273), Rect2(627, 322, 313, 273), Rect2(940, 322, 314, 273), Rect2(0, 595, 313, 293), Rect2(313, 595, 314, 293), Rect2(627, 595, 313, 255), Rect2(940, 595, 314, 293), Rect2(0, 895, 313, 359), Rect2(313, 895, 314, 359), Rect2(765, 850, 70, 404), Rect2(940, 895, 314, 359)])
+CharacterScale = 0.038
+DepthScale = 0.92
+CartoonFilter = true
+CartoonColorSteps = 7.0
+CartoonSaturation = 1.12
+CartoonOutlineColor = Color(0.075, 0.09, 0.065, 0.92)
+CalibratedLegProportions = true
+PelvisHeight = 36.0
+HipHalfWidth = 4.5
+ThighLength = 17.0
+LowerLegLength = 18.0
+FlipFarBootHorizontal = true
+CrestVisible = false
+JointPositions = Array[Vector2]([Vector2(0, -36), Vector2(0, -11), Vector2(3, -12), Vector2(-7, -6), Vector2(0, 12), Vector2(0, 12), Vector2(8, -5), Vector2(0, 12), Vector2(0, 12), Vector2(-4.5, 2), Vector2(0, 17), Vector2(4.5, 2), Vector2(0, 17), Vector2(-5, -9), Vector2(0, 0), Vector2(-1, -10)])
+PartRects = Array[Rect2]([Rect2(-10, -3, 20, 17), Rect2(-10, -12, 20, 25), Rect2(-10.5, -18, 16, 22), Rect2(-5, -3, 10, 16), Rect2(-3.5, -2, 7, 15), Rect2(-2.5, -2, 5, 6), Rect2(-5, -3, 10, 16), Rect2(-3.5, -2, 7, 15), Rect2(-2.5, -2, 5, 6), Rect2(-4.5, -2, 9, 20), Rect2(-4.5, -2, 10, 20), Rect2(-4.5, -2, 9, 20), Rect2(-4.5, -2, 10, 20), Rect2(-19, -2, 28, 49), Rect2(-5, -42, 10, 86), Rect2(-7, -27, 19, 30)])
+DrawOrder = Array[int]([13, 9, 10, 11, 12, 0, 1, 3, 4, 2, 15, 6, 7, 14, 5, 8])

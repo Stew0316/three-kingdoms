@@ -1,6 +1,6 @@
 using Godot;
 
-/// <summary>魏延的最小距离决策器，使用与玩家相同的移动和施法入口。</summary>
+/// <summary>距离型战斗控制器；魏延默认装配此控制器，按当前装备技能的语义决策，不依赖武将身份。</summary>
 public partial class WeiYanController : Node
 {
     // 本场追击目标，由 Arena 在双方初始化后绑定。
@@ -35,19 +35,34 @@ public partial class WeiYanController : Node
         _actor.Face(offset);
         _actor.SetMoveInput(Vector2.Zero);
 
-        if (distance > 82 && distance < 155 && _actor.Cooldown(CombatAction.Dash) <= 0)
-            Act(CombatAction.Dash, BattleTexts.Dash);
-        else if (distance < 68 && _attackCount > 0 && _actor.Cooldown(CombatAction.Sweep) <= 0)
-            Act(CombatAction.Sweep, BattleTexts.Sweep);
-        else if (distance <= 44 && _actor.Cooldown(CombatAction.Basic) <= 0)
-            Act(CombatAction.Basic, BattleTexts.BasicAttack);
-        else if (distance > 42) { _actor.SetMoveInput(offset.Normalized()); Decision = BattleTexts.Chase; }
+        if (TryMotion(CombatMotion.Dash, distance) || TryMotion(CombatMotion.Sweep, distance)
+            || TryMotion(CombatMotion.Basic, distance)) return;
+        float approachRange = 42;
+        foreach (CombatAction slot in System.Enum.GetValues<CombatAction>())
+        {
+            var skill = _actor.GetSkill(slot);
+            if (skill != null && skill.Motion != CombatMotion.Dodge)
+                approachRange = Mathf.Min(approachRange, Mathf.Max(8, skill.Range - 6));
+        }
+        if (distance > approachRange) { _actor.SetMoveInput(offset.Normalized()); Decision = BattleTexts.Chase; }
         else { Decision = BattleTexts.Observe; }
     }
 
-    /// <summary>尝试 action 动作；只有启动成功才更新 label 调试文案和攻击计数。</summary>
-    private void Act(CombatAction action, string label)
+    /// <summary>从实际装备查找指定动作语义；只有施法成功才更新技能名称和攻击计数。</summary>
+    private bool TryMotion(CombatMotion motion, float distance)
     {
-        if (_actor.TryAction(action)) { Decision = label; _attackCount++; }
+        foreach (CombatAction slot in System.Enum.GetValues<CombatAction>())
+        {
+            var skill = _actor.GetSkill(slot);
+            if (skill == null || skill.Motion != motion || _actor.Cooldown(slot) > 0) continue;
+            bool inRange = motion switch
+            {
+                CombatMotion.Dash => distance > skill.Range + 42 && distance < skill.Range + skill.Speed * skill.Active + 36,
+                CombatMotion.Sweep => _attackCount > 0 && distance < skill.Range - 8,
+                _ => distance <= skill.Range - 4
+            };
+            if (inRange && _actor.TryAction(slot)) { Decision = skill.DisplayName; _attackCount++; return true; }
+        }
+        return false;
     }
 }

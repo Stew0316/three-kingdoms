@@ -1,8 +1,6 @@
 /// <summary>当前 S1 原型使用的界面文本。正式多语言接入后应替换为本地化键。</summary>
 public static class BattleTexts
 {
-    public const string PlayerName = "吕布";
-    public const string EnemyName = "魏延";
     public const string ArenaTitle = "演 武 场";
     public const string Victory = "挑战成功";
     public const string Defeat = "胜败乃兵家常事";
@@ -23,11 +21,9 @@ public static class BattleTexts
     public const string DeadState = "阵亡";
     public const string MoveState = "移动";
     public const string IdleState = "待机";
-    public const string Controls = "WASD / 方向键 移动    J / 左键 普攻    K 突进    L 横扫    空格 闪避";
     public const string DebugControls = "红色扇形是敌方预警    |    Esc 暂停    R 重开    F3 状态    F4 骨骼";
     // 以下模板统一约束 HUD 的动态文案，参数顺序由调用处的注释和类型表达。
     public const string BattleClockFormat = "{0} · 对 · {1}   {2:0}s";
-    public const string SkillStatusFormat = "K 突进 {0}     L 横扫 {1}     空格 闪避 {2}";
     public const string DebugStateFormat = "{0} {1} / {2}     {3} {4} / {5}";
     public const string FinishedSubtitleFormat = "用时 {0:0.0} 秒 · 按 R 再战一局";
     public const string PausedSubtitle = "按 Esc 继续对战";

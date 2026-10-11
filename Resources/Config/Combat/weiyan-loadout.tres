@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="SkillLoadoutConfig" load_steps=9 format=3]
+
+[ext_resource type="Script" path="res://Scripts/Config/SkillLoadoutConfig.cs" id="1"]
+[ext_resource type="Resource" path="res://Resources/Config/Skills/weiyan-counter.tres" id="Counter"]
+[ext_resource type="Resource" path="res://Resources/Config/Skills/weiyan-critical.tres" id="Critical"]
+[ext_resource type="Resource" path="res://Resources/Config/Skills/weiyan-basic.tres" id="Basic"]
+[ext_resource type="Resource" path="res://Resources/Config/Skills/weiyan-dash.tres" id="Dash"]
+[ext_resource type="Resource" path="res://Resources/Config/Skills/weiyan-sweep.tres" id="Sweep"]
+[ext_resource type="Resource" path="res://Resources/Config/Skills/weiyan-dodge.tres" id="Dodge"]
+[ext_resource type="Script" path="res://Scripts/Config/PassiveConfig.cs" id="passive_type"]
+
+[resource]
+script = ExtResource("1")
+Basic = ExtResource("Basic")
+Dash = ExtResource("Dash")
+Sweep = ExtResource("Sweep")
+Dodge = ExtResource("Dodge")
+Passives = Array[ExtResource("passive_type")]([ExtResource("Counter"), ExtResource("Critical")])

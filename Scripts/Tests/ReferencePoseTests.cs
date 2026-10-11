@@ -32,7 +32,7 @@ public partial class ReferencePoseTests : Node
             _arena.Resolver.PassivesEnabled = false;
             Check(_arena.IsSoloPractice && !_arena.Enemy.Visible
                 && _arena.Enemy.ProcessMode == ProcessModeEnum.Disabled, "长兵器姿态验收保持魏延关闭");
-            Check(Player.Presentation.ReferencePoseSet, "吕布已启用独立关键姿态配置");
+            Check(Player.Presentation.Animation.ReferencePoseSet, "吕布已启用独立关键姿态配置");
             Check(Rig.Joints.Count == 16, "各类姿态复用同一套 16 业务关节");
             if (HasRenderer)
             {
@@ -165,7 +165,7 @@ public partial class ReferencePoseTests : Node
                     $"蓄势双手收戟至身后，戟头朝后近水平：{direction}");
                 Check(Rig.ReferenceGripWeight >= .99f, "蓄势已完全接入双手握戟约束");
                 float hands = HandPosition(5).DistanceTo(HandPosition(8));
-                Check(hands > Mathf.Max(6, Player.Presentation.SupportGripDistance * .7f),
+                Check(hands > Mathf.Max(6, Player.Presentation.Model.SupportGripDistance * .7f),
                     $"蓄势时双手有独立握距：{hands:F2} 骨架单位");
                 CheckLegs("蓄势");
                 if (HasRenderer) SaveDetail("lubu-reference-windup");

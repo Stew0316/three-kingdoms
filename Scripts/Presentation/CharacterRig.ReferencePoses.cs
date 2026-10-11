@@ -52,17 +52,17 @@ public partial class CharacterRig
     /// <summary>直接采样已生成的参考配件，原始图片不改写，挂点不再取图像中心。</summary>
     private void BindReferenceAccessory(int bone, Sprite2D sprite)
     {
-        var config = Actor.Presentation;
+        var config = Actor.Presentation.Model;
         if (bone == 14)
         {
             sprite.Texture = new AtlasTexture { Atlas = config.ReferenceAccessories, Region = config.ReferenceWeaponRegion };
-            sprite.Scale = new Vector2(13, 86) / config.ReferenceWeaponRegion.Size;
-            sprite.Position = new Vector2(-7.4f, -42);
+            sprite.Scale = config.AccessoryWeaponSize / config.ReferenceWeaponRegion.Size;
+            sprite.Position = config.AccessoryWeaponOffset;
         }
         else if (bone == 15)
         {
             sprite.Texture = new AtlasTexture { Atlas = config.ReferenceAccessories, Region = config.ReferenceCrestRegion };
-            sprite.Scale = new Vector2(35, 30) / config.ReferenceCrestRegion.Size;
+            sprite.Scale = config.AccessoryCrestSize / config.ReferenceCrestRegion.Size;
             sprite.Position = -config.ReferenceCrestRoot * sprite.Scale;
             sprite.FlipV = false;
         }
@@ -80,7 +80,7 @@ public partial class CharacterRig
             Name = bone == 10 ? "远靴掌图层" : "近靴掌图层", Centered = false,
             Texture = new AtlasTexture { Atlas = original.Atlas,
                 Region = new Rect2(region.Position + new Vector2(0, split), new Vector2(region.Size.X, region.Size.Y - split)) },
-            TextureFilter = TextureFilterEnum.Linear, Material = shin.Material,
+            TextureFilter = TextureFilterEnum.Linear, Material = shin.Material, FlipH = shin.FlipH,
             Position = new Vector2(shin.Position.X, 0),
             Scale = new Vector2(10 / region.Size.X, ReferenceFootHeight / (region.Size.Y - split))
         };
@@ -111,10 +111,9 @@ public partial class CharacterRig
     /// <summary>从长兵器关键姿态产生实际动作；姿态时序只读取战斗时钟。</summary>
     private void ProcessReferencePose(float elapsed)
     {
-        var config = Actor.Presentation;
+        var config = Actor.Presentation.Animation;
         var standing = ReferenceFrame.From(config.StandingPose);
         var moving = ReferenceFrame.From(config.MovingPose);
-        var windup = ReferenceFrame.From(config.WindupPose);
         if (!_referenceInitialized)
         {
             _referenceFrame = standing;
@@ -125,7 +124,7 @@ public partial class CharacterRig
         float baseScale = ArtScale / .05f;
         float squash = Actor.IsDead ? .52f : 1;
         bool hurt = Actor.CurrentState == Combatant.State.Hurt;
-        Scale = new Vector2(facing * baseScale * (hurt ? 1.025f : 1), baseScale * config.DepthScale * squash * (hurt ? .97f : 1));
+        Scale = new Vector2(facing * baseScale * (hurt ? 1.025f : 1), baseScale * Actor.Presentation.Model.DepthScale * squash * (hurt ? .97f : 1));
         Modulate = _source.Modulate;
         Rotation = 0;
         Position = Actor.IsDead ? new Vector2(0, 2) : hurt ? Actor.LastDamage.KnockbackDirection * .8f : Vector2.Zero;
@@ -137,7 +136,7 @@ public partial class CharacterRig
 
         // 动作关键帧直接随前摇/生效/后摇采样，不再叠加低通延迟，避免打击判定已生效而身体仍未起势。
         if (action)
-            _referenceFrame = SampleReferenceAction(standing, moving, windup);
+            _referenceFrame = SampleReferenceAction(standing, moving);
         else if (elapsed > 0)
         {
             var target = ReferenceFrame.Mix(standing, moving, _walkWeight);
@@ -166,17 +165,16 @@ public partial class CharacterRig
             if (Actor.CurrentState == Combatant.State.Hurt)
             {
                 float impact = Actor.LastDamage.KnockbackDirection.X * facing;
-                target.Pelvis += new Vector2(impact * 1.5f, 2);
-                target.Chest = impact * .16f;
-                target.FreeHand = new Vector2(12, -43);
-                target.Weapon = -.25f;
+                target.Pelvis += new Vector2(impact * config.HurtPelvisShift.X, config.HurtPelvisShift.Y);
+                target.Chest = impact * Mathf.DegToRad(config.HurtChestDegrees);
+                target.FreeHand = config.HurtFreeHand;
+                target.Weapon = Mathf.DegToRad(config.HurtWeaponDegrees);
             }
             if (Actor.CounterRemaining > 0)
             {
                 float phase = 1 - Actor.CounterRemaining / Actor.CounterDuration;
-                target = windup;
-                target.Weapon += Mathf.Sin(phase * Mathf.Tau) * .7f;
-                target.FarHand.X += Mathf.Sin(phase * Mathf.Tau) * 8;
+                // 技能只发出反击事实，武将自己的 Counter 资源决定如何回击。
+                target = SampleReferenceTimeline(standing, standing, config.Counter, phase, .2f, .6f, .2f);
             }
             _referenceFrame = ReferenceFrame.Mix(_referenceFrame, target, 1 - Mathf.Exp(-22 * elapsed));
             if (Actor.CurrentState == Combatant.State.Move && _walkWeight >= .99f && Actor.CounterRemaining <= 0)
@@ -218,8 +216,8 @@ public partial class CharacterRig
         Vector2 direction = new(_walkDirection.X * facing, _walkDirection.Y * .16f);
         // 上下移动仍保留侧面透视的换脚量，避免只有两脚一起纵向滑动。
         if (Mathf.Abs(direction.X) < .2f) direction.X = .45f;
-        float lift = Mathf.Sin(swing * Mathf.Pi) * Actor.Presentation.WalkFootLift;
-        return (direction * (forward * Actor.Presentation.WalkStride) - new Vector2(0, lift)) * _walkWeight;
+        float lift = Mathf.Sin(swing * Mathf.Pi) * Actor.Presentation.Animation.WalkFootLift;
+        return (direction * (forward * Actor.Presentation.Animation.WalkStride) - new Vector2(0, lift)) * _walkWeight;
     }
 
     /// <summary>轻微脚跟接地、全掌承重、抬跟蹬离；摆动末段回到下次接触角。</summary>
@@ -244,7 +242,7 @@ public partial class CharacterRig
     private float ReferenceWalkWaist(ReferenceFrame frame, float farPhase, float nearPhase)
     {
         float shin = _lowerLegLength - ReferenceFootHeight;
-        float knee = Mathf.DegToRad(Actor.Presentation.WalkSupportKneeDegrees);
+        float knee = Mathf.DegToRad(Actor.Presentation.Animation.WalkSupportKneeDegrees);
         float reach = Mathf.Sqrt(_thighLength * _thighLength + shin * shin + 2 * _thighLength * shin * Mathf.Cos(knee));
         Vector2 farAnkle = ReferenceAnkle(frame.FarFoot, frame.FarFootRoll);
         Vector2 nearAnkle = ReferenceAnkle(frame.NearFoot, frame.NearFootRoll);
@@ -266,54 +264,44 @@ public partial class CharacterRig
         return Mathf.Max(waist, Mathf.Max(WaistFor(farAnkle, 9, maximumReach), WaistFor(nearAnkle, 11, maximumReach)));
     }
 
-    /// <summary>低位警戒、后收、过顶、斩入和随势；普攻/突进沿用同一持械语言，伤害时序不变。</summary>
-    private ReferenceFrame SampleReferenceAction(ReferenceFrame standing, ReferenceFrame moving, ReferenceFrame windup)
+    /// <summary>读取当前技能的动作语义，映射到本武将自己的曲线；按技能规则时钟采样。</summary>
+    private ReferenceFrame SampleReferenceAction(ReferenceFrame standing, ReferenceFrame moving)
     {
         float time = Actor.ActionTime;
         var spec = Actor.Spec;
         if (Actor.CurrentState == Combatant.State.Dodge)
         {
-            var dodge = moving;
-            dodge.Pelvis += new Vector2(3, 4);
-            dodge.Chest = .3f;
-            dodge.FarFoot = new Vector2(-13, -1);
-            dodge.NearFoot = new Vector2(12, 0);
-            float inWeight = Smooth(time / .045f);
+            var dodge = ReferenceFrame.From(Actor.Presentation.Animation.DodgePose);
+            float inWeight = Smooth(time / Mathf.Max(.001f, Actor.Presentation.Animation.DodgeEnterSeconds));
             float outWeight = Smooth((time - spec.Active) / Mathf.Max(spec.Recover, .001f));
             return ReferenceFrame.Mix(ReferenceFrame.Mix(_referenceActionStart, dodge, inWeight), standing, outWeight);
         }
-        // 长戟始终按近战劈扫处理；普攻缩短收戟幅度，突进也保留两手拧转，不能退回前送标枪。
-        if (Actor.CurrentAction == CombatAction.Basic)
+        var animation = Actor.Presentation.Animation.GetAction(Actor.CurrentMotion);
+        return SampleReferenceTimeline(_referenceActionStart, standing, animation, time, spec.Prepare, spec.Active, spec.Recover);
+    }
+
+    /// <summary>通用四关键点曲线，只解释角色动画资源；不包含武将名、技能ID或伤害规则分支。</summary>
+    private static ReferenceFrame SampleReferenceTimeline(ReferenceFrame start, ReferenceFrame standing,
+        CharacterActionAnimationConfig animation, float time, float prepare, float active, float recover)
+    {
+        if (animation == null) return standing;
+        var windup = ReferenceFrame.From(animation.Windup);
+        var high = ReferenceFrame.From(animation.High);
+        var contact = ReferenceFrame.From(animation.Contact);
+        var follow = ReferenceFrame.From(animation.Follow);
+        if (time < prepare)
+            return ReferenceFrame.Mix(start, windup, Smooth(time / Mathf.Max(prepare * animation.WindupReach, .001f)));
+        if (time >= prepare + active)
         {
-            windup.Weapon = Mathf.DegToRad(-38);
-            windup.FarHand = new Vector2(1, -35);
+            float recovery = (time - prepare - active) / Mathf.Max(recover, .001f);
+            return ReferenceFrame.Mix(follow, standing, Smooth((recovery - animation.RecoveryHold) / Mathf.Max(1 - animation.RecoveryHold, .001f)));
         }
-        else if (Actor.CurrentAction == CombatAction.Dash)
-        {
-            windup.Weapon = Mathf.DegToRad(-60);
-            windup.FarHand = new Vector2(3, -34);
-        }
-        if (time < spec.Prepare)
-        {
-            // 前摇后段明确停在身后收戟姿势，双手低于面部，不能把武器举在肩上等待投出。
-            return ReferenceFrame.Mix(_referenceActionStart, windup, Smooth(time / Mathf.Max(spec.Prepare * .72f, .001f)));
-        }
-        var high = ReferenceFrame.From(Actor.Presentation.StrikeHighPose);
-        var contact = ReferenceFrame.From(Actor.Presentation.StrikeContactPose);
-        var follow = ReferenceFrame.From(Actor.Presentation.StrikeFollowPose);
-        float strike = Mathf.Clamp((time - spec.Prepare) / Mathf.Max(spec.Active, .001f), 0, 1);
-        // 显式绕身弧线：背后收戟→经过上方→前方切入→压低随势。每段不足180°，不会被最短角插值反向抄近路。
-        ReferenceFrame result;
-        if (strike < .26f) result = ReferenceFrame.Mix(windup, high, Smooth(strike / .26f));
-        else if (strike < .70f) result = ReferenceFrame.Mix(high, contact, Smooth((strike - .26f) / .44f));
-        else result = ReferenceFrame.Mix(contact, follow, Smooth((strike - .70f) / .23f));
-        if (time >= spec.Prepare + spec.Active)
-        {
-            float recovery = (time - spec.Prepare - spec.Active) / Mathf.Max(spec.Recover, .001f);
-            // 刃端先完成随势，腰胯和双手再收回低位警戒，不松手抛出长戟。
-            result = ReferenceFrame.Mix(follow, standing, Smooth((recovery - .12f) / .88f));
-        }
-        return result;
+        float strike = Mathf.Clamp((time - prepare) / Mathf.Max(active, .001f), 0, 1);
+        if (strike < animation.HighAt)
+            return ReferenceFrame.Mix(windup, high, Smooth(strike / Mathf.Max(animation.HighAt, .001f)));
+        if (strike < animation.ContactAt)
+            return ReferenceFrame.Mix(high, contact, Smooth((strike - animation.HighAt) / Mathf.Max(animation.ContactAt - animation.HighAt, .001f)));
+        return ReferenceFrame.Mix(contact, follow, Smooth((strike - animation.ContactAt) / Mathf.Max(animation.FollowAt - animation.ContactAt, .001f)));
     }
 
     /// <summary>先落腰胯和足底，再确定长戟及握点，最后求解双臂；统一写入同一骨架。</summary>
@@ -332,8 +320,8 @@ public partial class CharacterRig
         Vector2 blade = Vector2.Up.Rotated(frame.Weapon);
         Vector2 secondGrip = frame.FarHand + blade * frame.Separation;
         Vector2 nearHand = frame.FreeHand.Lerp(secondGrip, frame.Grip);
-        SolveReferenceChain(3, 4, frame.FarHand, 12, 12, 1);
-        SolveReferenceChain(6, 7, nearHand, 12, 12, 1);
+        SolveReferenceChain(3, 4, frame.FarHand, _bones[4].Position.Length(), _bones[5].Position.Length(), 1);
+        SolveReferenceChain(6, 7, nearHand, _bones[7].Position.Length(), _bones[8].Position.Length(), 1);
         // 手掌朝向握柄，不继承肘部旋转；放开的副手自然下垂。
         SetReferenceAbsoluteRotation(5, frame.Weapon + .15f);
         SetReferenceAbsoluteRotation(8, Mathf.LerpAngle(.05f, frame.Weapon, frame.Grip));

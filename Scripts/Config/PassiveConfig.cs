@@ -4,6 +4,7 @@ using Godot;
 [GlobalClass]
 public partial class PassiveConfig : Resource
 {
+    [Export] public string SkillId { get; set; } = ""; // 被动的稳定标识，与武将外观无关。
     public enum EffectKind { Reflect, Critical, CounterSpin }
     [Export] public string DisplayName { get; set; } = ""; // HUD 与触发反馈名称。
     [Export] public EffectKind Effect { get; set; } // 通用触发处理类型，不依赖武将名字。

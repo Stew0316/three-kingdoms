@@ -1,7 +1,7 @@
 using Godot;
 using System.Collections.Generic;
 
-/// <summary>16 关节拆件骨架。骨链驱动部件变换，平级绘制层控制遮挡；武器关节挂手部，动作时钟只读。</summary>
+/// <summary>16 关节拆件骨架。骨链驱动部件变换，平级绘制层控制遮挡；参考姿态独立求解武器和握点，动作时钟只读。</summary>
 public partial class CharacterRig : Node2D
 {
     [Export] public float ArtScale { get; set; } = .038f; // 世界显示尺度；由表现配置覆盖，不影响碰撞体。
@@ -42,15 +42,15 @@ public partial class CharacterRig : Node2D
     public override void _Ready()
     {
         Actor = GetParent<Combatant>();
-        MotionStrength = Actor.Presentation?.MotionStrength ?? MotionStrength;
-        ArtScale = Actor.Presentation?.CharacterScale ?? ArtScale;
+        MotionStrength = Actor.Presentation?.Animation.MotionStrength ?? MotionStrength;
+        ArtScale = Actor.Presentation?.Model.CharacterScale ?? ArtScale;
         _source = Actor.GetNode<Sprite2D>(NodeNames.Visual);
         Skeleton = new Skeleton2D { Name = "Skeleton2D" }; AddChild(Skeleton);
         Vector2[] joints = { new(0,-27), new(0,-15), new(1,-13), new(-9,-7), new(0,14), new(0,14),
             new(9,-6), new(0,12), new(0,12), new(-7,3), new(0,12), new(7,3), new(0,12), new(-5,-10), new(0,1), new(0,-12) };
-        if (Actor.Presentation?.CalibratedLegProportions == true)
+        if (Actor.Presentation?.Model.CalibratedLegProportions == true)
         {
-            var proportions = Actor.Presentation;
+            var proportions = Actor.Presentation.Model;
             _pelvisHeight = proportions.PelvisHeight;
             _thighLength = proportions.ThighLength;
             _lowerLegLength = proportions.LowerLegLength;
@@ -60,7 +60,7 @@ public partial class CharacterRig : Node2D
             joints[11] = new Vector2(proportions.HipHalfWidth, 2);
             joints[10] = joints[12] = new Vector2(0, _thighLength);
         }
-        if (Actor.Presentation?.ReferencePoseSet == true)
+        if (Actor.Presentation?.Animation.ReferencePoseSet == true)
         {
             // 依据三姿态样板重新绑定上半身；手脚目标共用脚底原点，不从旧持械角度继承。
             joints[1] = new Vector2(0, -11);
@@ -75,6 +75,9 @@ public partial class CharacterRig : Node2D
             _parents[14] = -1;
             joints[14] = Vector2.Zero;
         }
+        // 正式武将使用自己的完整绑定；上述默认值仅供旧原型或内存测试纹理回退。
+        if (Actor.Presentation.Model.JointPositions.Count == 16)
+            for (int index = 0; index < 16; index++) joints[index] = Actor.Presentation.Model.JointPositions[index];
         string[] names = { "腰", "胸", "头", "远上臂", "远前臂", "远手", "近上臂", "近前臂", "近手", "远大腿", "远小腿", "近大腿", "近小腿", "披风", "武器", "冠翎" };
         for (int i=0;i<16;i++)
         {
@@ -85,7 +88,7 @@ public partial class CharacterRig : Node2D
             (_parents[i] < 0 ? (Node)Skeleton : _bones[_parents[i]]).AddChild(bone); _bones[i] = bone;
         }
         _drawLayers = new Node2D { Name="部件绘制层" }; AddChild(_drawLayers);
-        if (Actor.Presentation?.PartsAtlas != null) BuildParts(Actor.Presentation.PartsAtlas);
+        if (Actor.Presentation?.Model.PartsAtlas != null) BuildParts(Actor.Presentation.Model.PartsAtlas);
         else
         {
             _legacy=new LegacyPortraitRig { SourceActor=Actor }; AddChild(_legacy); Skeleton=_legacy.Skeleton;
@@ -99,13 +102,13 @@ public partial class CharacterRig : Node2D
     {
         using var image = atlas.GetImage();
         if (image.IsCompressed()) image.Decompress();
-        if(Actor.Presentation.CartoonFilter) _cartoonMaterial=BuildCartoonMaterial(Actor.Presentation);
+        if(Actor.Presentation.Model.CartoonFilter) _cartoonMaterial=BuildCartoonMaterial(Actor.Presentation.Model);
         int cellW = image.GetWidth()/4, cellH = image.GetHeight()/4;
         int[] tiles = { 2,1,0,4,5,12,6,7,13,8,9,10,11,3,14,15 };
         Rect2[] rectangles = { new(-11,-3,22,17),new(-11,-13,22,23),new(-7,-16,14,19),
             new(-5,-3,10,16),new(-4,-3,8,16),new(-4,-3,8,8),new(-6,-3,12,16),new(-4,-3,8,16),new(-4,-3,8,8),
             new(-5,-3,10,17),new(-5,-2,11,16),new(-5,-3,10,17),new(-5,-2,11,16),new(-16,-2,26,42),new(-6,-54,12,87),new(-7,-27,19,30) };
-        if (Actor.Presentation.CalibratedLegProportions)
+        if (Actor.Presentation.Model.CalibratedLegProportions)
         {
             // 只在绑定时校准体型；裙甲止于大腿中段，让膝关节和大腿连接可读。
             rectangles[0] = new Rect2(-10, -3, 20, 15);
@@ -114,7 +117,7 @@ public partial class CharacterRig : Node2D
             rectangles[9] = rectangles[11] = new Rect2(-4.5f, -2, 9, _thighLength + 3);
             rectangles[10] = rectangles[12] = new Rect2(-4.5f, -2, 10, _lowerLegLength + 2);
         }
-        if (Actor.Presentation.ReferencePoseSet)
+        if (Actor.Presentation.Animation.ReferencePoseSet)
         {
             rectangles[0] = new Rect2(-10, -3, 20, 17);
             rectangles[1] = new Rect2(-10, -12, 20, 25);
@@ -128,9 +131,13 @@ public partial class CharacterRig : Node2D
         // 骨骼只负责变换；部件以兄弟节点顺序完成角色内部遮挡，全部使用 Z=0 参与整个人物的 YSort。
         // 持长兵器时远前臂也跨在胸前，不能与披风一起藏在躯干后面。
         int[] drawOrder = { 13,9,10,11,12,0,1,3,4,2,15,6,7,14,5,8 };
+        if (Actor.Presentation.Model.PartRects.Count == 16)
+            for (int index = 0; index < 16; index++) rectangles[index] = Actor.Presentation.Model.PartRects[index];
+        if (Actor.Presentation.Model.DrawOrder.Count == 16)
+            for (int index = 0; index < 16; index++) drawOrder[index] = Actor.Presentation.Model.DrawOrder[index];
         for(int b=0;b<16;b++)
         {
-            var crop=Actor.Presentation.AtlasRegions.Count==16 ? Actor.Presentation.AtlasRegions[tiles[b]]
+            var crop=Actor.Presentation.Model.AtlasRegions.Count==16 ? Actor.Presentation.Model.AtlasRegions[tiles[b]]
                 : new Rect2(tiles[b]%4*cellW,tiles[b]/4*cellH,cellW,cellH);
             int x0=Mathf.Clamp((int)crop.Position.X,0,image.GetWidth()-1), y0=Mathf.Clamp((int)crop.Position.Y,0,image.GetHeight()-1);
             int width=Mathf.Min((int)crop.Size.X,image.GetWidth()-x0),height=Mathf.Min((int)crop.Size.Y,image.GetHeight()-y0);
@@ -139,14 +146,16 @@ public partial class CharacterRig : Node2D
                 if(image.GetPixel(x0+x,y0+y).A>.08f) { left=Mathf.Min(left,x); top=Mathf.Min(top,y); right=Mathf.Max(right,x); bottom=Mathf.Max(bottom,y); }
             if(right<=left || bottom<=top) continue;
             var region=new Rect2(x0+left-1,y0+top-1,right-left+3,bottom-top+3); var rect=rectangles[b];
-            if(b==15) rect=Actor.Presentation.CrestRect;
+            if(b==15) rect=Actor.Presentation.Model.CrestRect;
             var sprite=new Sprite2D { Name="拆件", Texture=new AtlasTexture { Atlas=atlas,Region=region },
                 Centered=false, Position=rect.Position, Scale=rect.Size/region.Size, TextureFilter=TextureFilterEnum.Linear,
                 Material=_cartoonMaterial };
             // 旧 v2 图集双靴相向时只翻近侧；原生同向的 v3 图集关闭该配置。
-            sprite.FlipH = b == 12 && Actor.Presentation.AlignBootsForward;
-            sprite.FlipV = b == 15 && Actor.Presentation.FlipCrestVertical;
-            if (Actor.Presentation.ReferencePoseSet && Actor.Presentation.ReferenceAccessories != null)
+            sprite.FlipH = (b == 12 && Actor.Presentation.Model.AlignBootsForward)
+                || (b == 10 && Actor.Presentation.Model.FlipFarBootHorizontal);
+            sprite.FlipV = b == 15 && Actor.Presentation.Model.FlipCrestVertical;
+            sprite.Visible = b != 15 || Actor.Presentation.Model.CrestVisible;
+            if (Actor.Presentation.Animation.ReferencePoseSet && Actor.Presentation.Model.ReferenceAccessories != null)
                 BindReferenceAccessory(b, sprite);
             sprite.Name=_bones[b].Name+"图层";
             _partOffsets[b]=sprite.Transform;
@@ -157,7 +166,7 @@ public partial class CharacterRig : Node2D
             if(_partByBone[boneIndex] is Sprite2D part)
             {
                 _drawLayers.AddChild(part); _drawOrderedParts.Add(part);
-                if (Actor.Presentation.ReferencePoseSet && boneIndex is 10 or 12)
+                if (Actor.Presentation.Animation.ReferencePoseSet && boneIndex is 10 or 12)
                     BuildReferenceFoot(boneIndex, part);
             }
         SyncParts();
@@ -173,11 +182,11 @@ public partial class CharacterRig : Node2D
                 Transform2D offset = _partOffsets[i];
                 _partByBone[i].Transform=inverse*_bones[i].GlobalTransform*offset;
             }
-        if (Actor.Presentation.ReferencePoseSet) SyncReferenceFeet(inverse);
+        if (Actor.Presentation.Animation.ReferencePoseSet) SyncReferenceFeet(inverse);
     }
 
     /// <summary>压缩写实贴图色阶并在透明边缘内侧加深轮廓，降低卡牌立绘感。</summary>
-    private static ShaderMaterial BuildCartoonMaterial(CharacterPresentationConfig config)
+    private static ShaderMaterial BuildCartoonMaterial(CharacterModelConfig config)
     {
         var shader=new Shader { Code="""
             shader_type canvas_item;
@@ -214,19 +223,19 @@ public partial class CharacterRig : Node2D
         if (Skeleton == null) return;
         if (_legacy != null) { _legacy.ShowBones=ShowBones; return; }
         float elapsed = Mathf.Max(0, Actor.VisualTime - _lastTime); _lastTime = Actor.VisualTime;
-        bool martial = Actor.Presentation?.MartialWalk == true;
+        bool martial = Actor.Presentation?.Animation.MartialWalk == true;
         float travelled = Mathf.Max(0, Actor.WalkDistance - _lastWalkDistance);
         _lastWalkDistance = Actor.WalkDistance;
         if (martial && elapsed > 0)
         {
-            _walkPhase = Mathf.PosMod(_walkPhase + travelled / Mathf.Max(1, Actor.Presentation.WalkCycleDistance), 1);
+            _walkPhase = Mathf.PosMod(_walkPhase + travelled / Mathf.Max(1, Actor.Presentation.Animation.WalkCycleDistance), 1);
             bool walking = Actor.CurrentState == Combatant.State.Move && Actor.WalkVelocity.LengthSquared() > 1;
             _walkWeight = Mathf.MoveToward(_walkWeight, walking ? 1 : 0, elapsed * 12);
             if (walking) _walkDirection = Actor.WalkVelocity.Normalized();
             float stance = Actor.CurrentState is Combatant.State.Idle or Combatant.State.Move ? 1 : 0;
             _martialWeight = Mathf.MoveToward(_martialWeight, stance, elapsed * 14);
         }
-        if (Actor.Presentation?.ReferencePoseSet == true)
+        if (Actor.Presentation?.Animation.ReferencePoseSet == true)
         {
             ProcessReferencePose(elapsed);
             SyncParts();
@@ -241,7 +250,7 @@ public partial class CharacterRig : Node2D
         SolveSupportArm();
         float facing=Actor.FacingDirection.X<-.15f ? -1 : Actor.FacingDirection.X>.15f ? 1 : Mathf.Sign(Scale.X);
         float baseScale=ArtScale/.05f;
-        float depthScale=Actor.Presentation?.DepthScale ?? .92f;
+        float depthScale=Actor.Presentation?.Model.DepthScale ?? .92f;
         Vector2 poseScale=new(1,depthScale);
         if(Actor.CurrentState==Combatant.State.Hurt) poseScale=new(1.08f,depthScale*.86f);
         if(Actor.IsDead) poseScale=new(1.12f,depthScale*.52f);
@@ -254,7 +263,7 @@ public partial class CharacterRig : Node2D
         if (martial)
         {
             // 站立与移动各有重心，短过渡连接；出招/受击时退出行走修正，交还动作姿态。
-            float settle = Mathf.Lerp(Actor.Presentation.StandCrouch, Actor.Presentation.WalkCrouch, _walkWeight)
+            float settle = Mathf.Lerp(Actor.Presentation.Animation.StandCrouch, Actor.Presentation.Animation.WalkCrouch, _walkWeight)
                 + .18f * _walkWeight * Mathf.Cos(_walkPhase * Mathf.Tau * 2);
             _bones[0].Position = new Vector2(0, -_pelvisHeight + settle * _martialWeight);
             Position = Position.Lerp(Vector2.Zero, _martialWeight);
@@ -325,7 +334,7 @@ public partial class CharacterRig : Node2D
         _angles[6]=.45f+pose*1.15f; _angles[7]=-1.45f+pose*.65f; _angles[14]=WeaponRestAngle+pose*.8f;
         _angles[9]=-.35f*wind*(1-recovery); _angles[11]=.3f*wind*(1-recovery);
         _angles[12]=.22f*wind*(1-recovery); _angles[13]=.2f-pose*.45f;
-        if(Actor.CurrentAction is CombatAction.Dash or CombatAction.Dodge) { _angles[1]=.35f; _angles[9]=-.7f; _angles[11]=.7f; }
+        if(Actor.CurrentMotion is CombatMotion.Dash or CombatMotion.Dodge) { _angles[1]=.35f; _angles[9]=-.7f; _angles[11]=.7f; }
     }
 
     /// <summary>受击目标与行走目标分离；肩胸收缩、抬臂防御，不翻转整个人物。</summary>
@@ -349,7 +358,7 @@ public partial class CharacterRig : Node2D
     /// <summary>固定骨长的两段腿求解：以落脚点弯曲髋膝，超出可达范围时约束落点，不拉伸腿段。</summary>
     private void ApplyMartialLeg(int thigh, int shin, float side, float phase, float facing)
     {
-        var config = Actor.Presentation;
+        var config = Actor.Presentation.Animation;
         // 62% 周期承重，38% 周期低抬脚前摆；两脚错开半周期，保留双脚接地的时间。
         const float support = .62f;
         float swing = Mathf.Clamp((phase - support) / (1 - support), 0, 1);
@@ -375,7 +384,7 @@ public partial class CharacterRig : Node2D
     /// <summary>远手对齐兵器上的独立握点，在胸部局部坐标内求解两节 IK；横向镜像不改变求解结果。</summary>
     private void SolveSupportArm()
     {
-        float gripDistance=Actor.Presentation?.SupportGripDistance ?? 10;
+        float gripDistance=Actor.Presentation?.Model.SupportGripDistance ?? 10;
         Vector2 target=_bones[1].ToLocal(_bones[14].ToGlobal(new Vector2(0,-gripDistance)));
         Vector2 diff=target-_bones[3].Position;
         float upperLength=_bones[4].Position.Length(),lowerLength=_bones[5].Position.Length();

@@ -5,6 +5,7 @@
 [resource]
 script = ExtResource("1")
 DisplayName = "荆甲"
+Description = "被攻击命中时向攻击者反伤20点，反伤不继续触发反击或反伤。"
 Effect = 0
 Chance = 1.0
 Damage = 20

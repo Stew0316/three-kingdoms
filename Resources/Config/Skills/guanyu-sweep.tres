@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="CombatActionConfig" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://Scripts/Config/CombatActionConfig.cs" id="1"]
+
+[resource]
+script = ExtResource("1")
+SkillId = "core:guanyu/sweep"
+DisplayName = "武圣震地"
+Motion = 2
+Prepare = 0.48
+Active = 0.22
+Recover = 0.34
+Cooldown = 8
+Range = 68
+HalfAngle = 3.141593
+Damage = 16
+Speed = 0
+SlowFactor = 0.55
+StatusDuration = 2.2
+Description = "震地造成周围16伤害，并减速45%，持续2.2秒。"

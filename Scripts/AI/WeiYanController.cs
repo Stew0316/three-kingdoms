@@ -41,7 +41,7 @@ public partial class WeiYanController : Node
         foreach (CombatAction slot in System.Enum.GetValues<CombatAction>())
         {
             var skill = _actor.GetSkill(slot);
-            if (skill != null && skill.Motion != CombatMotion.Dodge)
+            if (skill != null && skill.Motion != CombatMotion.Dodge && skill.Range > 0)
                 approachRange = Mathf.Min(approachRange, Mathf.Max(8, skill.Range - 6));
         }
         if (distance > approachRange) { _actor.SetMoveInput(offset.Normalized()); Decision = BattleTexts.Chase; }
@@ -55,9 +55,10 @@ public partial class WeiYanController : Node
         {
             var skill = _actor.GetSkill(slot);
             if (skill == null || skill.Motion != motion || _actor.Cooldown(slot) > 0) continue;
-            bool inRange = motion switch
+            bool inRange = skill.SelfHeal > 0 ? _actor.Health.CurrentHealth < _actor.Health.MaxHealth * .7f && distance < skill.Range
+                : skill.DamageMultiplier > 1 ? _actor.Status.EmpowerRemaining <= 0 && distance < 100 : motion switch
             {
-                CombatMotion.Dash => distance > skill.Range + 42 && distance < skill.Range + skill.Speed * skill.Active + 36,
+                CombatMotion.Dash => skill.Speed > 0 ? distance > skill.Range + 42 && distance < skill.Range + skill.Speed * skill.Active + 36 : distance < skill.Range - 4,
                 CombatMotion.Sweep => _attackCount > 0 && distance < skill.Range - 8,
                 _ => distance <= skill.Range - 4
             };

@@ -55,7 +55,10 @@ public partial class CharacterModuleTests : Node
             health = Player.Health.CurrentHealth;
             Check(Enemy.TryAction(CombatAction.Basic), "魏延可使用吕布普攻");
             await Frames(8);
-            Check(Mathf.Abs(Mathf.RadToDeg(Enemy.Rig.Joints[14].Rotation) + 28) < 1, "借用吕布技能时仍使用魏延的短收刀动作");
+            Check(Mathf.Abs(Mathf.RadToDeg(Enemy.Rig.Joints[14].Rotation) - enemyAnimation.Basic.Windup.WeaponDegrees) < 1
+                && Enemy.Rig.ReferencePrimaryGrip.DistanceTo(enemyAnimation.Basic.Windup.FarHand) < .1f
+                && Enemy.Rig.Joints[7].Rotation < 0 && Enemy.Rig.Joints[4].Rotation < 0,
+                "借用吕布技能时仍使用魏延自己的肩侧收刀和前后手独立屈肘方向");
             await Frames(40);
             Check(health - Player.Health.CurrentHealth == originalBasic.Damage, "反向交换同样按借入伤害结算");
 
@@ -76,7 +79,8 @@ public partial class CharacterModuleTests : Node
                 && !Player.TryAction(CombatAction.Dash), "卸装重装不会清空冷却或绕过冷却施法");
             Check(!Player.TryEquipSkill(CombatAction.Basic, borrowedSweep), "同一单位禁止重复装入相同技能ID");
             await Frames(2);
-            Check(HasLabel(_arena.GetNode(NodeNames.Hud), text => text.Contains("K 转腰横扫")), "HUD技能名跟随当前装备，不写死突进标签");
+            Check(HasLabel(_arena.GetNode(NodeNames.Hud), text => text.Contains("K " + borrowedSweep.DisplayName)), "HUD技能名跟随当前装备，不写死突进标签");
+            await Frames(240); // 狂骨战意到期后单独验收被动，避免主动吸血影响反伤血量断言。
 
             var playerPassive = Player.Skills.Passives[0];
             var enemyPassive = Enemy.Skills.Passives[0];

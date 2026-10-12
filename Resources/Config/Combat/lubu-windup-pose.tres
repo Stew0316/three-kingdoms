@@ -13,6 +13,6 @@ FreeHand = Vector2(15, -28)
 FarFoot = Vector2(-20, 0)
 NearFoot = Vector2(20, 0)
 WeaponDegrees = -78.0
-BladeDistance = 54.0
+BladeDistance = 70.0
 GripSeparation = 22.0
 TwoHandWeight = 1.0

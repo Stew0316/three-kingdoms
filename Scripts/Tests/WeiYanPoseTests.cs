@@ -12,6 +12,10 @@ public partial class WeiYanPoseTests : Node
     private int _checks;
     private float _primaryError, _secondaryError;
     private bool _fixedLengths = true;
+    private float _armBindingError, _wristBend;
+    private float _minElbow = 180, _maxElbow;
+    private string _tightElbowContext;
+    private bool _elbowSidesCorrect = true;
 
     public override void _Ready()
     {
@@ -37,6 +41,7 @@ public partial class WeiYanPoseTests : Node
             Check(Actor.Presentation.Animation.StandingPose != _arena.Player.Presentation.Animation.StandingPose
                 && Actor.Presentation.Animation.MovingPose != _arena.Player.Presentation.Animation.MovingPose, "两人使用独立姿态资源");
             DirAccess.MakeDirRecursiveAbsolute(ProjectSettings.GlobalizePath("res://Build/weiyan-frames"));
+            if (Rendered) await CheckWeaponPixels();
             Actor.Position = new Vector2(330, 245);
             Actor.Face(Vector2.Right);
             await Frames(30);
@@ -71,9 +76,14 @@ public partial class WeiYanPoseTests : Node
                 await Frames(35);
                 CheckGuard("受击恢复");
             }
-            Check(_fixedLengths, "全程大小腿骨长和骨骼缩放固定");
+            Check(_fixedLengths, "全程手臂和大小腿骨长固定，骨骼不拉伸");
+            GD.Print($"魏延手臂：屈肘 {_minElbow:F1}～{_maxElbow:F1}°，腕偏转 {_wristBend:F2}°，贴图关节误差 {_armBindingError:F3}。");
+            GD.Print($"最大屈肘位置：{_tightElbowContext}");
+            Check(_armBindingError < .05f && _wristBend < .1f, "全程肩肘腕贴图贴合，中立腕不跟刀身扭折");
+            Check(_minElbow > 20 && _maxElbow < 150, "全程肘部保留弯曲余量，不锁死伸直或折叠挤肩");
+            Check(_elbowSidesCorrect, "全程双臂沿各自持械路线屈肘，八方向移动和挥刀不突然翻肘");
             GD.Print($"魏延全程主握误差 {_primaryError:F3}，副握误差 {_secondaryError:F3} 骨架单位。");
-            Check(_primaryError < 1 && _secondaryError < 1, "站立、八向行走、攻击、闪避、反击及受击全程双手不脱柄");
+            Check(_primaryError < .1f && _secondaryError < .1f, "站立、八向行走、攻击、闪避、反击及受击全程双手不脱柄");
             GD.Print($"魏延姿态回归通过：{_checks} 项；真实渲染：{Rendered}。");
             GetTree().Quit();
         }
@@ -125,7 +135,7 @@ public partial class WeiYanPoseTests : Node
             if (Mathf.Abs(direction.Y) < .01f) Check(contactError[leg] < 1.25f, $"方向{index} 腿{leg}承重脚底接地");
         }
         Vector2 weapon = WeaponDirection();
-        Check(weapon.Y < -.9f && weapon.X > .05f && Rig.ReferenceGripWeight > .99f, $"方向{index}双手收刀行走");
+        Check(weapon.Y < -.3f && weapon.X is > .75f and < .96f && Rig.ReferenceGripWeight > .99f, $"方向{index}双手分开握柄、身前斜持行走");
         if (Mathf.Abs(direction.X) > .1f) Check(Rig.Scale.X * direction.X > 0, $"方向{index}人物整体镜像符合朝向");
         if (index == 0) await CheckPause();
     }
@@ -163,8 +173,43 @@ public partial class WeiYanPoseTests : Node
     private void CheckGuard(string label)
     {
         Vector2 direction = WeaponDirection();
-        Check(direction.X is > .4f and < .75f && direction.Y < -.65f && Rig.ReferenceGripWeight > .99f,
+        Check(direction.X is > .8f and < .95f && direction.Y < -.4f && Rig.ReferenceGripWeight > .99f,
             $"{label}双手斜持长刀");
+        foreach (int upper in new[] { 3, 6 })
+        {
+            Vector2 shoulder = Rig.Skeleton.ToLocal(Rig.Joints[upper].GlobalPosition);
+            Vector2 elbow = Rig.Skeleton.ToLocal(Rig.Joints[upper + 1].GlobalPosition);
+            Vector2 hand = Rig.Skeleton.ToLocal(Rig.Joints[upper + 2].GlobalPosition);
+            if (upper == 3)
+                Check(elbow.Y > shoulder.Y + 5 && hand.X > elbow.X + 3, $"{label}后手肘部下沉、前臂前托");
+            else
+                Check(hand.X > shoulder.X + 12 && elbow.Y > shoulder.Y + 5 && elbow.Y > hand.Y + 1,
+                    $"{label}前手送出控杆，肘低于握点，避免抬肘夹刀");
+        }
+    }
+
+    /// <summary>直接渲染武器拆件，验证邻格衣摆透明、刀尖与刀柄保留；避免仅检查配置而漏掉着色器故障。</summary>
+    private async Task CheckWeaponPixels()
+    {
+        var weapon = Rig.Parts[14];
+        var atlas = (AtlasTexture)weapon.Texture;
+        var viewport = new SubViewport { Size = new Vector2I(96, 420), TransparentBg = true,
+            Disable3D = true, RenderTargetUpdateMode = SubViewport.UpdateMode.Always };
+        AddChild(viewport);
+        var sprite = new Sprite2D { Texture = weapon.Texture, Material = weapon.Material, Centered = false,
+            TextureFilter = CanvasItem.TextureFilterEnum.Nearest };
+        viewport.AddChild(sprite);
+        await ToSignal(RenderingServer.Singleton, RenderingServer.SignalName.FramePostDraw);
+        await ToSignal(RenderingServer.Singleton, RenderingServer.SignalName.FramePostDraw);
+        using var result = viewport.GetTexture().GetImage();
+        result.SavePng("res://Build/weiyan-weapon-isolated.png");
+        float Alpha(int x, int y) => result.GetPixel(x - (int)atlas.Region.Position.X, y - (int)atlas.Region.Position.Y).A;
+        Check(Alpha(810, 855) < .01f && Alpha(825, 860) < .01f, "实际武器采样剔除相邻衣摆黑块");
+        Check(Alpha(770, 854) > .5f && Alpha(780, 858) > .5f && Alpha(800, 880) > .5f,
+            "实际武器采样保留刀尖与刀刃");
+        Check(Alpha(790, 1100) > .5f, "裁剪后刀柄仍完整");
+        Check(_arena.Player.Rig.Parts[14].Material != weapon.Material, "魏延武器裁剪材质不影响吕布");
+        viewport.QueueFree();
     }
 
     private async Task CheckPause()
@@ -198,6 +243,32 @@ public partial class WeiYanPoseTests : Node
             _fixedLengths &= Mathf.IsEqualApprox(Rig.Joints[10].Position.Length(), Rig.ThighLength)
                 && Mathf.IsEqualApprox(Rig.Joints[12].Position.Length(), Rig.ThighLength);
             foreach (int joint in new[] { 9, 10, 11, 12 }) _fixedLengths &= Rig.Joints[joint].Scale.IsEqualApprox(Vector2.One);
+            foreach (int upper in new[] { 3, 6 })
+            {
+                int lower = upper + 1, hand = upper + 2;
+                float bend = Mathf.Abs(Mathf.RadToDeg(Rig.Joints[lower].Rotation));
+                _minElbow = Mathf.Min(_minElbow, bend);
+                if (bend > _maxElbow) { _maxElbow = bend; _tightElbowContext = $"{Actor.CurrentState}/{Actor.CurrentMotion} t={Actor.ActionTime:F3} 反击={Actor.CounterRemaining:F3} 臂={upper}"; }
+                _wristBend = Mathf.Max(_wristBend, Mathf.Abs(Mathf.RadToDeg(Rig.Joints[hand].Rotation)));
+                Vector2 shoulderPoint = Rig.Skeleton.ToLocal(Rig.Joints[upper].GlobalPosition);
+                Vector2 elbowPoint = Rig.Skeleton.ToLocal(Rig.Joints[lower].GlobalPosition);
+                Vector2 handPoint = Rig.Skeleton.ToLocal(Rig.Joints[hand].GlobalPosition);
+                float bendSide = (elbowPoint - shoulderPoint).Cross(handPoint - elbowPoint);
+                _elbowSidesCorrect &= bendSide < -1;
+                _fixedLengths &= Mathf.IsEqualApprox(Rig.Joints[lower].Position.Length(), 12)
+                    && Mathf.IsEqualApprox(Rig.Joints[hand].Position.Length(), 12);
+                var model = Actor.Presentation.Model;
+                Vector2 ArtPin(int bone, int endpoint)
+                {
+                    var part = Rig.Parts[bone];
+                    var texture = (AtlasTexture)part.Texture;
+                    return Rig.Skeleton.ToLocal(part.ToGlobal(model.ArmAtlasAnchors[(bone - 3) * 2 + endpoint] - texture.Region.Position));
+                }
+                _armBindingError = Mathf.Max(_armBindingError, ArtPin(upper, 0).DistanceTo(Rig.Skeleton.ToLocal(Rig.Joints[upper].GlobalPosition)));
+                _armBindingError = Mathf.Max(_armBindingError, ArtPin(upper, 1).DistanceTo(ArtPin(lower, 0)));
+                _armBindingError = Mathf.Max(_armBindingError, ArtPin(lower, 1).DistanceTo(ArtPin(hand, 0)));
+                _armBindingError = Mathf.Max(_armBindingError, ArtPin(hand, 1).DistanceTo(Rig.Skeleton.ToLocal(Rig.Joints[hand].GlobalPosition)));
+            }
         }
     }
 
@@ -211,6 +282,31 @@ public partial class WeiYanPoseTests : Node
             (int)((Actor.Position.Y - 110) * scale), (int)(160 * scale), (int)(135 * scale)));
         detail.Resize(480, 405, Image.Interpolation.Nearest);
         detail.SavePng($"res://Build/weiyan-frames/{name}.png");
+        if (name is "idle" or "walk-0-012" or "Basic-018" or "Basic-025" or "Basic-030"
+            or "Sweep-033" or "Sweep-039" or "Sweep-044" or "Dash-020") await CaptureArmDetail(name);
+    }
+
+    /// <summary>重绘当前真实拆件变换到放大视口，检查肩肘腕接缝；不放大低分辨率截图。</summary>
+    private async Task CaptureArmDetail(string name)
+    {
+        var viewport = new SubViewport { Size = new Vector2I(720, 560), TransparentBg = true,
+            Disable3D = true, RenderTargetUpdateMode = SubViewport.UpdateMode.Always };
+        AddChild(viewport);
+        var root = new Node2D { Position = new Vector2(330, 470), Scale = new Vector2(4, 3.68f) };
+        viewport.AddChild(root);
+        foreach (var part in Rig.DrawOrderedParts)
+        {
+            if (!part.Visible) continue;
+            var copy = new Sprite2D { Texture = part.Texture, Material = part.Material, Centered = part.Centered,
+                FlipH = part.FlipH, FlipV = part.FlipV, TextureFilter = part.TextureFilter };
+            root.AddChild(copy);
+            copy.Transform = Rig.Skeleton.GlobalTransform.AffineInverse() * part.GlobalTransform;
+        }
+        await ToSignal(RenderingServer.Singleton, RenderingServer.SignalName.FramePostDraw);
+        await ToSignal(RenderingServer.Singleton, RenderingServer.SignalName.FramePostDraw);
+        using var image = viewport.GetTexture().GetImage();
+        image.SavePng($"res://Build/weiyan-frames/detail-{name}.png");
+        viewport.QueueFree();
     }
 
     private void Check(bool condition, string message)

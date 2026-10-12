@@ -47,4 +47,13 @@ public partial class Health : Node
         CurrentHealth = MaxHealth;
         EmitSignal(SignalName.Damaged, CurrentHealth, MaxHealth);
     }
+
+    public int Heal(int amount)
+    {
+        if (CurrentHealth <= 0 || amount <= 0) return 0;
+        int restored = Mathf.Min(amount, MaxHealth - CurrentHealth);
+        CurrentHealth += restored;
+        if (restored > 0) EmitSignal(SignalName.Damaged, CurrentHealth, MaxHealth);
+        return restored;
+    }
 }

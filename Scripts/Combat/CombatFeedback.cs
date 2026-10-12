@@ -9,10 +9,13 @@ public partial class CombatFeedback : Node2D
     private int _damage;
     private bool _critical;
     private DamageKind _kind;
+    private string _notice;
+    private Color _noticeColor;
+    public void ShowNotice(string text, Color color) { _notice = text; _noticeColor = color; _remaining = .6f; }
     public override void _Ready() => ZIndex = PresentationZIndexes.CombatFeedback;
     /// <summary>显示 damage 伤害值，并重置为 0.6 秒反馈。</summary>
     public void ShowDamage(int damage, bool critical = false, DamageKind kind = DamageKind.Direct)
-    { _damage = damage; _critical = critical; _kind = kind; _remaining = .6f; }
+    { _notice = null; _damage = damage; _critical = critical; _kind = kind; _remaining = .6f; }
     /// <summary>按 delta 秒衰减寿命，随场景暂停自动停止。</summary>
     public override void _Process(double delta)
     {
@@ -25,6 +28,12 @@ public partial class CombatFeedback : Node2D
     {
         if (_remaining <= 0) return;
         float alpha = Mathf.Min(1, _remaining * 3);
+        if (_notice != null)
+        {
+            DrawString(ThemeDB.FallbackFont, new Vector2(-10, -72 - (1 - _remaining / .6f) * 22),
+                _notice, HorizontalAlignment.Left, -1, 14, new Color(_noticeColor, alpha));
+            return;
+        }
         DrawString(ThemeDB.FallbackFont, new Vector2(-10, -72 - (1 - _remaining / .6f) * 22),
             $"{(_critical ? "暴击 " : _kind == DamageKind.Reflected ? "反伤 " : _kind == DamageKind.Counter ? "反击 " : "")}-{_damage}",
             HorizontalAlignment.Left, -1, _critical ? 19 : 14,

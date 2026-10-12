@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="CombatActionConfig" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://Scripts/Config/CombatActionConfig.cs" id="1"]
+
+[resource]
+script = ExtResource("1")
+SkillId = "core:guanyu/dash"
+DisplayName = "青龙断岳"
+Motion = 1
+Prepare = 0.42
+Active = 0.2
+Recover = 0.36
+Cooldown = 6
+Range = 78
+HalfAngle = 0.6
+Damage = 26
+Speed = 0
+StunSeconds = 0.65
+Description = "提刀重劈，造成26伤害并眩晕0.65秒。"

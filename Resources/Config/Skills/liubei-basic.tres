@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="CombatActionConfig" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://Scripts/Config/CombatActionConfig.cs" id="1"]
+
+[resource]
+script = ExtResource("1")
+SkillId = "core:liubei/basic"
+DisplayName = "双剑交斩"
+Motion = 0
+Prepare = 0.15
+Active = 0.32
+Recover = 0.2
+Cooldown = 0.38
+Range = 43
+HalfAngle = 1.05
+Damage = 7
+Speed = 0
+HitCount = 2
+HitInterval = 0.16

@@ -6,7 +6,7 @@ public partial class CharacterRig
     private struct ReferenceFrame
     {
         public Vector2 Pelvis, FarHand, FreeHand, FarFoot, NearFoot;
-        public float Waist, Chest, Head, Weapon, Blade, Separation, Grip;
+        public float Waist, Chest, Head, Weapon, OffhandWeapon, Blade, Separation, Grip;
         public float FarFootRoll, NearFootRoll; // 靴掌独立绕接地点滚动，不继承小腿角度。
 
         public static ReferenceFrame From(CharacterPoseConfig pose) => new()
@@ -15,6 +15,7 @@ public partial class CharacterRig
             FarFoot = pose.FarFoot, NearFoot = pose.NearFoot,
             Waist = Mathf.DegToRad(pose.PelvisDegrees), Chest = Mathf.DegToRad(pose.ChestDegrees), Head = Mathf.DegToRad(pose.HeadDegrees),
             Weapon = Mathf.DegToRad(pose.WeaponDegrees), Blade = pose.BladeDistance,
+            OffhandWeapon = Mathf.DegToRad(pose.OffhandWeaponDegrees),
             Separation = pose.GripSeparation, Grip = pose.TwoHandWeight
         };
 
@@ -25,6 +26,7 @@ public partial class CharacterRig
             NearFoot = a.NearFoot.Lerp(b.NearFoot, weight), Waist = Mathf.LerpAngle(a.Waist, b.Waist, weight),
             Chest = Mathf.LerpAngle(a.Chest, b.Chest, weight),
             Head = Mathf.LerpAngle(a.Head, b.Head, weight), Weapon = Mathf.LerpAngle(a.Weapon, b.Weapon, weight),
+            OffhandWeapon = Mathf.LerpAngle(a.OffhandWeapon, b.OffhandWeapon, weight),
             Blade = Mathf.Lerp(a.Blade, b.Blade, weight), Separation = Mathf.Lerp(a.Separation, b.Separation, weight),
             Grip = Mathf.Lerp(a.Grip, b.Grip, weight),
             FarFootRoll = Mathf.Lerp(a.FarFootRoll, b.FarFootRoll, weight),
@@ -37,12 +39,40 @@ public partial class CharacterRig
     private bool _referenceInitialized;
     private Combatant.State _referencePreviousState;
     private float _referencePreviousActionTime;
-    public float ReferenceGripWeight => _referenceFrame.Grip; // 调试读取副手握柄程度，0 为自由手。
+    public float ReferenceGripWeight => SupportHandWeight(_referenceFrame.Grip); // 实际副手握柄程度，0 为自由手。
     public Vector2 ReferencePrimaryGrip => _referenceFrame.FarHand; // 主握点，骨架局部坐标。
-    public Vector2 ReferenceSecondaryGrip => _referenceFrame.FarHand
-        + Vector2.Up.Rotated(_referenceFrame.Weapon) * _referenceFrame.Separation; // 副握点，骨架局部坐标。
+    public Vector2 ReferenceSecondaryGrip => Actor.Presentation.Model.DualWeapons ? _referenceFrame.FreeHand : _referenceFrame.FarHand
+        + Vector2.Up.Rotated(_referenceFrame.Weapon) * _referenceFrame.Separation; // 双持为独立副剑握点，长柄为杆身副握点。
     public Vector2 ReferenceBladeTip => Skeleton.ToGlobal(_referenceFrame.FarHand
         + Vector2.Up.Rotated(_referenceFrame.Weapon) * _referenceFrame.Blade); // 世界坐标戟尖，供刀光跟随真实挥击。
+    public Sprite2D OffhandWeapon => _offhandWeapon; // 副剑独立图层，供预览与双手握点验收读取。
+    private Sprite2D _offhandWeapon;
+    public Vector2 OffhandBladeTip => Skeleton.ToGlobal(_referenceFrame.FreeHand
+        + Vector2.Up.Rotated(_referenceFrame.OffhandWeapon) * Actor.Presentation.Model.OffhandBladeDistance);
+
+    /// <summary>副剑是模型附件，跟随独立前手目标，不增加技能或武将身份分支。</summary>
+    private void BuildOffhandWeapon()
+    {
+        var model = Actor.Presentation.Model;
+        if (!model.DualWeapons || !model.OffhandWeaponRegion.HasArea()) return;
+        _offhandWeapon = new Sprite2D { Name = "副手剑图层", Centered = false,
+            Texture = new AtlasTexture { Atlas = model.PartsAtlas, Region = model.OffhandWeaponRegion },
+            TextureFilter = TextureFilterEnum.Linear, Material = _cartoonMaterial };
+        _drawLayers.AddChild(_offhandWeapon);
+        // 杆身先画、握拳后画，使剑柄穿过握心而不是盖住整个手掌。
+        _drawLayers.MoveChild(_offhandWeapon, _partByBone[8].GetIndex());
+        _drawOrderedParts.Insert(_drawOrderedParts.IndexOf(_partByBone[8]), _offhandWeapon);
+    }
+
+    private void SyncOffhandWeapon(Transform2D inverse)
+    {
+        if (_offhandWeapon == null) return;
+        var model = Actor.Presentation.Model;
+        var art = new Transform2D(0, model.OffhandWeaponSize / model.OffhandWeaponRegion.Size, 0,
+            new Vector2(-model.OffhandWeaponSize.X * .5f, -model.OffhandBladeDistance));
+        _offhandWeapon.Transform = inverse * Skeleton.GlobalTransform
+            * new Transform2D(_referenceFrame.OffhandWeapon, _referenceFrame.FreeHand) * art;
+    }
     private readonly Sprite2D[] _referenceFeet = new Sprite2D[2]; // 独立靴掌图层，业务骨链仍保持 16 关节。
     private readonly Transform2D[] _referenceFootOffsets = new Transform2D[2];
     private const float ReferenceFootHeight = 4; // 小腿末端的靴掌高度；其上方为固定胫骨段。
@@ -59,7 +89,7 @@ public partial class CharacterRig
             sprite.Scale = config.AccessoryWeaponSize / config.ReferenceWeaponRegion.Size;
             sprite.Position = config.AccessoryWeaponOffset;
         }
-        else if (bone == 15)
+        else if (bone == 15 && config.ReferenceCrestRegion.HasArea())
         {
             sprite.Texture = new AtlasTexture { Atlas = config.ReferenceAccessories, Region = config.ReferenceCrestRegion };
             sprite.Scale = config.AccessoryCrestSize / config.ReferenceCrestRegion.Size;
@@ -290,7 +320,18 @@ public partial class CharacterRig
         var contact = ReferenceFrame.From(animation.Contact);
         var follow = ReferenceFrame.From(animation.Follow);
         if (time < prepare)
-            return ReferenceFrame.Mix(start, windup, Smooth(time / Mathf.Max(prepare * animation.WindupReach, .001f)));
+        {
+            float progress = time / Mathf.Max(prepare * animation.WindupReach, .001f);
+            if (animation.PrepareVia != null)
+            {
+                var via = ReferenceFrame.From(animation.PrepareVia);
+                float viaAt = Mathf.Clamp(animation.PrepareViaAt, .1f, .9f);
+                return progress < viaAt
+                    ? ReferenceFrame.Mix(start, via, Smooth(progress / viaAt))
+                    : ReferenceFrame.Mix(via, windup, Smooth((progress - viaAt) / (1 - viaAt)));
+            }
+            return ReferenceFrame.Mix(start, windup, Smooth(progress));
+        }
         if (time >= prepare + active)
         {
             float recovery = (time - prepare - active) / Mathf.Max(recover, .001f);
@@ -319,12 +360,14 @@ public partial class CharacterRig
         _bones[14].Rotation = frame.Weapon;
         Vector2 blade = Vector2.Up.Rotated(frame.Weapon);
         Vector2 secondGrip = frame.FarHand + blade * frame.Separation;
-        Vector2 nearHand = frame.FreeHand.Lerp(secondGrip, frame.Grip);
-        SolveReferenceChain(3, 4, frame.FarHand, _bones[4].Position.Length(), _bones[5].Position.Length(), 1);
-        SolveReferenceChain(6, 7, nearHand, _bones[7].Position.Length(), _bones[8].Position.Length(), 1);
-        // 手掌朝向握柄，不继承肘部旋转；放开的副手自然下垂。
-        SetReferenceAbsoluteRotation(5, frame.Weapon + .15f);
-        SetReferenceAbsoluteRotation(8, Mathf.LerpAngle(.05f, frame.Weapon, frame.Grip));
+        float gripWeight = Actor.Presentation.Model.DualWeapons ? 0 : SupportHandWeight(frame.Grip);
+        Vector2 nearHand = frame.FreeHand.Lerp(secondGrip, gripWeight);
+        var animation = Actor.Presentation.Animation;
+        SolveReferenceChain(3, 4, frame.FarHand, _bones[4].Position.Length(), _bones[5].Position.Length(), animation.FarElbowBend < 0 ? -1 : 1);
+        SolveReferenceChain(6, 7, nearHand, _bones[7].Position.Length(), _bones[8].Position.Length(), animation.NearElbowBend < 0 ? -1 : 1);
+        // 中立腕让掌骨顺前臂，握点不动；武将可独立选择手腕对武器方向的混合程度。
+        SetReferenceHandRotation(5, 4, frame.Weapon + .15f, animation.HandWeaponRotationWeight);
+        SetReferenceHandRotation(8, 7, Mathf.LerpAngle(.05f, frame.Weapon, gripWeight), animation.HandWeaponRotationWeight);
         _bones[13].Rotation = -.08f + _walkWeight * .10f + Mathf.Sin(Actor.VisualTime * 3.2f) * .025f;
         _bones[15].Rotation = Mathf.Sin(Actor.VisualTime * 3) * .025f;
 
@@ -353,5 +396,19 @@ public partial class CharacterRig
         var parent = _bones[bone].GetParent<Node2D>();
         Vector2 local = parent.ToLocal(Skeleton.ToGlobal(direction)) - parent.ToLocal(Skeleton.GlobalPosition);
         _bones[bone].Rotation = local.Angle();
+    }
+
+    private void SetReferenceHandRotation(int hand, int forearm, float weaponAngle, float weight)
+    {
+        Vector2 origin = Skeleton.ToLocal(_bones[forearm].GlobalPosition);
+        Vector2 end = Skeleton.ToLocal(_bones[hand].GlobalPosition);
+        float neutral = (end - origin).Angle() - Mathf.Pi / 2;
+        SetReferenceAbsoluteRotation(hand, Mathf.LerpAngle(neutral, weaponAngle, weight));
+    }
+
+    private float SupportHandWeight(float weight)
+    {
+        float start = Mathf.Clamp(Actor.Presentation.Animation.SupportHandAttachStart, 0, .95f);
+        return start <= 0 ? weight : Smooth((weight - start) / (1 - start));
     }
 }

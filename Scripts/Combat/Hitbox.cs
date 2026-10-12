@@ -5,7 +5,7 @@ using System.Collections.Generic;
 public partial class Hitbox : Area2D
 {
     // 本次施法已命中的目标实例 ID；按角色去重，避免多个受击框重复扣血。
-    private readonly HashSet<ulong> _hitTargets = new();
+    private readonly Dictionary<ulong, int> _hitTargets = new(); // 每个目标已处理的命中段，不因多受击框重复伤害。
     // 发起攻击的宿主角色，提供阵营和生效窗口。
     private Combatant _owner;
     // 当前实例独占的圆形候选区域，半径随动作配置更新。
@@ -46,9 +46,14 @@ public partial class Hitbox : Area2D
             // 用受击区域的中心裁定扇形边界，预警与判定共享同一半径和角度。
             if (offset.Length() > spec.Range || (offset.LengthSquared() > .01f
                 && direction.Dot(offset.Normalized()) < Mathf.Cos(spec.HalfAngle))) continue;
-            if (!_hitTargets.Add(target.GetInstanceId())) continue;
+            int pulse = Mathf.Min(Mathf.Max(1, spec.HitCount) - 1,
+                Mathf.FloorToInt((_owner.ActionTime - spec.Prepare) / Mathf.Max(.01f, spec.HitInterval)));
+            ulong id = target.GetInstanceId();
+            if (_hitTargets.TryGetValue(id, out int previous) && previous >= pulse) continue;
+            _hitTargets[id] = pulse;
             hurtbox.TakeDamage(new DamageInfo(_owner, spec.Damage,
-                offset.IsZeroApprox() ? direction : offset.Normalized(), DamageKind.Attack));
+                offset.IsZeroApprox() ? direction : offset.Normalized(), DamageKind.Attack, false,
+                spec.StunSeconds, spec.SlowFactor, spec.Vulnerability, spec.StatusDuration));
         }
     }
 }

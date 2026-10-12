@@ -18,6 +18,16 @@ public readonly record struct AttackSpec(
     float Prepare, float Active, float Recover, float Cooldown,
     float Range, float HalfAngle, int Damage, float Speed)
 {
+    public int HitCount { get; init; } = 1;
+    public float HitInterval { get; init; } = .18f;
+    public float StunSeconds { get; init; }
+    public float SlowFactor { get; init; } = 1;
+    public float Vulnerability { get; init; }
+    public float StatusDuration { get; init; }
+    public int SelfHeal { get; init; }
+    public int SelfCost { get; init; }
+    public float DamageMultiplier { get; init; } = 1;
+    public float Lifesteal { get; init; }
     // 一次动作占用角色的总秒数；冷却独立计时，不计入动作总时长。
     public float Duration => Prepare + Active + Recover;
 }

@@ -17,7 +17,14 @@ public partial class Arena : Node2D
     // 进程级测试启动守卫，防止测试中的反复重开递归创建新测试器。
     private static bool _testsStarted;
     private static bool _walkTestsStarted; // 步态回归会重开场景，避免再次创建测试器。
+    private static bool _fourHeroTestsStarted; // 四武将验收包含选将重载，仅创建一个跨场景测试器。
     public CombatResolver Resolver { get; private set; }
+    public override void _EnterTree()
+    {
+        // 子节点初始化前装配模型，保留玩家/AI控制器及场景路径；默认仍为吕布对魏延。
+        HeroCatalog.Configure(GetNode<Combatant>(SceneNodePaths.Player), HeroCatalog.PlayerIndex);
+        HeroCatalog.Configure(GetNode<Combatant>(SceneNodePaths.Enemy), HeroCatalog.EnemyIndex);
+    }
     [Export] public bool Hd2D { get; set; } // 仅供历史技术样板启用；正式入口使用二维俯视演武场。
     [Export] public bool SoloPractice { get; set; } // 默认关闭；仅手动启用时隐藏魏延并关闭处理与碰撞，供单人练习。
     // 吕布专用回归隔离对手；正常启动直接实战，不依赖命令行参数。
@@ -59,6 +66,11 @@ public partial class Arena : Node2D
             CallDeferred(MethodName.StartWeiYanPoseTests);
         if (Array.Exists(OS.GetCmdlineUserArgs(), a => a == "--module-test"))
             CallDeferred(MethodName.StartCharacterModuleTests);
+        if (!_fourHeroTestsStarted && Array.Exists(OS.GetCmdlineUserArgs(), a => a == "--four-hero-test"))
+        {
+            _fourHeroTestsStarted = true;
+            CallDeferred(MethodName.StartFourHeroTests);
+        }
         if (!_walkTestsStarted && Array.Exists(OS.GetCmdlineUserArgs(), a => a == "--walk-test"))
         {
             _walkTestsStarted = true;
@@ -100,6 +112,7 @@ public partial class Arena : Node2D
     /// <summary>显式恢复魏延，验收独立长刀姿态、步态与技能，不改变默认单人练习设置。</summary>
     private void StartWeiYanPoseTests() => GetTree().Root.AddChild(new WeiYanPoseTests());
     private void StartCharacterModuleTests() => GetTree().Root.AddChild(new CharacterModuleTests());
+    private void StartFourHeroTests() => GetTree().Root.AddChild(new FourHeroTests());
 
     /// <summary>关闭控制器并摆放固定画面，等待渲染完成后保存截图并退出测试进程。</summary>
     private async void CapturePreview()

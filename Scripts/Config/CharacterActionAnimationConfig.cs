@@ -4,6 +4,8 @@ using Godot;
 [GlobalClass]
 public partial class CharacterActionAnimationConfig : Resource
 {
+    [Export] public CharacterPoseConfig PrepareVia { get; set; } // 可选前摇途经姿态：先向前提手再收刀，避免直线插值把握点压进肩关节。
+    [Export(PropertyHint.Range, "0.1,0.9,0.05")] public float PrepareViaAt { get; set; } = .45f; // 途经姿态占完整蓄势过程的比例，不改变技能前摇时长。
     [Export] public CharacterPoseConfig Windup { get; set; } // 收势准备。
     [Export] public CharacterPoseConfig High { get; set; } // 第一挥击关键点。
     [Export] public CharacterPoseConfig Contact { get; set; } // 前方斩入关键点。

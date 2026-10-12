@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="PassiveConfig" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://Scripts/Config/PassiveConfig.cs" id="1"]
+
+[resource]
+script = ExtResource("1")
+SkillId = "core:liubei/benevolent-blades"
+DisplayName = "仁心剑意"
+Effect = 4
+LifestealRatio = 0.15
+Description = "攻击按实际扣除生命的15%回复自身，派生伤害不触发。"

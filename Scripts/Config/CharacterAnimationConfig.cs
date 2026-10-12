@@ -5,6 +5,10 @@ using Godot;
 public partial class CharacterAnimationConfig : Resource
 {
     [Export] public float MotionStrength { get; set; } = 1;
+    [Export(PropertyHint.Enum, "反向:-1,正向:1")] public int FarElbowBend { get; set; } = 1; // 后侧肘的固定弯曲支路，镜像由整个人物变换处理。
+    [Export(PropertyHint.Enum, "反向:-1,正向:1")] public int NearElbowBend { get; set; } = 1; // 前侧肘的固定弯曲支路，不能随角度跨零自动翻肘。
+    [Export(PropertyHint.Range, "0,1,0.05")] public float HandWeaponRotationWeight { get; set; } = 1; // 0让拳掌顺前臂保持中立腕，1沿用朝向武器的手部表现。
+    [Export(PropertyHint.Range, "0,0.95,0.05")] public float SupportHandAttachStart { get; set; } // 从单手拖行转双手持械时，杆身转回身前后才合拢前手；0保持原线性权重。
     [Export] public bool ReferencePoseSet { get; set; } // 使用长兵器关键姿态和独立持械约束，替代通用角度公式。
     [Export] public CharacterPoseConfig StandingPose { get; set; } // 角色自己的持械警戒姿态。
     [Export] public CharacterPoseConfig MovingPose { get; set; } // 角色自己的行走持械姿态及双手权重。

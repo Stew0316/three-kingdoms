@@ -4,14 +4,19 @@
 
 [resource]
 script = ExtResource("1")
-Prepare = 0.65
-Active = 0.14
-Recover = 0.4
-Cooldown = 6.0
-Range = 76.0
-HalfAngle = 1.75
-Damage = 18
-Speed = 0.0
 SkillId = "core:weiyan/sweep"
-DisplayName = "转腰横扫"
+DisplayName = "狂骨战意"
 Motion = 2
+Prepare = 0.38
+Active = 0.18
+Recover = 0.24
+Cooldown = 8
+Range = 0
+HalfAngle = 0
+Damage = 0
+Speed = 0
+SelfCost = 10
+DamageMultiplier = 1.45
+Lifesteal = 0.25
+StatusDuration = 4
+Description = "消耗10生命（至少保留1点），获得45%攻击增伤和25%伤害回复，持续4秒。"

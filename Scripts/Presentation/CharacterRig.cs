@@ -31,7 +31,7 @@ public partial class CharacterRig : Node2D
     public float WalkWeight => _walkWeight;
     private Sprite2D _source;
     private LegacyPortraitRig _legacy; // 生图服务不可用或未配置拆件时保留原有蒙皮动画。
-    private ShaderMaterial _cartoonMaterial; // 所有拆件共享的轻量卡通化材质，参数来自表现配置。
+    private ShaderMaterial _cartoonMaterial; // 普通拆件共享的轻量卡通化材质；有采样遮罩的武器使用独立材质。
     private float _pelvisHeight = 27; // 初始腰骨高度，所有状态复用同一比例。
     private float _thighLength = 12; // 固定大腿长度，与蒙皮尺寸在初始化时一致。
     private float _lowerLegLength = 14; // 膝到靴底的固定长度，动作中不改变。
@@ -150,6 +150,21 @@ public partial class CharacterRig : Node2D
             var sprite=new Sprite2D { Name="拆件", Texture=new AtlasTexture { Atlas=atlas,Region=region },
                 Centered=false, Position=rect.Position, Scale=rect.Size/region.Size, TextureFilter=TextureFilterEnum.Linear,
                 Material=_cartoonMaterial };
+            if (b == 2 && Actor.Presentation.Model.HeadTexture is Texture2D headTexture)
+            {
+                // 头部可以独立换画风，仍复用该武将的头骨、显示尺寸及冠饰挂点；不改身体图集。
+                using var headImage = headTexture.GetImage();
+                if (headImage.IsCompressed()) headImage.Decompress();
+                Rect2 headRegion = Actor.Presentation.Model.HeadRegion;
+                if (!headRegion.HasArea()) headRegion = headImage.GetUsedRect();
+                if (headRegion.HasArea())
+                {
+                    sprite.Texture = new AtlasTexture { Atlas = headTexture, Region = headRegion };
+                    sprite.Scale = rect.Size / headRegion.Size;
+                }
+            }
+            if (b is >= 3 and <= 8 && Actor.Presentation.Model.ArmAtlasAnchors.Length == 12)
+                BindArmArtwork(b, sprite, region);
             // 旧 v2 图集双靴相向时只翻近侧；原生同向的 v3 图集关闭该配置。
             sprite.FlipH = (b == 12 && Actor.Presentation.Model.AlignBootsForward)
                 || (b == 10 && Actor.Presentation.Model.FlipFarBootHorizontal);
@@ -157,6 +172,16 @@ public partial class CharacterRig : Node2D
             sprite.Visible = b != 15 || Actor.Presentation.Model.CrestVisible;
             if (Actor.Presentation.Animation.ReferencePoseSet && Actor.Presentation.Model.ReferenceAccessories != null)
                 BindReferenceAccessory(b, sprite);
+            // 在最终武器纹理上限制采样，不重新计算包围盒，避免裁掉杂片后武器缩放或握点漂移。
+            if (b == 14 && Actor.Presentation.Model.WeaponAtlasClipPolygon.Length is >= 3 and <= 16)
+            {
+                var material = BuildCartoonMaterial(Actor.Presentation.Model);
+                var polygon = new Vector2[16];
+                Actor.Presentation.Model.WeaponAtlasClipPolygon.CopyTo(polygon, 0);
+                material.SetShaderParameter("clip_polygon", polygon);
+                material.SetShaderParameter("clip_count", Actor.Presentation.Model.WeaponAtlasClipPolygon.Length);
+                sprite.Material = material;
+            }
             sprite.Name=_bones[b].Name+"图层";
             _partOffsets[b]=sprite.Transform;
             _partByBone[b]=sprite;
@@ -169,7 +194,26 @@ public partial class CharacterRig : Node2D
                 if (Actor.Presentation.Animation.ReferencePoseSet && boneIndex is 10 or 12)
                     BuildReferenceFoot(boneIndex, part);
             }
+        BuildOffhandWeapon();
         SyncParts();
+    }
+
+    /// <summary>把原图斜置的肩肘腕轴线对齐骨链；手掌以握点为原点，避免重复护臂和肩关节错位。</summary>
+    private void BindArmArtwork(int bone, Sprite2D sprite, Rect2 region)
+    {
+        var model = Actor.Presentation.Model;
+        int index = (bone - 3) * 2;
+        Vector2 start = model.ArmAtlasAnchors[index], end = model.ArmAtlasAnchors[index + 1];
+        Vector2 axis = end - start;
+        if (axis.LengthSquared() < 1) return;
+        bool palm = bone is 5 or 8;
+        float length = palm ? model.PalmInset : _bones[bone + 1].Position.Length();
+        if (bone is 4 or 7) length -= model.PalmInset;
+        float scale = length / axis.Length();
+        float rotation = Mathf.Pi / 2 - axis.Angle();
+        sprite.Rotation = rotation;
+        sprite.Scale = Vector2.One * scale;
+        sprite.Position = -( (palm ? end : start) - region.Position).Rotated(rotation) * scale;
     }
 
     /// <summary>将骨链的最终变换同步到平级绘制层，骨骼父子关系不再决定部件遮挡顺序。</summary>
@@ -183,6 +227,7 @@ public partial class CharacterRig : Node2D
                 _partByBone[i].Transform=inverse*_bones[i].GlobalTransform*offset;
             }
         if (Actor.Presentation.Animation.ReferencePoseSet) SyncReferenceFeet(inverse);
+        SyncOffhandWeapon(inverse);
     }
 
     /// <summary>压缩写实贴图色阶并在透明边缘内侧加深轮廓，降低卡牌立绘感。</summary>
@@ -194,9 +239,21 @@ public partial class CharacterRig : Node2D
             uniform float color_steps = 7.0;
             uniform float saturation = 1.15;
             uniform vec4 outline_color : source_color = vec4(0.10,0.08,0.07,0.92);
+            uniform bool cartoon_enabled = true;
+            uniform int clip_count = 0;
+            uniform vec2 clip_polygon[16];
             varying vec4 vertex_tint;
             void vertex() { vertex_tint = COLOR; }
             void fragment() {
+                // 图集UV对应原图坐标；屏幕坐标向下为正，顺时针凸多边形内部叉积非负。
+                vec2 pixel = UV / TEXTURE_PIXEL_SIZE;
+                for (int i = 0; i < clip_count; i++) {
+                    vec2 a = clip_polygon[i];
+                    vec2 b = clip_polygon[(i + 1) % clip_count];
+                    vec2 edge = b - a;
+                    vec2 offset = pixel - a;
+                    if (edge.x * offset.y - edge.y * offset.x < 0.0) { discard; }
+                }
                 vec4 tex = texture(TEXTURE, UV);
                 float edge_alpha = min(min(texture(TEXTURE,UV+vec2(TEXTURE_PIXEL_SIZE.x,0.0)).a,
                     texture(TEXTURE,UV-vec2(TEXTURE_PIXEL_SIZE.x,0.0)).a),
@@ -208,10 +265,11 @@ public partial class CharacterRig : Node2D
                 float inner_edge = tex.a>0.08 ? 1.0-smoothstep(0.05,0.42,edge_alpha) : 0.0;
                 vec3 color = mix(posterized,outline_color.rgb,inner_edge*outline_color.a);
                 // fragment 的输入 COLOR 已乘过纹理；使用顶点颜色避免贴图二次相乘而发黑。
-                COLOR = vec4(color,tex.a)*vertex_tint;
+                COLOR = vec4(cartoon_enabled ? color : tex.rgb,tex.a)*vertex_tint;
             }
             """ };
         var material=new ShaderMaterial { Shader=shader };
+        material.SetShaderParameter("cartoon_enabled",config.CartoonFilter);
         material.SetShaderParameter("color_steps",config.CartoonColorSteps);
         material.SetShaderParameter("saturation",config.CartoonSaturation);
         material.SetShaderParameter("outline_color",config.CartoonOutlineColor);

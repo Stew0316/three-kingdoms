@@ -18,6 +18,7 @@ public partial class BattleHud : CanvasLayer
     // 突进、横扫和闪避的就绪/剩余冷却文本。
     private Label _skills;
     private Label _playerPassives, _enemyPassives, _controls; // 技能换装后从运行时装备重新读取。
+    private Label _playerEffects, _enemyEffects; // 展示仍在生效的控制与强化，时间来自本单位运行时状态。
     // 对战双方名称与本场累计时间。
     private Label _clock;
     // 暂停/结算遮罩及按钮容器，可见时拦截鼠标操作。
@@ -30,6 +31,8 @@ public partial class BattleHud : CanvasLayer
     private Button _resume;
     // 是否显示 F3 状态调试文本，与 F4 骨骼显示独立。
     private bool _showDebug;
+    private Control _roster;
+    private bool _pausedBeforeRoster;
 
     /// <summary>按 640×360 布局坐标建立控件并订阅生命信号；暂停时仍处理界面。</summary>
     public override void _Ready()
@@ -53,8 +56,11 @@ public partial class BattleHud : CanvasLayer
         _playerBar = AddBar(root, new Rect2(29, 45, 190, 6), configuredPlayer.Ui.HealthColor);
         _enemyBar = AddBar(root, new Rect2(421, 45, 190, 6), configuredEnemy.Ui.HealthColor);
         _enemyBar.Visible = _enemyHealth.Visible = !_arena.IsSoloPractice;
-        _skills = AddLabel(root, string.Empty, new Rect2(105, 66, 430, 17), 11, new Color(BattleUiColors.SkillText), HorizontalAlignment.Center);
+        AddPanel(root, new Rect2(16, 66, 529, 20), new Color(BattleUiColors.Panel));
+        _skills = AddLabel(root, string.Empty, new Rect2(20, 67, 520, 17), 11, new Color(BattleUiColors.SkillText), HorizontalAlignment.Center);
         _state = AddLabel(root, string.Empty, new Rect2(26, 100, 550, 18), 10, new Color(BattleUiColors.DebugText));
+        _playerEffects = AddLabel(root, string.Empty, new Rect2(29, 87, 260, 16), 10, configuredPlayer.Ui.DetailColor);
+        _enemyEffects = AddLabel(root, string.Empty, new Rect2(326, 87, 285, 16), 10, configuredEnemy.Ui.DetailColor, HorizontalAlignment.Right);
         AddPanel(root,new Rect2(22,301,596,23),new Color("f5e4b9"));
         _playerPassives = AddLabel(root, DescribePassives(configuredPlayer), new Rect2(30,304,282,16),10,configuredPlayer.Ui.DetailColor);
         _enemyPassives = AddLabel(root, _arena.IsSoloPractice ? "对手已停用 · 自由移动观察步态" : DescribePassives(configuredEnemy), new Rect2(322,304,286,16),10,configuredEnemy.Ui.DetailColor,HorizontalAlignment.Right);
@@ -82,6 +88,9 @@ public partial class BattleHud : CanvasLayer
         enemy.Health.Damaged += UpdateEnemyHealth;
         UpdatePlayerHealth(player.Health.CurrentHealth, player.Health.MaxHealth);
         UpdateEnemyHealth(enemy.Health.CurrentHealth, enemy.Health.MaxHealth);
+        var choose = AddButton(root, "选武将", new Rect2(552, 66, 72, 23));
+        choose.Pressed += () => { _pausedBeforeRoster = GetTree().Paused; GetTree().Paused = true; _roster.Show(); };
+        BuildRoster(root);
     }
 
     /// <summary>HUD 从相同 Resource 展示数值，避免文案与配置分叉。</summary>
@@ -93,6 +102,8 @@ public partial class BattleHud : CanvasLayer
             {
                 PassiveConfig.EffectKind.Reflect => $"{passive.Damage}",
                 PassiveConfig.EffectKind.CounterSpin => $"{passive.Chance:P0}/{passive.Damage}",
+                PassiveConfig.EffectKind.EvasionCritical => $"闪避{passive.EvasionChance:P0} · 暴击{passive.Chance:P0}×{passive.CriticalMultiplier:0.0}",
+                PassiveConfig.EffectKind.Lifesteal => $"回复{passive.LifestealRatio:P0}",
                 _ => $"{passive.Chance:P0}×{passive.CriticalMultiplier:0.0}"
             }));
         return string.Join(" · ",parts);
@@ -101,6 +112,12 @@ public partial class BattleHud : CanvasLayer
     /// <summary>处理尚未被其他控件消费的 input；重开前先消费事件，避免访问已离树的 HUD。</summary>
     public override void _UnhandledInput(InputEvent input)
     {
+        if (_roster?.Visible == true)
+        {
+            if (input.IsActionPressed(InputActions.Pause)) { _roster.Hide(); GetTree().Paused = _pausedBeforeRoster; }
+            GetViewport().SetInputAsHandled();
+            return;
+        }
         if (input.IsActionPressed(InputActions.Restart))
         {
             // 重载会立即把旧 HUD 移出场景树；必须先处理输入，之后不再访问其 Viewport。
@@ -136,6 +153,8 @@ public partial class BattleHud : CanvasLayer
         _enemyPassives.Text = _arena.IsSoloPractice ? "对手已停用 · 自由移动观察步态" : DescribePassives(configuredEnemy);
         _playerPassives.TooltipText = _playerPassives.Text;
         _enemyPassives.TooltipText = _enemyPassives.Text;
+        _playerEffects.Text = DescribeEffects(configuredPlayer);
+        _enemyEffects.Text = _arena.IsSoloPractice ? "" : DescribeEffects(configuredEnemy);
         _controls.Text = $"WASD / 方向键 移动    J / 左键 {SkillName(CombatAction.Basic)}    K {SkillName(CombatAction.Dash)}    L {SkillName(CombatAction.Sweep)}    空格 {SkillName(CombatAction.Dodge)}";
         _state.Visible = _showDebug;
         _state.Text = _arena.IsSoloPractice ? $"{configuredPlayer.Ui.DisplayName}：{_arena.Player.Phase}　实际速度 {_arena.Player.WalkVelocity.Length():0}　步态 {_arena.Player.Rig.WalkPhase:0.00}" : string.Format(BattleTexts.DebugStateFormat,
@@ -143,7 +162,7 @@ public partial class BattleHud : CanvasLayer
             configuredEnemy.Ui.DisplayName, _arena.Enemy.CurrentState,
             _arena.Enemy.GetNode<WeiYanController>(NodeNames.Controller).Decision);
         bool paused = GetTree().Paused;
-        _overlay.Visible = _arena.Finished || paused;
+        _overlay.Visible = (_arena.Finished || paused) && !_roster.Visible;
         if (!_overlay.Visible) return;
         _result.Text = _arena.Finished ? _arena.Result : BattleTexts.PauseTitle;
         _subtitle.Text = _arena.Finished
@@ -153,7 +172,52 @@ public partial class BattleHud : CanvasLayer
     }
 
     private string SkillName(CombatAction slot) => _arena.Player.GetSkill(slot)?.DisplayName ?? "空槽";
+    /// <summary>选择玩家和对手后重建整场，身份资料、模型、动画与技能同时来自新武将资源。</summary>
+    private void BuildRoster(Control root)
+    {
+        _roster = new Control { Name = "武将选择", Visible = false, MouseFilter = Control.MouseFilterEnum.Stop };
+        _roster.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
+        root.AddChild(_roster);
+        var dim = new ColorRect { Color = new Color(0, 0, 0, .7f) }; _roster.AddChild(dim);
+        dim.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
+        AddPanel(_roster, new Rect2(90, 73, 460, 230), new Color(BattleUiColors.OverlayPanel));
+        AddLabel(_roster, "选择武将", new Rect2(110, 86, 420, 28), 22, new Color(BattleUiColors.OverlayTitle), HorizontalAlignment.Center);
+        AddLabel(_roster, "我方", new Rect2(114, 128, 50, 22), 14, new Color(BattleUiColors.OverlayText));
+        AddLabel(_roster, "对手", new Rect2(340, 128, 50, 22), 14, new Color(BattleUiColors.OverlayText));
+        OptionButton Pick(int x, int selected)
+        {
+            var select = new OptionButton { Position = new Vector2(x, 152), Size = new Vector2(190, 30) };
+            foreach (string name in HeroCatalog.Names) select.AddItem(name);
+            select.Select(selected); _roster.AddChild(select); return select;
+        }
+        var player = Pick(114, HeroCatalog.PlayerIndex); var enemy = Pick(336, HeroCatalog.EnemyIndex);
+        var detail = AddLabel(_roster, "", new Rect2(110, 190, 420, 43), 11, new Color(BattleUiColors.OverlayText), HorizontalAlignment.Center);
+        detail.MouseFilter = Control.MouseFilterEnum.Pass; // 允许悬停阅读完整技能效果。
+        void Describe()
+        {
+            string rootPath = $"res://Resources/Config/Combat/{HeroCatalog.Ids[player.Selected]}-loadout.tres";
+            var loadout = GD.Load<SkillLoadoutConfig>(rootPath);
+            detail.Text = $"主动：{loadout.Dash.DisplayName} / {loadout.Sweep.DisplayName}\n被动：{loadout.Passives[0].DisplayName}（普攻与空格闪避为基础动作）";
+            detail.TooltipText = loadout.Dash.Description + "\n" + loadout.Sweep.Description + "\n" + loadout.Passives[0].Description;
+        }
+        player.ItemSelected += _ => Describe(); Describe();
+        var start = AddButton(_roster, "开始对战", new Rect2(336, 251, 130, 30));
+        start.Pressed += () => { HeroCatalog.PlayerIndex = player.Selected; HeroCatalog.EnemyIndex = enemy.Selected; Restart(); };
+        var cancel = AddButton(_roster, "返回", new Rect2(174, 251, 130, 30));
+        cancel.Pressed += () => { _roster.Hide(); GetTree().Paused = _pausedBeforeRoster; };
+    }
     private string SkillText(CombatAction slot) => $"{SkillName(slot)} {ReadyText(slot)}";
+
+    private static string DescribeEffects(Combatant actor)
+    {
+        var status = actor.Status;
+        var effects = new System.Collections.Generic.List<string>();
+        if (status.StunRemaining > 0) effects.Add($"眩晕 {status.StunRemaining:0.0}s");
+        if (status.SlowRemaining > 0) effects.Add($"减速 {status.SlowRemaining:0.0}s");
+        if (status.VulnerableRemaining > 0) effects.Add($"易伤 {status.VulnerableRemaining:0.0}s");
+        if (status.EmpowerRemaining > 0) effects.Add($"战意 {status.EmpowerRemaining:0.0}s");
+        return string.Join(" · ", effects);
+    }
 
     /// <summary>把 action 的剩余冷却格式化为“就绪”或保留一位小数的秒数。</summary>
     private string ReadyText(CombatAction action) => _arena.Player.Cooldown(action) <= 0

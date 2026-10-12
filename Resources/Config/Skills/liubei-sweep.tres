@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="CombatActionConfig" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://Scripts/Config/CombatActionConfig.cs" id="1"]
+
+[resource]
+script = ExtResource("1")
+SkillId = "core:liubei/sweep"
+DisplayName = "仁德济世"
+Motion = 2
+Prepare = 0.35
+Active = 0.18
+Recover = 0.24
+Cooldown = 9
+Range = 60
+HalfAngle = 3.141593
+Damage = 12
+Speed = 0
+SelfHeal = 24
+Description = "恢复自身24生命，同时对周围敌人造成12伤害。"

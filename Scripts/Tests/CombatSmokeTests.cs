@@ -268,13 +268,13 @@ public partial class CombatSmokeTests : Node
         await Reset(); PlaceDuel();
         _arena.Resolver.PassivesEnabled=true; _arena.Resolver.RollOverride=()=>0;
         Enemy.ReceiveDamage(new DamageInfo(Player,10,Vector2.Right,DamageKind.Attack));
-        Check(Enemy.Health.CurrentHealth==82 && Enemy.LastDamage.IsCritical,"吕布暴击为 180% 总伤害");
+        Check(Enemy.Health.CurrentHealth==90 && !Enemy.LastDamage.IsCritical && Player.Skills.Passives.Count==1,"吕布默认仅荆甲，不附加重复暴击被动");
         Check(Player.Health.CurrentHealth==90 && Player.LastDamage.Kind==DamageKind.Counter,"魏延周身反击固定 30 点且不触发反伤");
         Check(Enemy.CounterRemaining>0,"成功反击产生独立旋转表现");
         await Reset(); PlaceDuel();
         _arena.Resolver.PassivesEnabled=true; _arena.Resolver.RollOverride=()=>0;
         Player.ReceiveDamage(new DamageInfo(Enemy,10,Vector2.Left,DamageKind.Attack));
-        Check(Player.Health.CurrentHealth==96 && Player.LastDamage.IsCritical,"魏延暴击为 240% 总伤害");
+        Check(Player.Health.CurrentHealth==110 && !Player.LastDamage.IsCritical && Enemy.Skills.Passives.Count==1,"魏延默认仅反击，不附加重复暴击被动");
         Check(Enemy.Health.CurrentHealth==80 && Enemy.LastDamage.Kind==DamageKind.Reflected,"吕布固定反伤 20 点且不触发魏延反击");
         await Reset(); PlaceDuel();
         _arena.Resolver.PassivesEnabled=true; _arena.Resolver.RollOverride=()=>.6f;
@@ -285,10 +285,12 @@ public partial class CombatSmokeTests : Node
         Enemy.ReceiveDamage(new DamageInfo(Player,10,Vector2.Right,DamageKind.Attack));
         Check(Player.Health.CurrentHealth==120,"反击不命中 68 单位半径以外目标");
         await Reset(); PlaceDuel();
+        Player.TryEquipPassive(0, GD.Load<PassiveConfig>("res://Resources/Config/Skills/lubu-critical.tres"));
         _arena.Resolver.PassivesEnabled=true; _arena.Resolver.RollOverride=()=>.32f;
         Enemy.ReceiveDamage(new DamageInfo(Player,10,Vector2.Right,DamageKind.Attack));
         Check(!Enemy.LastDamage.IsCritical && Enemy.Health.CurrentHealth==90,"吕布 32% 暴击阈值使用严格小于");
         await Reset(); PlaceDuel();
+        Enemy.TryEquipPassive(0, GD.Load<PassiveConfig>("res://Resources/Config/Skills/weiyan-critical.tres"));
         _arena.Resolver.PassivesEnabled=true; _arena.Resolver.RollOverride=()=>.15f;
         Player.ReceiveDamage(new DamageInfo(Enemy,10,Vector2.Left,DamageKind.Attack));
         Check(!Player.LastDamage.IsCritical && Player.Health.CurrentHealth==110,"魏延 15% 暴击阈值使用严格小于");

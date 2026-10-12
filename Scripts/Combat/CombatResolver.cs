@@ -45,13 +45,28 @@ public sealed class CombatResolver
         bool attack = info.Kind == DamageKind.Attack && source != null && GodotObject.IsInstanceValid(source)
             && source.IsEnemy != target.IsEnemy;
         if (attack && PassivesEnabled)
+            foreach (var passive in target.Skills.Passives)
+                if (passive.Effect == PassiveConfig.EffectKind.EvasionCritical && Roll(passive.EvasionChance))
+                { target.ShowEvasion(); return; } // 未命中不暴击、不硬直、不施加状态、不反伤、不吸血。
+        if (attack)
+            info = info with { Amount = Mathf.RoundToInt(info.Amount * source.Status.DamageMultiplier * target.Status.IncomingMultiplier) };
+        if (attack && PassivesEnabled)
             foreach (var passive in source.Skills.Passives)
-                if (passive.Effect == PassiveConfig.EffectKind.Critical && Roll(passive.Chance))
+                if (passive.Effect is PassiveConfig.EffectKind.Critical or PassiveConfig.EffectKind.EvasionCritical && Roll(passive.Chance))
                 {
                     info = info with { Amount = Mathf.RoundToInt(info.Amount * Mathf.Max(1, passive.CriticalMultiplier)), IsCritical = true };
                     break; // 同一伤害包最多暴击一次。
                 }
+        int before = target.Health.CurrentHealth;
         target.ApplyResolvedDamage(info);
+        if (attack && !source.IsDead)
+        {
+            float ratio = source.Status.Lifesteal;
+            if (PassivesEnabled)
+                foreach (var passive in source.Skills.Passives)
+                    if (passive.Effect == PassiveConfig.EffectKind.Lifesteal) ratio += passive.LifestealRatio;
+            source.Heal(Mathf.RoundToInt((before - target.Health.CurrentHealth) * ratio));
+        }
         if (!attack || !PassivesEnabled) return;
         foreach (var passive in target.Skills.Passives)
         {

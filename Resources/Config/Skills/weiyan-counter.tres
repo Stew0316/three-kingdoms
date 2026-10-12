@@ -5,6 +5,7 @@
 [resource]
 script = ExtResource("1")
 DisplayName = "狂骨旋斩"
+Description = "被攻击命中且存活时，有60%概率旋斩反击周围敌人，造成30伤害。"
 Effect = 2
 Chance = 0.6
 Damage = 30

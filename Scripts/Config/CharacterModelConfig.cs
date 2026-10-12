@@ -5,7 +5,14 @@ using Godot;
 public partial class CharacterModelConfig : Resource
 {
     [Export] public Texture2D PartsAtlas { get; set; } // 4×4 拆件图集，顺序见资源 README。
+    [Export] public bool DualWeapons { get; set; } // 双持模型启用独立副武器，不使用长柄双手握点约束。
+    [Export] public Rect2 OffhandWeaponRegion { get; set; } // 副武器在自身 PartsAtlas 内的采样区。
+    [Export] public Vector2 OffhandWeaponSize { get; set; } = new(5, 37); // 副武器显示尺寸，单位为骨架坐标。
+    [Export] public float OffhandBladeDistance { get; set; } = 30; // 副手握心到剑尖的距离。
+    [Export] public Texture2D HeadTexture { get; set; } // 可选独立头部原图；绑定到头部 PartRects，未设置时使用图集头部。
+    [Export] public Rect2 HeadRegion { get; set; } // 独立头图的有效采样区域；空矩形时自动取透明包围盒，显式设置可排除近透明噪点。
     [Export] public Godot.Collections.Array<Rect2> AtlasRegions { get; set; } = new();
+    [Export] public Vector2[] WeaponAtlasClipPolygon { get; set; } = System.Array.Empty<Vector2>(); // 原图像素坐标中的顺时针凸多边形；3～16点，仅武器采样保留内部，空数组不裁剪。
     [Export] public Rect2 CrestRect { get; set; } = new(-7,-27,19,30); // 冠饰相对冠顶骨的显示范围，适配上扬雉翎或下垂盔缨。
     [Export] public bool FlipCrestVertical { get; set; } // 图集冠翎根部位于上端时翻转采样，让根部靠近冠顶。
     [Export] public Texture2D ReferenceAccessories { get; set; } // 参考三姿态原画生成的长戟和双翎配件。
@@ -28,6 +35,8 @@ public partial class CharacterModelConfig : Resource
     [Export] public Color CartoonOutlineColor { get; set; } = new(.10f,.08f,.07f,.92f); // 拆件透明边缘的一像素深色轮廓。
     [Export] public Godot.Collections.Array<Vector2> JointPositions { get; set; } = new(); // 16个业务关节的父节点局部绑定位置。
     [Export] public Godot.Collections.Array<Rect2> PartRects { get; set; } = new(); // 16个拆件在各自关节坐标中的显示范围。
+    [Export] public Vector2[] ArmAtlasAnchors { get; set; } = System.Array.Empty<Vector2>(); // 远上臂/前臂/手、近上臂/前臂/手各两点，原图中的肩肘、肘腕、腕掌轴线；共12点，空数组沿用矩形绑定。
+    [Export] public float PalmInset { get; set; } = 2.5f; // 握点向腕部回退的骨架距离；前臂到握点的骨链包含这一段手掌。
     [Export] public Godot.Collections.Array<int> DrawOrder { get; set; } = new(); // 从后到前绘制的业务关节编号。
     [Export] public bool CrestVisible { get; set; } = true; // 头图已自带完整盔缨时关闭重复冠饰。
     [Export] public Vector2 AccessoryWeaponSize { get; set; } = new(13, 86); // 独立配件武器显示尺寸。

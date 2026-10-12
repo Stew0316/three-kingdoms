@@ -9,7 +9,11 @@ public readonly record struct DamageInfo(
     int Amount,
     Vector2 KnockbackDirection,
     DamageKind Kind = DamageKind.Direct,
-    bool IsCritical = false
+    bool IsCritical = false,
+    float StunSeconds = 0,
+    float SlowFactor = 1,
+    float Vulnerability = 0,
+    float StatusDuration = 0
 );
 
 /// <summary>只有 Attack 参与暴击与受击被动；派生伤害不会互相触发。</summary>

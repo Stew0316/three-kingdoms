@@ -10,6 +10,9 @@ public partial class ReferencePoseTests : Node
     private Combatant Player => _arena.Player;
     private CharacterRig Rig => Player.Rig;
     private bool HasRenderer => DisplayServer.GetName() != "headless";
+    private float _minimumElbow = 180, _maximumElbow, _maximumWrist;
+    private string _armWorst, _armStraightest;
+    private float _primaryGripError, _secondaryGripError;
     // 统一裁区包含低持、后拖和过顶挥戟，保持各姿态的显示尺度一致。
     private static readonly Vector2 CropOffset = new(-80, -115);
     private static readonly Vector2 CropSize = new(160, 140);
@@ -52,6 +55,7 @@ public partial class ReferencePoseTests : Node
                 "站立双手均位于头部下方，不摆出过肩投掷姿势");
             CheckLegs("站立");
             if (HasRenderer) SaveDetail("lubu-reference-idle");
+            if (HasRenderer) await CaptureArmDetail("idle");
 
             float beforeWalk = Player.WalkDistance;
             Player.SetMoveInput(Vector2.Right);
@@ -82,6 +86,12 @@ public partial class ReferencePoseTests : Node
             await CheckAttack(CombatAction.Basic, false);
             await CheckAttack(CombatAction.Dash, false);
             await CheckHurtDirections();
+            await CheckMovingActionsAndCounter();
+            GD.Print($"吕布手臂：屈肘 {_minimumElbow:F1}～{_maximumElbow:F1}°，腕偏转 {_maximumWrist:F2}°；最大折肘 {_armWorst}。");
+            GD.Print($"最小屈肘：{_armStraightest}；全程主握误差 {_primaryGripError:F3}，副握误差 {_secondaryGripError:F3}。");
+            Check(_minimumElbow > 20 && _maximumElbow < 150, "吕布全程双臂保留屈肘余量，不锁肘或折叠至肩部");
+            Check(_maximumWrist < .1f, "吕布持械手腕随前臂保持中立，不反折追随戟杆");
+            Check(_primaryGripError < .1f && _secondaryGripError < .1f, "移动出招、闪避、反击和受击全程实际握点不脱柄");
             GD.Print($"长兵器姿态回归通过：{_checks} 项；真实渲染：{HasRenderer}；截图位于 Build/lubu-reference-*.png，连续帧位于 Build/reference-frames/。");
             GetTree().Quit();
         }
@@ -154,6 +164,8 @@ public partial class ReferencePoseTests : Node
                 }
             }
             if (capture && HasRenderer) SaveDetail($"reference-frames/sweep-{frame:D3}");
+            if (HasRenderer && frame is 6 or 18 or 24 or 30 or 38)
+                await CaptureArmDetail($"{action}-{frame:D3}");
             if (capture && !capturedWindup && Player.CurrentState == Combatant.State.Attack
                 && Player.ActionTime >= Player.Spec.Prepare * .85f && Player.ActionTime < Player.Spec.Prepare)
             {
@@ -178,9 +190,9 @@ public partial class ReferencePoseTests : Node
         GD.Print($"{name}主握点最大误差：{primaryMaxError:F3} 骨架单位；{primaryWorst}。");
         GD.Print($"{name}副握点最大误差：{secondaryMaxError:F3} 骨架单位；{secondaryWorst}；双手采样 {twoHandSamples} 帧。");
         GD.Print($"{name}生效段实测挥击角范围：{activeDegrees:F2} 度；生效采样 {activeSamples} 帧；最小副握权重 {activeGripMinimum:F3}。");
-        Check(primaryMaxError < 1, $"{name}全程主握点误差小于 1：实际 {primaryMaxError:F3}；{primaryWorst}");
+        Check(primaryMaxError < .1f, $"{name}全程主握点误差小于 0.1：实际 {primaryMaxError:F3}；{primaryWorst}");
         Check(twoHandSamples > 0, $"{name}包含副手完全接柄的有效采样");
-        Check(secondaryMaxError < 1, $"{name}完全接柄后副握点误差小于 1：实际 {secondaryMaxError:F3}；{secondaryWorst}");
+        Check(secondaryMaxError < .1f, $"{name}完全接柄后副握点误差小于 0.1：实际 {secondaryMaxError:F3}；{secondaryWorst}");
         Check(activeSamples >= 3 && activeStateValid, $"{name}生效采样来自真实攻击状态与对应动作");
         Check(activeGripMinimum >= .99f, $"{name}生效期间双手持续握柄，最小权重 {activeGripMinimum:F3}");
         float requiredDegrees = action == CombatAction.Sweep ? 100 : 50;
@@ -194,6 +206,36 @@ public partial class ReferencePoseTests : Node
         Check(Player.CurrentState == Combatant.State.Idle, $"{name}结束回到待机状态");
         Check(Rig.ReferenceGripWeight >= .99f, $"{name}收势后保持双手低持约束");
         Check(IsLowGuard(WeaponDirection()), $"{name}收势后恢复低位持戟姿态");
+    }
+
+    /// <summary>覆盖单手拖戟起招及闪避收势接柄；通过真实入口播放反击，逐帧纳入手臂验收。</summary>
+    private async Task CheckMovingActionsAndCounter()
+    {
+        foreach (var action in new[] { CombatAction.Basic, CombatAction.Dash, CombatAction.Sweep, CombatAction.Dodge })
+        {
+            await Frames(Mathf.CeilToInt(Player.Cooldown(action) * Engine.PhysicsTicksPerSecond) + 2);
+            Player.Position = new Vector2(270, 242);
+            Player.SetMoveInput(Vector2.Right);
+            await Frames(18);
+            Check(Player.TryAction(action), $"单手拖戟移动中启动{action}");
+            Player.SetMoveInput(Vector2.Zero);
+            bool activeGrip = true;
+            int count = Mathf.CeilToInt(Player.Spec.Duration * Engine.PhysicsTicksPerSecond) + 28;
+            for (int frame = 0; frame < count; frame++)
+            {
+                await Frames(1);
+                if (Player.IsAttackActive) activeGrip &= Rig.ReferenceGripWeight >= .99f;
+            }
+            Check(activeGrip && Player.CurrentState == Combatant.State.Idle && Rig.ReferenceGripWeight >= .99f,
+                $"{action}生效前完成接柄，结束恢复双手低持");
+        }
+        Player.PlayCounterSpin(68, .48f);
+        for (int frame = 0; frame < 48; frame++)
+        {
+            await Frames(1);
+            if (HasRenderer && frame is 5 or 10 or 16 or 22) await CaptureArmDetail($"counter-{frame:D3}");
+        }
+        Check(Player.CounterRemaining <= 0, "吕布反击动作结束后回到双手低持");
     }
 
     /// <summary>暂停完整场景，验证动作时钟、长戟方向与双手约束同时停止，不只检查一项时钟。</summary>
@@ -299,8 +341,49 @@ public partial class ReferencePoseTests : Node
         {
             await ToSignal(GetTree(), SceneTree.SignalName.PhysicsFrame);
             await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+            foreach (int elbow in new[] { 4, 7 })
+            {
+                float bend = Mathf.Abs(Mathf.RadToDeg(Rig.Joints[elbow].Rotation));
+                if (bend < _minimumElbow)
+                {
+                    _minimumElbow = bend;
+                    _armStraightest = $"{Player.CurrentState}/{Player.CurrentMotion} t={Player.ActionTime:F3} 反击={Player.CounterRemaining:F3} 臂={elbow}";
+                }
+                if (bend > _maximumElbow)
+                {
+                    _maximumElbow = bend;
+                    _armWorst = $"{Player.CurrentState}/{Player.CurrentMotion} t={Player.ActionTime:F3} 臂={elbow}";
+                }
+                _maximumWrist = Mathf.Max(_maximumWrist, Mathf.Abs(Mathf.RadToDeg(Rig.Joints[elbow + 1].Rotation)));
+            }
+            _primaryGripError = Mathf.Max(_primaryGripError, HandPosition(5).DistanceTo(Rig.ReferencePrimaryGrip));
+            if (Rig.ReferenceGripWeight >= .9999f)
+                _secondaryGripError = Mathf.Max(_secondaryGripError, HandPosition(8).DistanceTo(Rig.ReferenceSecondaryGrip));
             if (HasRenderer) await ToSignal(RenderingServer.Singleton, RenderingServer.SignalName.FramePostDraw);
         }
+    }
+
+    /// <summary>复制当前拆件的真实变换到放大视口，检查肩肘腕接缝和双手握柄。</summary>
+    private async Task CaptureArmDetail(string name)
+    {
+        var viewport = new SubViewport { Size = new Vector2I(720, 560), TransparentBg = true,
+            Disable3D = true, RenderTargetUpdateMode = SubViewport.UpdateMode.Always };
+        AddChild(viewport);
+        var root = new Node2D { Position = new Vector2(330, 470), Scale = new Vector2(4, 3.68f) };
+        viewport.AddChild(root);
+        foreach (var part in Rig.DrawOrderedParts)
+        {
+            if (!part.Visible) continue;
+            var copy = new Sprite2D { Texture = part.Texture, Material = part.Material, Centered = part.Centered,
+                FlipH = part.FlipH, FlipV = part.FlipV, TextureFilter = part.TextureFilter };
+            root.AddChild(copy);
+            copy.Transform = Rig.Skeleton.GlobalTransform.AffineInverse() * part.GlobalTransform;
+        }
+        await ToSignal(RenderingServer.Singleton, RenderingServer.SignalName.FramePostDraw);
+        await ToSignal(RenderingServer.Singleton, RenderingServer.SignalName.FramePostDraw);
+        using var image = viewport.GetTexture().GetImage();
+        image.SavePng($"res://Build/reference-frames/detail-{name}.png");
+        viewport.QueueFree();
     }
 
     private void Check(bool condition, string message)

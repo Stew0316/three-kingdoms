@@ -8,6 +8,7 @@ public partial class WeaponTrail : Node2D
     public bool IsEmitting { get; private set; } // 供调试与回归检查使用。
     private Combatant _actor; // 特效跟随的角色。
     private readonly List<(Vector2 Tip, float Time)> _bladeSamples = new(); // 新长戟刀光读取真实戟尖，不另画不相干的地面大圆。
+    private readonly List<(Vector2 Tip, float Time)> _offhandSamples = new(); // 双持副剑独立记录实际剑尖轨迹。
     private float _lastBladeTime = -1;
     private float _lastActionTime;
     /// <summary>绑定宿主并使用加色混合，让亮刃在地面之上形成短时发光效果。</summary>
@@ -27,12 +28,14 @@ public partial class WeaponTrail : Node2D
         if (_actor.Presentation.Animation.ReferencePoseSet)
         {
             bool newAction = _actor.ActionTime < _lastActionTime;
-            if (!IsEmitting || newAction) _bladeSamples.Clear();
+            if (!IsEmitting || newAction) { _bladeSamples.Clear(); _offhandSamples.Clear(); }
             // 暂停和打击停顿时不追加重合采样，也不让残光独自消失。
             if (IsEmitting && _actor.VisualTime > _lastBladeTime)
             {
                 if (_actor.IsAttackActive) _bladeSamples.Add((_actor.Rig.ReferenceBladeTip, _actor.VisualTime));
+                if (_actor.IsAttackActive && _actor.Rig.OffhandWeapon != null) _offhandSamples.Add((_actor.Rig.OffhandBladeTip, _actor.VisualTime));
                 _bladeSamples.RemoveAll(sample => _actor.VisualTime - sample.Time > .09f);
+                _offhandSamples.RemoveAll(sample => _actor.VisualTime - sample.Time > .09f);
             }
             _lastBladeTime = _actor.VisualTime;
             _lastActionTime = _actor.ActionTime;
@@ -45,7 +48,8 @@ public partial class WeaponTrail : Node2D
         if (!IsEmitting) return;
         if (_actor.Presentation.Animation.ReferencePoseSet)
         {
-            DrawReferenceBladeTrail();
+            DrawReferenceBladeTrail(_bladeSamples);
+            DrawReferenceBladeTrail(_offhandSamples);
             return;
         }
         float time = _actor.ActionTime - _actor.Spec.Prepare;
@@ -89,17 +93,17 @@ public partial class WeaponTrail : Node2D
         }
     }
     /// <summary>只连接真实戟尖走过的弧线，明亮部分落在刃端，长度和方向不再与武器脱节。</summary>
-    private void DrawReferenceBladeTrail()
+    private void DrawReferenceBladeTrail(List<(Vector2 Tip, float Time)> samples)
     {
-        if (_bladeSamples.Count < 2) return;
+        if (samples.Count < 2) return;
         Color tint = new(_actor.IsEnemy ? PresentationColors.EnemyTrail : PresentationColors.PlayerTrail);
-        for (int index = 1; index < _bladeSamples.Count; index++)
+        for (int index = 1; index < samples.Count; index++)
         {
-            Vector2 start = ToLocal(_bladeSamples[index - 1].Tip);
-            Vector2 end = ToLocal(_bladeSamples[index].Tip);
-            Vector2 before = ToLocal(_bladeSamples[Mathf.Max(0, index - 2)].Tip);
-            Vector2 after = ToLocal(_bladeSamples[Mathf.Min(_bladeSamples.Count - 1, index + 1)].Tip);
-            float age = Mathf.Clamp(1 - (_actor.VisualTime - _bladeSamples[index].Time) / .09f, 0, 1);
+            Vector2 start = ToLocal(samples[index - 1].Tip);
+            Vector2 end = ToLocal(samples[index].Tip);
+            Vector2 before = ToLocal(samples[Mathf.Max(0, index - 2)].Tip);
+            Vector2 after = ToLocal(samples[Mathf.Min(samples.Count - 1, index + 1)].Tip);
+            float age = Mathf.Clamp(1 - (_actor.VisualTime - samples[index].Time) / .09f, 0, 1);
             Vector2 previous = start;
             for (int step = 1; step <= 5; step++)
             {

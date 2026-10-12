@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="PassiveConfig" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://Scripts/Config/PassiveConfig.cs" id="1"]
+
+[resource]
+script = ExtResource("1")
+SkillId = "core:guanyu/martial-poise"
+DisplayName = "武圣身法"
+Effect = 3
+Chance = 0.2
+EvasionChance = 0.18
+CriticalMultiplier = 2.0
+Description = "18%闪避敌方攻击，攻击独立有20%概率造成2倍暴击。"

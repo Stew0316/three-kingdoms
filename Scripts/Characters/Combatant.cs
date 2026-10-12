@@ -13,6 +13,8 @@ public partial class Combatant : CharacterBody2D
     [Export] public CharacterUiConfig Ui { get; set; } = new(); // 武将独立身份和界面主题。
     [Export] public SkillLoadoutConfig Loadout { get; set; } // 默认装备，运行时复制槽位引用而非修改资源。
     public SkillLoadoutRuntime Skills { get; private set; } // 每个单位独享装备与冷却状态。
+    public CombatStatusRuntime Status { get; } = new(); // 当前减速、控制、易伤和强化，只归本单位所有。
+    private bool _committed;
     // 原始立绘是否朝左，用于计算水平镜像，避免把素材初始方向当作战斗方向。
     [Export] public bool ArtFacesLeft { get; set; }
     // 当前状态，只允许通过 SetState 切换。
@@ -26,7 +28,7 @@ public partial class Combatant : CharacterBody2D
     // 整场对战是否结束，胜方也必须停止移动与出招。
     public bool BattleFinished { get; private set; }
     // 当前是否允许接受新的移动/施法请求。
-    public bool CanAct => !BattleFinished && CurrentState is State.Idle or State.Move;
+    public bool CanAct => !BattleFinished && Status.StunRemaining <= 0 && CurrentState is State.Idle or State.Move;
     // 最近一次成功启动的动作类型；是否仍执行要结合 CurrentState 判断。
     public CombatAction CurrentAction { get; private set; }
     public CombatMotion CurrentMotion { get; private set; } // 本次技能请求的动作语义，与输入槽位分离。
@@ -137,6 +139,7 @@ public partial class Combatant : CharacterBody2D
         CurrentMotion = actionConfig.Motion;
         Spec = actionConfig.ToSpec();
         ActionTime = 0;
+        _committed = false;
         _castDirection = FacingDirection;
         Skills.StartCooldown(actionConfig, Spec.Cooldown);
         Velocity = Vector2.Zero;
@@ -151,6 +154,7 @@ public partial class Combatant : CharacterBody2D
         float dt = (float)delta;
         WalkVelocity = Vector2.Zero;
         if (_hitStop > 0) { _hitStop -= dt; return; }
+        Status.Tick(dt);
         CounterRemaining = Mathf.Max(0, CounterRemaining - dt);
         Skills.Tick(dt);
         if (IsDead || BattleFinished) { Velocity = Vector2.Zero; QueueRedraw(); return; }
@@ -160,13 +164,20 @@ public partial class Combatant : CharacterBody2D
             _hurtTime -= dt;
             Velocity = Velocity.MoveToward(Vector2.Zero, Config.KnockbackDeceleration * dt);
             MoveAndSlide();
-            if (_hurtTime <= 0) SetState(State.Idle);
+            if (_hurtTime <= 0 && Status.StunRemaining <= 0) SetState(State.Idle);
         }
         else if (CurrentState is State.Attack or State.Dodge)
         {
             ActionTime += dt;
             // 位移与命中只在生效窗口执行，前摇用于预警，后摇提供反击空档。
             bool active = ActionTime >= Spec.Prepare && ActionTime < Spec.Prepare + Spec.Active;
+            if (!_committed && ActionTime >= Spec.Prepare)
+            {
+                _committed = true;
+                if (Spec.SelfCost > 0) Health.ApplyDamage(new DamageInfo(this, Mathf.Min(Spec.SelfCost, Health.CurrentHealth - 1), Vector2.Zero));
+                Heal(Spec.SelfHeal);
+                Status.Empower(Spec);
+            }
             Velocity = active ? _castDirection * Spec.Speed : Vector2.Zero;
             MoveAndSlide();
             if (active) _hitbox.Resolve(Spec, _castDirection);
@@ -178,7 +189,7 @@ public partial class Combatant : CharacterBody2D
         }
         else
         {
-            Velocity = _moveInput * Config.MoveSpeed;
+            Velocity = _moveInput * Config.MoveSpeed * Status.MoveMultiplier;
             SetState(_moveInput.IsZeroApprox() ? State.Idle : State.Move);
             Vector2 beforeMove = GlobalPosition;
             MoveAndSlide();
@@ -198,11 +209,21 @@ public partial class Combatant : CharacterBody2D
         else ApplyResolvedDamage(info);
     }
 
+    /// <summary>治疗不复活；反馈采用实际恢复量，避免满血飘出虚假治疗数。</summary>
+    public void Heal(int amount)
+    {
+        if (IsDead || BattleFinished || amount <= 0) return;
+        int restored = Health.Heal(amount);
+        if (restored > 0) _feedback.ShowNotice($"+{restored}", new Color("8be3a4"));
+    }
+    public void ShowEvasion() => _feedback.ShowNotice("闪避", new Color("b8e2ff"));
+
     /// <summary>仅供结算器提交已计算的结果；派生伤害不附带硬直和打击停顿。</summary>
     internal void ApplyResolvedDamage(DamageInfo info)
     {
         if (IsDead || BattleFinished || info.Amount <= 0) return;
         LastDamage = info;
+        Status.Apply(info);
         // ApplyDamage 可能同步触发 Die 和整场结算，后续必须再次检查 IsDead。
         Health.ApplyDamage(info);
         _feedback.ShowDamage(info.Amount, info.IsCritical, info.Kind);

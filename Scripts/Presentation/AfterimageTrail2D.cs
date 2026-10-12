@@ -8,6 +8,7 @@ public partial class AfterimageTrail2D : Node2D
     private float _lastSpawn;
     private readonly List<Ghost> _ghosts=new();
     private readonly CanvasItemMaterial _additive=new() { BlendMode=CanvasItemMaterial.BlendModeEnum.Add };
+    private readonly Dictionary<ShaderMaterial, ShaderMaterial> _clippedMaterials = new(); // 带采样裁剪的部件，残影必须保留同一遮罩。
 
     private sealed class Ghost
     {
@@ -58,7 +59,7 @@ public partial class AfterimageTrail2D : Node2D
             {
                 Texture=part.Texture,Centered=part.Centered,Offset=part.Offset,FlipH=part.FlipH,FlipV=part.FlipV,
                 RegionEnabled=part.RegionEnabled,RegionRect=part.RegionRect,ZIndex=part.ZIndex,
-                TextureFilter=part.TextureFilter,Modulate=_actor.Presentation.AfterimageColor,Material=_additive
+                TextureFilter=part.TextureFilter,Modulate=_actor.Presentation.AfterimageColor,Material=GhostMaterial(part)
             };
             root.AddChild(copy);
             copy.Transform=inverseActor*part.GlobalTransform;
@@ -68,5 +69,17 @@ public partial class AfterimageTrail2D : Node2D
         if(_ghosts.Count<=6) return;
         _ghosts[0].Root.QueueFree();
         _ghosts.RemoveAt(0);
+    }
+
+    private Material GhostMaterial(Sprite2D part)
+    {
+        if (part.Material is not ShaderMaterial source || source.GetShaderParameter("clip_count").AsInt32() < 3)
+            return _additive;
+        if (_clippedMaterials.TryGetValue(source, out var cached)) return cached;
+        var material = (ShaderMaterial)source.Duplicate();
+        material.Shader = new Shader { Code = source.Shader.Code.Replace("render_mode unshaded;", "render_mode unshaded, blend_add;") };
+        material.SetShaderParameter("cartoon_enabled", false); // 残影维持原有加色表现，只继承裁剪。
+        _clippedMaterials[source] = material;
+        return material;
     }
 }

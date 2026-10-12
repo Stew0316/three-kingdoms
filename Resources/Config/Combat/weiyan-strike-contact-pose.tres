@@ -8,12 +8,12 @@ PelvisOffset = Vector2(2, 4)
 PelvisDegrees = 3.0
 ChestDegrees = 8.0
 HeadDegrees = -8.0
-FarHand = Vector2(-9, -33)
+FarHand = Vector2(2, -30)
 FreeHand = Vector2(12, -30)
 FarFoot = Vector2(-14, 0)
 NearFoot = Vector2(17, 0)
-WeaponDegrees = 78.0
-BladeDistance = 58.0
-GripSeparation = 16.0
+WeaponDegrees = 85.0
+BladeDistance = 76.0
+GripSeparation = 28.0
 TwoHandWeight = 1.0
 

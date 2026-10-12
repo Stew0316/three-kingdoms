@@ -4,14 +4,17 @@
 
 [resource]
 script = ExtResource("1")
-Prepare = 0.48
-Active = 0.22
-Recover = 0.32
-Cooldown = 4.0
-Range = 40.0
-HalfAngle = 0.72
-Damage = 14
-Speed = 360.0
 SkillId = "core:weiyan/dash"
-DisplayName = "突进压斩"
+DisplayName = "裂甲重斩"
 Motion = 1
+Prepare = 0.4
+Active = 0.22
+Recover = 0.3
+Cooldown = 4
+Range = 62
+HalfAngle = 0.9
+Damage = 16
+Speed = 0
+Vulnerability = 0.3
+StatusDuration = 3
+Description = "重斩造成16伤害，使目标受到的攻击伤害增加30%，持续3秒。"

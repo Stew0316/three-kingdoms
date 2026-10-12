@@ -9,7 +9,8 @@ public partial class CharacterPoseConfig : Resource
     [Export] public float ChestDegrees { get; set; } // 胸部相对骨盆的倾角。
     [Export] public float HeadDegrees { get; set; } // 头部相对胸部的补偿角。
     [Export] public Vector2 FarHand { get; set; } // 主持械手目标，位于画面后侧的手臂。
-    [Export] public Vector2 FreeHand { get; set; } // 未握戟时前侧手的自然位置。
+    [Export] public Vector2 FreeHand { get; set; } // 未握长柄时前侧手的位置；双持模型中为副剑握点。
+    [Export] public float OffhandWeaponDegrees { get; set; } // 双持副剑的独立方向，0朝上、90朝前。
     [Export] public Vector2 FarFoot { get; set; } // 后侧脚底目标。
     [Export] public Vector2 NearFoot { get; set; } // 前侧脚底目标。
     [Export] public float WeaponDegrees { get; set; } // 戟头从朝上起旋转的角度；90 度朝前、180 度朝下。

@@ -14,4 +14,5 @@ Damage = 18
 Speed = 360.0
 SkillId = "core:lubu/dash"
 DisplayName = "破阵突进"
+Description = "向前冲锋，突进过程中命中敌人造成18伤害。"
 Motion = 1

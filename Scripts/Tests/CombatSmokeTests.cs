@@ -248,7 +248,12 @@ public partial class CombatSmokeTests : Node
         {
             await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
             if (GetTree().CurrentScene is Arena arena && arena.Player != null && arena.Enemy != null)
+            {
+                // 旧伤害边界用小血量夹具以快速验证致死与十轮重载，正式5000生命由四人场测试验收。
+                arena.Player.Health.Configure(120); arena.Enemy.Health.Configure(100);
+                arena.Player.Health.ResetHealth(); arena.Enemy.Health.ResetHealth();
                 return arena;
+            }
         }
         throw new InvalidOperationException($"等待 {maxFrames} 帧后 Arena 仍未完成重载。");
     }

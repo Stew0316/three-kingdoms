@@ -39,11 +39,17 @@ public partial class GroundEffects : Node2D
             for(int i=0;i<3;i++) DrawArc(Vector2.Zero,Actor.CounterRadius-i*5,a+i*.3f,a+4.4f,70,new Color(color,(1-p)*(.9f-i*.2f)),4-i,true);
         }
         if(Actor.BattleFinished || Actor.CurrentState!=Combatant.State.Attack || Actor.ActionTime>Actor.Spec.Prepare+Actor.Spec.Active) return;
-        float angle=Actor.CastDirection.Angle(), half=Actor.Spec.HalfAngle;
+        // 自身强化没有攻击范围；整圆技能直接画圆，避免中心点和首尾重合形成无效多边形。
+        if (Actor.Spec.Range <= 0 || Actor.Spec.HalfAngle <= 0) return;
+        float angle=Actor.CastDirection.Angle(), half=Mathf.Min(Actor.Spec.HalfAngle, Mathf.Pi);
         Color warning=Actor.IsEnemy ? new("ff784b") : new("ffd797");
-        var points=new Vector2[42]; points[0]=Vector2.Zero;
-        for(int i=0;i<=40;i++) points[i+1]=Vector2.FromAngle(angle-half+half*2*i/40)*Actor.Spec.Range;
-        DrawColoredPolygon(points,new Color(warning,.13f));
+        if (half >= Mathf.Pi - .001f) DrawCircle(Vector2.Zero, Actor.Spec.Range, new Color(warning, .13f));
+        else
+        {
+            var points=new Vector2[42]; points[0]=Vector2.Zero;
+            for(int i=0;i<=40;i++) points[i+1]=Vector2.FromAngle(angle-half+half*2*i/40)*Actor.Spec.Range;
+            DrawColoredPolygon(points,new Color(warning,.13f));
+        }
         DrawArc(Vector2.Zero,Actor.Spec.Range,angle-half,angle+half,50,new Color(warning,.9f),1,true);
         if(Actor.Spec.Prepare>0) DrawArc(Vector2.Zero,Actor.Spec.Range*Mathf.Clamp(Actor.ActionTime/Actor.Spec.Prepare,0,1),angle-half,angle+half,50,new Color(warning,.5f),1,true);
     }

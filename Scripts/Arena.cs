@@ -1,5 +1,7 @@
 using Godot;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 
 /// <summary>演武场流程入口：绑定对手、累计对战时间、统一结算，并提供测试/截图入口。</summary>
 public partial class Arena : Node2D
@@ -8,6 +10,11 @@ public partial class Arena : Node2D
     public Combatant Player { get; private set; }
     // 本场敌方角色，作为玩家对手并由 AI 驱动。
     public Combatant Enemy { get; private set; }
+    // Enemy 保留为首位对手，兼容单角色姿态测试；遭遇逻辑统一读取集合。
+    public List<Combatant> Fighters { get; } = new();
+    public IEnumerable<Combatant> Enemies => Fighters.Where(actor => actor.IsEnemy);
+    [Export] public bool GroupPractice { get; set; } = true; // 正式演武场一名玩家与三名AI同场。
+    public bool IsGroupPractice => GroupPractice && !Hd2D && !IsSoloPractice;
     // 是否已经结算，用于防止死亡信号导致重复结算。
     public bool Finished { get; private set; }
     // 显示在结算面板的中文结果，未结束时为空。
@@ -18,12 +25,36 @@ public partial class Arena : Node2D
     private static bool _testsStarted;
     private static bool _walkTestsStarted; // 步态回归会重开场景，避免再次创建测试器。
     private static bool _fourHeroTestsStarted; // 四武将验收包含选将重载，仅创建一个跨场景测试器。
+    private static bool _groupTestsStarted;
     public CombatResolver Resolver { get; private set; }
     public override void _EnterTree()
     {
-        // 子节点初始化前装配模型，保留玩家/AI控制器及场景路径；默认仍为吕布对魏延。
-        HeroCatalog.Configure(GetNode<Combatant>(SceneNodePaths.Player), HeroCatalog.PlayerIndex);
-        HeroCatalog.Configure(GetNode<Combatant>(SceneNodePaths.Enemy), HeroCatalog.EnemyIndex);
+        // 专项姿态/旧双人规则测试隔离额外对手；四人实战由独立验收覆盖。
+        string[] duelTests = { "--combat-test", "--module-test", "--weiyan-pose-test", "--four-hero-test", "--rig-visual-test" };
+        if (OS.GetCmdlineUserArgs().Any(duelTests.Contains)) GroupPractice = false;
+        var player = GetNode<Combatant>(SceneNodePaths.Player);
+        var enemy = GetNode<Combatant>(SceneNodePaths.Enemy);
+        if (IsGroupPractice && HeroCatalog.PlayerIndex == HeroCatalog.EnemyIndex)
+            HeroCatalog.EnemyIndex = (HeroCatalog.PlayerIndex + 1) % HeroCatalog.Ids.Length;
+        HeroCatalog.Configure(player, HeroCatalog.PlayerIndex);
+        HeroCatalog.Configure(enemy, HeroCatalog.EnemyIndex);
+        if (AdventureSession.Instance?.InCityTrial == true) AdventureSession.Instance.ConfigureActor(player, false);
+        Fighters.Add(player); Fighters.Add(enemy);
+        if (IsGroupPractice)
+        {
+            player.Position = new Vector2(190, 235); enemy.Position = new Vector2(430, 170);
+            var remaining = Enumerable.Range(0, HeroCatalog.Ids.Length)
+                .Where(index => index != HeroCatalog.PlayerIndex && index != HeroCatalog.EnemyIndex).ToArray();
+            for (int i = 0; i < remaining.Length; i++)
+            {
+                var actor = GD.Load<PackedScene>("res://Components/Characters/Combatant.tscn").Instantiate<Combatant>();
+                actor.Name = "Opponent" + (i + 2); actor.IsEnemy = true;
+                HeroCatalog.Configure(actor, remaining[i]);
+                actor.AddChild(new WeiYanController { Name = NodeNames.Controller });
+                actor.Position = i == 0 ? new Vector2(450, 245) : new Vector2(345, 275);
+                Fighters.Add(actor); GetNode<Node2D>(NodeNames.Fighters).AddChild(actor);
+            }
+        }
     }
     [Export] public bool Hd2D { get; set; } // 仅供历史技术样板启用；正式入口使用二维俯视演武场。
     [Export] public bool SoloPractice { get; set; } // 默认关闭；仅手动启用时隐藏魏延并关闭处理与碰撞，供单人练习。
@@ -37,7 +68,8 @@ public partial class Arena : Node2D
     {
         Player = GetNode<Combatant>(SceneNodePaths.Player);
         Enemy = GetNode<Combatant>(SceneNodePaths.Enemy);
-        Enemy.GetNode<WeiYanController>(NodeNames.Controller).Target = Player;
+        if (AdventureSession.Instance?.InCityTrial == true) AdventureSession.Instance.RestoreHealth(Player);
+        foreach (var enemy in Enemies) enemy.GetNode<WeiYanController>(NodeNames.Controller).Target = Player;
         Resolver = new CombatResolver();
         Resolver.Register(Player); Player.Resolver = Resolver;
         if (IsSoloPractice)
@@ -54,8 +86,19 @@ public partial class Arena : Node2D
         }
         else
         {
-            Resolver.Register(Enemy); Enemy.Resolver = Resolver;
-            Resolver.Settled += () => { if (Player.IsDead || Enemy.IsDead) EndBattle(!Player.IsDead); };
+            foreach (var enemy in Enemies) { Resolver.Register(enemy); enemy.Resolver = Resolver; }
+            Resolver.Settled += () =>
+            {
+                // 城门入口同样四人同场；魏延任务按目标死亡推进，不要求额外击败关羽和刘备。
+                if (Enemies.Any(enemy => enemy.Ui.CharacterId == "core:weiyan" && enemy.IsDead))
+                    AdventureSession.Instance?.CompleteTrial(true);
+                if (Player.IsDead || Enemies.All(enemy => enemy.IsDead)) EndBattle(!Player.IsDead);
+            };
+        }
+        if (!_groupTestsStarted && OS.GetCmdlineUserArgs().Contains("--arena-group-test"))
+        {
+            _groupTestsStarted = true;
+            GetTree().Root.CallDeferred(Node.MethodName.AddChild, new ArenaGroupTests());
         }
         if (Hd2D) AddChild(new Hd2DStage { Name = "HD2DStage" });
         if (Array.Exists(OS.GetCmdlineUserArgs(), a => a == "--rig-visual-test"))
@@ -97,8 +140,8 @@ public partial class Arena : Node2D
         if (Finished) return;
         Finished = true;
         Result = won ? BattleTexts.Victory : BattleTexts.Defeat;
-        Player.FinishBattle();
-        Enemy.FinishBattle();
+        AdventureSession.Instance?.CompleteTrial(won);
+        foreach (var actor in Fighters) actor.FinishBattle();
     }
 
     /// <summary>把测试器挂到场景树根部，使它能跨越 Arena 的重载持续执行。</summary>
@@ -117,8 +160,7 @@ public partial class Arena : Node2D
     /// <summary>关闭控制器并摆放固定画面，等待渲染完成后保存截图并退出测试进程。</summary>
     private async void CapturePreview()
     {
-        Player.GetNode(NodeNames.Controller).ProcessMode = ProcessModeEnum.Disabled;
-        Enemy.GetNode(NodeNames.Controller).ProcessMode = ProcessModeEnum.Disabled;
+        foreach (var actor in Fighters) actor.GetNode(NodeNames.Controller).ProcessMode = ProcessModeEnum.Disabled;
         // 三个标记分别选择前摇预警、生效刀光、骨骼叠加图；默认只截待机画面。
         bool attackPreview = Array.Exists(OS.GetCmdlineUserArgs(), a => a == DevelopmentArguments.CaptureAttack);
         bool slashPreview = Array.Exists(OS.GetCmdlineUserArgs(), a => a == DevelopmentArguments.CaptureSlash);

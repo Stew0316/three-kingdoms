@@ -49,7 +49,7 @@ public sealed class CombatResolver
                 if (passive.Effect == PassiveConfig.EffectKind.EvasionCritical && Roll(passive.EvasionChance))
                 { target.ShowEvasion(); return; } // 未命中不暴击、不硬直、不施加状态、不反伤、不吸血。
         if (attack)
-            info = info with { Amount = Mathf.RoundToInt(info.Amount * source.Status.DamageMultiplier * target.Status.IncomingMultiplier) };
+            info = info with { Amount = Mathf.RoundToInt(info.Amount * source.Status.DamageMultiplier * source.ProgressionDamageMultiplier * target.Status.IncomingMultiplier) };
         if (attack && PassivesEnabled)
             foreach (var passive in source.Skills.Passives)
                 if (passive.Effect is PassiveConfig.EffectKind.Critical or PassiveConfig.EffectKind.EvasionCritical && Roll(passive.Chance))

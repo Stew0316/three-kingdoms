@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="HorseAppearance" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://Scripts/Config/HorseAppearance.cs" id="1"]
+
+[resource]
+script = ExtResource("1")
+Coat = Color(0.57, 0.29, 0.17, 1)
+Mane = Color(0.18, 0.15, 0.13, 1)
+Blanket = Color(0.48, 0.20, 0.15, 1)
+Trim = Color(0.76, 0.60, 0.36, 1)
+BodyWidth = 1.07
+LongMane = true
+FaceBlaze = true
+SaddleBags = true

@@ -1,4 +1,5 @@
 using Godot;
+using System.Linq;
 
 /// <summary>对战界面：显示生命、冷却、状态及结算，并接收暂停、重开和调试输入。</summary>
 public partial class BattleHud : CanvasLayer
@@ -46,16 +47,19 @@ public partial class BattleHud : CanvasLayer
         var font = new SystemFont { FontNames = GameFontNames.CreateChineseFallbacks() };
         root.Theme = new Theme { DefaultFont = font, DefaultFontSize = 12 };
         AddChild(root);
-        AddPanel(root, new Rect2(16, 10, 608, 53), new Color(BattleUiColors.Panel));
-        AddLabel(root, configuredPlayer.Ui.DisplayName, new Rect2(29, 16, 110, 22), 18, configuredPlayer.Ui.NameColor);
-        AddLabel(root, _arena.IsSoloPractice ? "单人练习" : configuredEnemy.Ui.DisplayName, new Rect2(501, 16, 110, 22), 18, configuredEnemy.Ui.NameColor, HorizontalAlignment.Right);
-        AddLabel(root, _arena.IsSoloPractice ? configuredPlayer.Ui.DisplayName + "步态练习" : BattleTexts.ArenaTitle, new Rect2(230, 15, 180, 23), 18, new Color(BattleUiColors.Title), HorizontalAlignment.Center);
-        _clock = AddLabel(root, string.Empty, new Rect2(268, 41, 104, 18), 10, new Color(BattleUiColors.SecondaryText), HorizontalAlignment.Center);
-        _playerHealth = AddLabel(root, string.Empty, new Rect2(100, 21, 119, 18), 10, new Color(BattleUiColors.PlayerHealthText), HorizontalAlignment.Right);
-        _enemyHealth = AddLabel(root, string.Empty, new Rect2(421, 21, 99, 18), 10, new Color(BattleUiColors.EnemyHealthText));
-        _playerBar = AddBar(root, new Rect2(29, 45, 190, 6), configuredPlayer.Ui.HealthColor);
-        _enemyBar = AddBar(root, new Rect2(421, 45, 190, 6), configuredEnemy.Ui.HealthColor);
+        var header = new Control { Visible = !_arena.IsGroupPractice, MouseFilter = Control.MouseFilterEnum.Ignore };
+        root.AddChild(header);
+        AddPanel(header, new Rect2(16, 10, 608, 53), new Color(BattleUiColors.Panel));
+        AddLabel(header, configuredPlayer.Ui.DisplayName, new Rect2(29, 16, 110, 22), 18, configuredPlayer.Ui.NameColor);
+        AddLabel(header, _arena.IsSoloPractice ? "单人练习" : configuredEnemy.Ui.DisplayName, new Rect2(501, 16, 110, 22), 18, configuredEnemy.Ui.NameColor, HorizontalAlignment.Right);
+        AddLabel(header, _arena.IsSoloPractice ? configuredPlayer.Ui.DisplayName + "步态练习" : BattleTexts.ArenaTitle, new Rect2(230, 15, 180, 23), 18, new Color(BattleUiColors.Title), HorizontalAlignment.Center);
+        _clock = AddLabel(header, string.Empty, new Rect2(268, 41, 104, 18), 10, new Color(BattleUiColors.SecondaryText), HorizontalAlignment.Center);
+        _playerHealth = AddLabel(header, string.Empty, new Rect2(100, 21, 119, 18), 10, new Color(BattleUiColors.PlayerHealthText), HorizontalAlignment.Right);
+        _enemyHealth = AddLabel(header, string.Empty, new Rect2(421, 21, 99, 18), 10, new Color(BattleUiColors.EnemyHealthText));
+        _playerBar = AddBar(header, new Rect2(29, 45, 190, 6), configuredPlayer.Ui.HealthColor);
+        _enemyBar = AddBar(header, new Rect2(421, 45, 190, 6), configuredEnemy.Ui.HealthColor);
         _enemyBar.Visible = _enemyHealth.Visible = !_arena.IsSoloPractice;
+        if (_arena.IsGroupPractice) BuildGroupHeader(root);
         AddPanel(root, new Rect2(16, 66, 529, 20), new Color(BattleUiColors.Panel));
         _skills = AddLabel(root, string.Empty, new Rect2(20, 67, 520, 17), 11, new Color(BattleUiColors.SkillText), HorizontalAlignment.Center);
         _state = AddLabel(root, string.Empty, new Rect2(26, 100, 550, 18), 10, new Color(BattleUiColors.DebugText));
@@ -91,6 +95,14 @@ public partial class BattleHud : CanvasLayer
         var choose = AddButton(root, "选武将", new Rect2(552, 66, 72, 23));
         choose.Pressed += () => { _pausedBeforeRoster = GetTree().Paused; GetTree().Paused = true; _roster.Show(); };
         BuildRoster(root);
+        if (AdventureSession.Instance?.InCityTrial == true)
+        {
+            choose.Hide();
+            var back = AddButton(root, "返回槐安", new Rect2(552, 66, 72, 23));
+            back.Pressed += () => AdventureSession.Instance.ReturnToCity(GetTree(), _arena.Player);
+            var resultBack = AddButton(_overlay, "返回城池 / 交任务", new Rect2(230, 270, 180, 28));
+            resultBack.Pressed += () => AdventureSession.Instance.ReturnToCity(GetTree(), _arena.Player);
+        }
     }
 
     /// <summary>HUD 从相同 Resource 展示数值，避免文案与配置分叉。</summary>
@@ -130,7 +142,7 @@ public partial class BattleHud : CanvasLayer
             _showDebug = !_showDebug;
         else if (input is InputEventKey boneKey && boneKey.Pressed && !boneKey.Echo && boneKey.PhysicalKeycode == DebugKeys.ToggleBones)
         {
-            foreach (var actor in new[] { _arena.Player, _arena.Enemy })
+            foreach (var actor in _arena.Fighters)
             {
                 var rig = actor.Rig;
                 rig.ShowBones = !rig.ShowBones;
@@ -150,11 +162,17 @@ public partial class BattleHud : CanvasLayer
             configuredPlayer.Ui.DisplayName, configuredEnemy.Ui.DisplayName, _arena.BattleSeconds);
         _skills.Text = $"K {SkillText(CombatAction.Dash)}    L {SkillText(CombatAction.Sweep)}    空格 {SkillText(CombatAction.Dodge)}";
         _playerPassives.Text = DescribePassives(configuredPlayer);
-        _enemyPassives.Text = _arena.IsSoloPractice ? "对手已停用 · 自由移动观察步态" : DescribePassives(configuredEnemy);
+        _enemyPassives.Text = _arena.IsSoloPractice ? "对手已停用 · 自由移动观察步态" : _arena.IsGroupPractice
+            ? $"四将同场 · 剩余对手 {_arena.Enemies.Count(actor => !actor.IsDead)}/3 · {_arena.BattleSeconds:0}s"
+            : DescribePassives(configuredEnemy);
         _playerPassives.TooltipText = _playerPassives.Text;
-        _enemyPassives.TooltipText = _enemyPassives.Text;
+        _enemyPassives.TooltipText = _arena.IsGroupPractice
+            ? string.Join("\n", _arena.Enemies.Select(actor => actor.Ui.DisplayName + "：" + DescribePassives(actor))) : _enemyPassives.Text;
         _playerEffects.Text = DescribeEffects(configuredPlayer);
-        _enemyEffects.Text = _arena.IsSoloPractice ? "" : DescribeEffects(configuredEnemy);
+        _enemyEffects.Text = _arena.IsSoloPractice ? "" : _arena.IsGroupPractice
+            ? string.Join(" · ", _arena.Enemies.Where(actor => DescribeEffects(actor) != "").Select(actor => actor.Ui.DisplayName + " " + DescribeEffects(actor)))
+            : DescribeEffects(configuredEnemy);
+        _enemyEffects.ClipText = true;
         _controls.Text = $"WASD / 方向键 移动    J / 左键 {SkillName(CombatAction.Basic)}    K {SkillName(CombatAction.Dash)}    L {SkillName(CombatAction.Sweep)}    空格 {SkillName(CombatAction.Dodge)}";
         _state.Visible = _showDebug;
         _state.Text = _arena.IsSoloPractice ? $"{configuredPlayer.Ui.DisplayName}：{_arena.Player.Phase}　实际速度 {_arena.Player.WalkVelocity.Length():0}　步态 {_arena.Player.Rig.WalkPhase:0.00}" : string.Format(BattleTexts.DebugStateFormat,
@@ -171,6 +189,21 @@ public partial class BattleHud : CanvasLayer
         _resume.Visible = !_arena.Finished;
     }
 
+    /// <summary>四张独立生命卡共用样式，每张订阅对应单位，不将三名对手的血量合并。</summary>
+    private void BuildGroupHeader(Control root)
+    {
+        for (int index = 0; index < _arena.Fighters.Count; index++)
+        {
+            var actor = _arena.Fighters[index]; float x = 16 + index * 154;
+            AddPanel(root, new Rect2(x, 10, 146, 53), new Color(BattleUiColors.Panel));
+            AddLabel(root, actor.Ui.DisplayName + (actor.IsEnemy ? "" : " · 你"), new Rect2(x + 9, 14, 128, 22), 15, actor.Ui.NameColor);
+            var text = AddLabel(root, "", new Rect2(x + 9, 34, 128, 15), 10, actor.Ui.DetailColor);
+            var bar = AddBar(root, new Rect2(x + 9, 53, 128, 5), actor.Ui.HealthColor);
+            void Update(int current, int max) { text.Text = current == 0 ? "已击败" : $"{current} / {max}"; bar.MaxValue = max; bar.Value = current; }
+            actor.Health.Damaged += Update; Update(actor.Health.CurrentHealth, actor.Health.MaxHealth);
+        }
+    }
+
     private string SkillName(CombatAction slot) => _arena.Player.GetSkill(slot)?.DisplayName ?? "空槽";
     /// <summary>选择玩家和对手后重建整场，身份资料、模型、动画与技能同时来自新武将资源。</summary>
     private void BuildRoster(Control root)
@@ -183,7 +216,7 @@ public partial class BattleHud : CanvasLayer
         AddPanel(_roster, new Rect2(90, 73, 460, 230), new Color(BattleUiColors.OverlayPanel));
         AddLabel(_roster, "选择武将", new Rect2(110, 86, 420, 28), 22, new Color(BattleUiColors.OverlayTitle), HorizontalAlignment.Center);
         AddLabel(_roster, "我方", new Rect2(114, 128, 50, 22), 14, new Color(BattleUiColors.OverlayText));
-        AddLabel(_roster, "对手", new Rect2(340, 128, 50, 22), 14, new Color(BattleUiColors.OverlayText));
+        AddLabel(_roster, _arena.IsGroupPractice ? "首位对手" : "对手", new Rect2(340, 128, 150, 22), 14, new Color(BattleUiColors.OverlayText));
         OptionButton Pick(int x, int selected)
         {
             var select = new OptionButton { Position = new Vector2(x, 152), Size = new Vector2(190, 30) };
@@ -200,7 +233,11 @@ public partial class BattleHud : CanvasLayer
             detail.Text = $"主动：{loadout.Dash.DisplayName} / {loadout.Sweep.DisplayName}\n被动：{loadout.Passives[0].DisplayName}（普攻与空格闪避为基础动作）";
             detail.TooltipText = loadout.Dash.Description + "\n" + loadout.Sweep.Description + "\n" + loadout.Passives[0].Description;
         }
-        player.ItemSelected += _ => Describe(); Describe();
+        player.ItemSelected += _ => { if (_arena.IsGroupPractice && enemy.Selected == player.Selected) enemy.Select((player.Selected + 1) % HeroCatalog.Ids.Length); Describe(); };
+        enemy.ItemSelected += _ => { if (_arena.IsGroupPractice && enemy.Selected == player.Selected) enemy.Select((player.Selected + 1) % HeroCatalog.Ids.Length); };
+        Describe();
+        if (_arena.IsGroupPractice)
+            AddLabel(_roster, "其余两将自动加入 · 吕布1200，其余1000生命", new Rect2(110, 230, 420, 17), 10, new Color(BattleUiColors.OverlayText), HorizontalAlignment.Center);
         var start = AddButton(_roster, "开始对战", new Rect2(336, 251, 130, 30));
         start.Pressed += () => { HeroCatalog.PlayerIndex = player.Selected; HeroCatalog.EnemyIndex = enemy.Selected; Restart(); };
         var cancel = AddButton(_roster, "返回", new Rect2(174, 251, 130, 30));

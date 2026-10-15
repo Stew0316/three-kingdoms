@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="FirstCityConfig" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://Scripts/Config/FirstCityConfig.cs" id="1"]
+
+[resource]
+script = ExtResource("1")
+CityName = "槐安城"
+WalkSpeed = 125.0
+BrownHorseSpeed = 190.0
+WhiteHorseSpeed = 250.0
+StartingCoins = 120
+ForgeCost = 60
+QuestCoins = 100
+TrainingHealth = PackedInt32Array(100, 60, 30)
+TrainingPower = PackedFloat32Array(0.06, 0.04, 0.02)
+ForgePower = 0.1
+BookPower = 0.1
+TrainingSeconds = 4.0

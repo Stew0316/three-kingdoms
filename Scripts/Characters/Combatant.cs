@@ -3,6 +3,10 @@ using Godot;
 /// <summary>玩家与敌人共用的移动、施法、受击和死亡规则；控制器只提交行动意图。</summary>
 public partial class Combatant : CharacterBody2D
 {
+    // 冒险成长与骑乘是单位实例状态，不修改技能定义和武将共享配置。
+    public float ProgressionDamageMultiplier { get; set; } = 1;
+    public float ExplorationSpeedOverride { get; set; }
+    public bool IsMounted { get; set; }
     // Idle/Move 接收行动，Attack/Dodge 执行动作，Hurt 锁定受击，Dead 永久停止行动。
     public enum State { Idle, Move, Attack, Dodge, Hurt, Dead }
     // 是否为敌方：仅选择阵营碰撞层和默认朝向，不决定模型或技能。
@@ -189,7 +193,7 @@ public partial class Combatant : CharacterBody2D
         }
         else
         {
-            Velocity = _moveInput * Config.MoveSpeed * Status.MoveMultiplier;
+            Velocity = _moveInput * (ExplorationSpeedOverride > 0 ? ExplorationSpeedOverride : Config.MoveSpeed) * Status.MoveMultiplier;
             SetState(_moveInput.IsZeroApprox() ? State.Idle : State.Move);
             Vector2 beforeMove = GlobalPosition;
             MoveAndSlide();
@@ -270,6 +274,12 @@ public partial class Combatant : CharacterBody2D
     {
         if (IsDead || CurrentState == state) return;
         CurrentState = state;
+        // 闪避期间双向取消身体阻挡，仍检测墙体；独立受击框不受影响。
+        // 在正常结束、受击打断、死亡和结算路径统一恢复，避免遗留穿人状态。
+        CollisionLayer = state is State.Dodge or State.Dead ? PhysicsLayers.None
+            : IsEnemy ? PhysicsLayers.EnemyBody : PhysicsLayers.PlayerBody;
+        CollisionMask = state == State.Dead ? PhysicsLayers.None : state == State.Dodge ? PhysicsLayers.WorldBody
+            : IsEnemy ? PhysicsLayers.EnemyBodyMask : PhysicsLayers.PlayerBodyMask;
     }
 
     /// <summary>按 dt 秒更新表现时钟与原图镜像、色彩，供骨骼表现读取。</summary>

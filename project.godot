@@ -11,9 +11,13 @@ config_version=5
 [application]
 
 config/name="Three-Kingdoms"
-run/main_scene="res://Scene/Arena.tscn"
+run/main_scene="res://Scene/GameEntry.tscn"
 config/features=PackedStringArray("4.7", "C#", "Forward Plus")
 config/icon="res://icon.svg"
+
+[autoload]
+
+AdventureSession="*res://Scripts/World/AdventureSession.cs"
 
 [display]
 

@@ -41,6 +41,7 @@ public partial class FourHeroTests : Node
                     Check(signatures[name].Add($"{pose.FarHand}/{pose.FreeHand}/{pose.WeaponDegrees}/{pose.OffhandWeaponDegrees}/{pose.ChestDegrees}"), $"{actor.Ui.DisplayName}{name}握点和动作姿态不与其他武将雷同");
                 }
                 foreach (var slot in new[] { CombatAction.Dash, CombatAction.Sweep }) Check(skillIds.Add(actor.GetSkill(slot).SkillId), "四武将主动技能ID均独立");
+                await Frames(3); // GameEntry跨场景启动后，先等待新骨架完成首次姿态采样，再测动画握点。
                 _subject = actor; _minElbow = 180; _maxElbow = _gripError = 0;
                 await Frames(24); await Capture(actor, "idle");
                 for (int direction = 0; direction < 8; direction++)

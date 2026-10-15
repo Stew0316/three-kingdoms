@@ -4,7 +4,7 @@
 
 [resource]
 script = ExtResource("1")
-MaxHealth = 120
+MaxHealth = 1200
 MoveSpeed = 145.0
 HurtDuration = 0.2
 KnockbackSpeed = 160.0

@@ -280,6 +280,9 @@ public partial class CharacterRig : Node2D
     {
         if (Skeleton == null) return;
         if (_legacy != null) { _legacy.ShowBones=ShowBones; return; }
+        if (_partByBone[14] != null) _partByBone[14].Visible = !Actor.IsMounted;
+        if (_offhandWeapon != null) _offhandWeapon.Visible = !Actor.IsMounted;
+        if (Actor.IsMounted) { ProcessRidingPose(); return; }
         float elapsed = Mathf.Max(0, Actor.VisualTime - _lastTime); _lastTime = Actor.VisualTime;
         bool martial = Actor.Presentation?.Animation.MartialWalk == true;
         float travelled = Mathf.Max(0, Actor.WalkDistance - _lastWalkDistance);

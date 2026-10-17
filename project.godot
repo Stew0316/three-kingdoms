@@ -17,7 +17,7 @@ config/icon="res://icon.svg"
 
 [autoload]
 
-AdventureSession="*res://Scripts/World/AdventureSession.cs"
+AdventureSession="*res://Scripts/World/State/AdventureSession.cs"
 
 [display]
 

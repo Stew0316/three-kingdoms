@@ -5,10 +5,10 @@
 [ext_resource type="Script" path="res://Scripts/Combat/Hurtbox.cs" id="3"]
 [ext_resource type="Script" path="res://Scripts/Combat/Hitbox.cs" id="4"]
 [ext_resource type="Script" path="res://Scripts/Combat/CombatFeedback.cs" id="5"]
-[ext_resource type="Script" path="res://Scripts/Presentation/CharacterRig.cs" id="6"]
-[ext_resource type="Script" path="res://Scripts/Presentation/WeaponTrail.cs" id="7"]
-[ext_resource type="Script" path="res://Scripts/Presentation/GroundEffects.cs" id="8"]
-[ext_resource type="Script" path="res://Scripts/Presentation/AfterimageTrail2D.cs" id="9"]
+[ext_resource type="Script" path="res://Scripts/Presentation/Rig/CharacterRig.cs" id="6"]
+[ext_resource type="Script" path="res://Scripts/Presentation/Effects/WeaponTrail.cs" id="7"]
+[ext_resource type="Script" path="res://Scripts/Presentation/Effects/GroundEffects.cs" id="8"]
+[ext_resource type="Script" path="res://Scripts/Presentation/Effects/AfterimageTrail2D.cs" id="9"]
 
 [sub_resource type="CircleShape2D" id="Body"]
 radius = 12.0

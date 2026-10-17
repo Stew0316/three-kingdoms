@@ -3,11 +3,11 @@
 [ext_resource type="PackedScene" path="res://Components/Characters/Combatant.tscn" id="1"]
 [ext_resource type="Texture2D" path="res://Source/People/GuanYu/guanyu-parts-v1.png" id="2"]
 [ext_resource type="Script" path="res://Scripts/AI/WeiYanController.cs" id="3"]
-[ext_resource type="Resource" path="res://Resources/Config/Combat/guanyu.tres" id="4"]
-[ext_resource type="Resource" path="res://Resources/Config/Combat/guanyu-presentation.tres" id="5"]
+[ext_resource type="Resource" path="res://Resources/Config/Characters/guanyu/guanyu.tres" id="4"]
+[ext_resource type="Resource" path="res://Resources/Config/Characters/guanyu/guanyu-presentation.tres" id="5"]
 
-[ext_resource type="Resource" path="res://Resources/Config/Combat/guanyu-loadout.tres" id="6"]
-[ext_resource type="Resource" path="res://Resources/Config/Combat/guanyu-ui.tres" id="7"]
+[ext_resource type="Resource" path="res://Resources/Config/Characters/guanyu/guanyu-loadout.tres" id="6"]
+[ext_resource type="Resource" path="res://Resources/Config/Characters/guanyu/guanyu-ui.tres" id="7"]
 
 [node name="关羽" instance=ExtResource("1")]
 IsEnemy = true

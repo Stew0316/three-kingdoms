@@ -3,11 +3,11 @@
 [ext_resource type="PackedScene" path="res://Components/Characters/Combatant.tscn" id="1"]
 [ext_resource type="Texture2D" path="res://Source/People/LiuBei/liubei-parts-v1.png" id="2"]
 [ext_resource type="Script" path="res://Scripts/AI/WeiYanController.cs" id="3"]
-[ext_resource type="Resource" path="res://Resources/Config/Combat/liubei.tres" id="4"]
-[ext_resource type="Resource" path="res://Resources/Config/Combat/liubei-presentation.tres" id="5"]
+[ext_resource type="Resource" path="res://Resources/Config/Characters/liubei/liubei.tres" id="4"]
+[ext_resource type="Resource" path="res://Resources/Config/Characters/liubei/liubei-presentation.tres" id="5"]
 
-[ext_resource type="Resource" path="res://Resources/Config/Combat/liubei-loadout.tres" id="6"]
-[ext_resource type="Resource" path="res://Resources/Config/Combat/liubei-ui.tres" id="7"]
+[ext_resource type="Resource" path="res://Resources/Config/Characters/liubei/liubei-loadout.tres" id="6"]
+[ext_resource type="Resource" path="res://Resources/Config/Characters/liubei/liubei-ui.tres" id="7"]
 
 [node name="刘备" instance=ExtResource("1")]
 IsEnemy = true

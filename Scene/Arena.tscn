@@ -1,9 +1,9 @@
 [gd_scene load_steps=7 format=3 uid="uid://bhiv82f67e1ln"]
 
-[ext_resource type="Script" path="res://Scripts/Arena.cs" id="1"]
+[ext_resource type="Script" path="res://Scripts/Encounters/Arena.cs" id="1"]
 [ext_resource type="PackedScene" path="res://Components/Characters/LvBu.tscn" id="2"]
 [ext_resource type="PackedScene" path="res://Components/Characters/WeiYan.tscn" id="3"]
-[ext_resource type="Script" path="res://Scripts/UI/BattleHud.cs" id="4"]
+[ext_resource type="Script" path="res://Scripts/UI/Combat/BattleHud.cs" id="4"]
 
 [sub_resource type="RectangleShape2D" id="HorizontalWall"]
 size = Vector2(560, 16)

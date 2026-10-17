@@ -15,16 +15,13 @@ public static class HorseLocomotion
     public static float Touchdown(bool front, bool near) => front ? (near ? .46f : .22f) : (near ? .22f : 0);
     public static float LegPhase(bool front, bool near, float phase) => Mathf.PosMod(phase - Touchdown(front, near), 1);
 
-    // 关键姿势先定义承重与腾空，插值只负责连接；不以一条正弦同时摆动全身。
-    private static readonly float[] BodyHeights = { -1.4f, -.2f, -1.1f, -1.8f, -.6f, .5f, -.8f, -2.6f };
-    private static readonly float[] BodyAngles = { -2.4f, -3.2f, -2.1f, .2f, 2.4f, 3.1f, 1.1f, -1.3f };
-    private static readonly float[] NeckAngles = { 3, 2, 0, -3, -5, -2, 2, 4 };
-    public static float Bob(float phase, float weight) => Cycle(BodyHeights, phase) * weight;
-    public static float BodyPitch(float phase, float weight) => Mathf.DegToRad(Cycle(BodyAngles, phase)) * weight;
-    public static float NeckPitch(float phase, float weight) => Mathf.DegToRad(7 + Cycle(NeckAngles, phase)) * weight;
+    // 兼容原接口，整身关键姿势与挂点统一由HorseBodyMotion提供。
+    public static float Bob(float phase, float weight) => HorseBodyMotion.Bob(phase, weight);
+    public static float BodyPitch(float phase, float weight) => HorseBodyMotion.ChestPitch(phase, weight);
+    public static float NeckPitch(float phase, float weight) => HorseBodyMotion.NeckPitch(phase, weight);
     public static float RiderLean(float phase, float weight) => (.07f + .025f * Mathf.Sin((phase - .15f) * Mathf.Tau)) * weight;
     public static Vector2 BodyPoint(Vector2 point, float phase, float weight) =>
-        BodyPivot + (point - BodyPivot).Rotated(BodyPitch(phase, weight)) + new Vector2(0, Bob(phase, weight));
+        HorseBodyMotion.Sample(phase, weight).SkinPoint(point);
 
     /// <summary>承重蹄相对世界静止；离地后先折腕/飞节、再前送、最后伸蹄接地。</summary>
     public static Vector2 HoofOffset(float phase, bool front)
@@ -48,12 +45,14 @@ public static class HorseLocomotion
         float t = LegPhase(front, near, phase);
         float depth = near ? 2.5f : -3.5f;
         Vector2 anchor = new((front ? 18 : -19) * bodyWidth, front ? -35 : -36);
-        Vector2 root = BodyPoint(anchor, phase, weight) + new Vector2(0, depth);
+        Vector2 root = HorseBodyMotion.Sample(phase, weight, bodyWidth).LegRoot(front, near);
         Vector2 step = HoofOffset(t, front) * weight;
         // 蹄的前后基线不随躯干俯仰偏移，否则承重阶段会沿地面打滑。
         // 领肢比随肢略向前探，不把同侧两腿做成一份动画的机械复制。
         float leadReach = front ? (near ? 1.8f : -.5f) : (near ? 1.0f : -.5f);
-        Vector2 hoof = new(anchor.X + step.X + leadReach * weight, depth + step.Y);
+        // 中立站姿远蹄略错开，四肢在俯视侧身中可辨；进入跑步后回到真实支撑轨迹。
+        float standingStagger = near ? 0 : front ? 3.5f : -3f;
+        Vector2 hoof = new(anchor.X + step.X + leadReach * weight + standingStagger * (1-weight), depth + step.Y);
         float swing = Mathf.Clamp((t - SupportFraction) / (1 - SupportFraction), 0, 1);
         float fold = Mathf.Pow(Mathf.Sin(swing * Mathf.Pi), 2) * weight;
         float hoofAngle = fold * (front ? 1.05f : .70f);
@@ -73,7 +72,18 @@ public static class HorseLocomotion
         // 肘始终在肩后下方，膝在髋前下方；不能为了追随蹄点把上臂/股骨翻到背上。
         float preferredAngle = Mathf.PosMod((proximal - root).Angle(), Mathf.Tau);
         if (!front && preferredAngle > Mathf.Pi) preferredAngle -= Mathf.Tau;
-        preferredAngle = Mathf.Clamp(preferredAngle, Mathf.DegToRad(front ? 105 : 22), Mathf.DegToRad(front ? 168 : 88));
+        if(front)
+        {
+            // 上臂先带动肘向后承重、向前回收，再由前臂与管骨追随蹄点。
+            // 不能通过强缩肘到蹄的距离反推上臂，否则收腿时肘会翻到胸内、上臂近乎水平。
+            float angle=t<.30f ? Mathf.Lerp(110,140,Mathf.SmoothStep(0,.30f,t))
+                : t<.55f ? Mathf.Lerp(140,132,Mathf.SmoothStep(.30f,.55f,t))
+                : t<.80f ? Mathf.Lerp(132,102,Mathf.SmoothStep(.55f,.80f,t))
+                : Mathf.Lerp(102,110,Mathf.SmoothStep(.80f,1,t));
+            // 承重和站立仍以腕部伸展为优先；只有离地收腿时交给上臂引导，避免站姿屈腕。
+            preferredAngle=Mathf.Lerp(Mathf.Clamp(preferredAngle,Mathf.DegToRad(105),Mathf.DegToRad(168)),Mathf.DegToRad(angle),fold);
+        }
+        else preferredAngle=Mathf.Clamp(preferredAngle,Mathf.DegToRad(22),Mathf.DegToRad(88));
         float axisAngle = (fetlock - root).Angle();
         float safeReach = lengths.Y + lengths.Z - .22f;
         float spread = Mathf.Acos(Mathf.Clamp((distance * distance + lengths.X * lengths.X - safeReach * safeReach)
@@ -107,13 +117,4 @@ public static class HorseLocomotion
         return Mathf.Max(a, b) + overlap * overlap / (4 * width);
     }
 
-    /// <summary>闭环Catmull-Rom，周期接缝的位置和速度均连续。</summary>
-    private static float Cycle(float[] values, float phase)
-    {
-        float frame = Mathf.PosMod(phase, 1) * values.Length;
-        int i = (int)frame, n = values.Length;
-        float t = frame - i;
-        float a = values[(i + n - 1) % n], b = values[i], c = values[(i + 1) % n], d = values[(i + 2) % n];
-        return AnimationCurves.CatmullRom(a, b, c, d, t);
-    }
 }

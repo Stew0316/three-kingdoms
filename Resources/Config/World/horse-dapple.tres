@@ -1,9 +1,11 @@
-[gd_resource type="Resource" script_class="HorseAppearance" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="HorseAppearance" load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://Scripts/Config/World/HorseAppearance.cs" id="1"]
+[ext_resource type="Texture2D" path="res://Source/Animals/Horses/horse-dapple-parts-v1.png" id="2"]
 
 [resource]
 script = ExtResource("1")
+PartsAtlas = ExtResource("2")
 Coat = Color(0.69, 0.75, 0.73, 1)
 Mane = Color(0.25, 0.32, 0.32, 1)
 Blanket = Color(0.19, 0.35, 0.39, 1)

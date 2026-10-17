@@ -1,4 +1,4 @@
-using Godot;
+﻿using Godot;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -25,6 +25,12 @@ public partial class HorseVisualTests : Node
             Check(stable[0].Appearance.LongMane && stable[0].Appearance.SaddleBags && stable[1].Appearance.Dappled && !stable[1].Appearance.LongMane, "鬃毛、斑纹和马具差异实际接入");
             // 先保留完整可视证据，几何约束失败时也能核对对应相位的实际形态。
             await HorsePosePreview.Capture(GetTree());
+            if(DisplayServer.GetName()!="headless")
+            {
+                var connection=await HorsePosePreview.CaptureLimbConnections(GetTree());
+                Check(connection.Ratio>.995f,$"移除遮挡后，八条渲染腿从上段到蹄连成一片：最小主区域占比{connection.Ratio:P3}；{connection.Context}");
+            }
+            VerifyPaintedRig(stable);
             VerifyJointChains(stable.Select(h => h.Appearance.BodyWidth).ToArray());
             // 单腿局部相位：前30%承重，随后屈腿回收；不能沿用两拍小跑的落蹄窗口。
             Check(CityHorse.SampleHoof(.1f).Y == 0 && CityHorse.SampleHoof(.29f).Y == 0 && CityHorse.SampleHoof(.65f).Y < -9, "三拍跑步支撑蹄落地、摆动蹄明确抬起");
@@ -236,33 +242,68 @@ public partial class HorseVisualTests : Node
         return mask;
     }
 
-    /// <summary>马背俯仰须同步肩髋，且起停、循环边界不能造成躯干角度跳变。</summary>
+    /// <summary>全身各段有相对运动，颈链定长，周期和起停连续；不再要求肩髋锁成同一刚体。</summary>
     private void VerifyBodyMotion(float[] widths,int samples)
     {
-        var shoulderHipPitch=new WorstSample();
-        var pitchJump=new WorstSample();
-        var pitchCycle=new WorstSample();
-        float minimum=float.PositiveInfinity, maximum=float.NegativeInfinity;
+        var rootError=new WorstSample(); var neckLength=new WorstSample();
+        var positionJump=new WorstSample(); var cycle=new WorstSample();
+        float pelvisRange=0,neckRange=0,shoulderRange=0;
         foreach(float width in widths)
         foreach(float weight in new[]{0f,.25f,.5f,1f})
         for(int frame=0;frame<samples;frame++)
         {
             float phase=frame/(float)samples;
-            float pitch=HorseLocomotion.BodyPitch(phase,weight);
-            var shoulder=HorseLocomotion.Sample(true,true,phase,weight,width).Root;
-            var hip=HorseLocomotion.Sample(false,true,phase,weight,width).Root;
-            var neutralShoulder=HorseLocomotion.Sample(true,true,0,0,width).Root;
-            var neutralHip=HorseLocomotion.Sample(false,true,0,0,width).Root;
-            float actual=(shoulder-hip).Angle()-(neutralShoulder-neutralHip).Angle();
-            shoulderHipPitch.Record(Mathf.Abs(Mathf.Wrap(actual-pitch,-Mathf.Pi,Mathf.Pi)),$"体宽{width:F2}，权重{weight:F2}，相位{phase:F6}");
-            pitchJump.Record(Mathf.Abs(pitch-HorseLocomotion.BodyPitch(phase+1f/samples,weight)),$"权重{weight:F2}，相位{phase:F6}");
-            pitchCycle.Record(Mathf.Abs(pitch-HorseLocomotion.BodyPitch(phase+1,weight)),$"权重{weight:F2}，相位{phase:F6}");
-            if(weight==0) pitchCycle.Record(Mathf.Abs(pitch),"静止俯仰归零");
-            if(weight==1) { minimum=Mathf.Min(minimum,pitch); maximum=Mathf.Max(maximum,pitch); }
+            var p=HorseBodyMotion.Sample(phase,weight,width);
+            var next=HorseBodyMotion.Sample(phase+1f/samples,weight,width);
+            var end=HorseBodyMotion.Sample(phase+1,weight,width);
+            var rest=HorseBodyMotion.Sample(0,0,width);
+            string context=$"体宽{width:F2}，权重{weight:F2}，相位{phase:F6}";
+            foreach(bool front in new[]{false,true}) foreach(bool near in new[]{false,true})
+                rootError.Record(p.LegRoot(front,near).DistanceTo(HorseLocomotion.Sample(front,near,phase,weight,width).Root),context);
+            neckLength.Record(Mathf.Abs(p.NeckRoot.DistanceTo(p.NeckMiddle)-rest.NeckRoot.DistanceTo(rest.NeckMiddle)),context);
+            neckLength.Record(Mathf.Abs(p.NeckMiddle.DistanceTo(p.Poll)-rest.NeckMiddle.DistanceTo(rest.Poll)),context);
+            Vector2[] points={p.Poll,p.NeckMiddle,p.Saddle,p.TailRoot,p.SkinPoint(new(-10,-30))};
+            Vector2[] following={next.Poll,next.NeckMiddle,next.Saddle,next.TailRoot,next.SkinPoint(new(-10,-30))};
+            Vector2[] final={end.Poll,end.NeckMiddle,end.Saddle,end.TailRoot,end.SkinPoint(new(-10,-30))};
+            for(int i=0;i<points.Length;i++) { positionJump.Record(points[i].DistanceTo(following[i]),context); cycle.Record(points[i].DistanceTo(final[i]),context); }
+            if(weight==0) cycle.Record(p.Saddle.DistanceTo(new(0,-43))+p.Poll.DistanceTo(new(33,-59)),"静止挂点归位");
+            pelvisRange=Mathf.Max(pelvisRange,Mathf.Abs(p.Pelvis.Rotation-p.ChestAngle));
+            neckRange=Mathf.Max(neckRange,Mathf.Abs(p.LowerNeck.Rotation-p.ChestAngle));
+            shoulderRange=Mathf.Max(shoulderRange,Mathf.Abs(p.NearShoulder.Rotation-p.FarShoulder.Rotation));
         }
-        Check(shoulderHipPitch.Value<.0001f,$"肩髋根点与躯干使用同一俯仰角：{shoulderHipPitch.Describe()}");
-        Check(pitchJump.Value<.003f && pitchCycle.Value<.0001f,$"躯干俯仰逐帧与首尾连续：相邻{pitchJump.Describe()}；周期{pitchCycle.Describe()}");
-        Check(float.IsFinite(minimum) && float.IsFinite(maximum) && maximum-minimum>Mathf.DegToRad(3),$"马背具有可辨的前后承重俯仰：角度范围{Mathf.RadToDeg(minimum):F2}至{Mathf.RadToDeg(maximum):F2}度");
+        Check(rootError.Value<.0001f,$"腿根与肩胛/骨盆挂点一致：{rootError.Describe()}");
+        Check(neckLength.Value<.0001f,$"两段颈骨不伸缩：{neckLength.Describe()}");
+        Check(positionJump.Value<.15f && cycle.Value<.001f,$"整身挂点连续：相邻{positionJump.Describe()}；周期{cycle.Describe()}");
+        Check(pelvisRange>Mathf.DegToRad(3) && neckRange>Mathf.DegToRad(3) && shoulderRange>Mathf.DegToRad(5),"骨盆、下颈和左右肩胛具有独立相对运动");
+    }
+
+    private void VerifyPaintedRig(CityHorse[] horses)
+    {
+        foreach(var horse in horses)
+        {
+            Check(horse.Appearance.PartsAtlas!=null && horse.PaintedRig?.Bones.Count==32,"正式图集绑定32骨全身马架");
+            Check(horse.PaintedRig.Parts.Count==15 && horse.PaintedRig.LimbSkins.Count==4,"胸腹、四条连续腿皮肤与15个彩绘层接入；肩臀不再叠独立覆盖片");
+            Check(horse.PaintedRig.LimbSkins.All(s=>s.MinimumSampleAlpha>.9f),"四腿材质横截面位于原图实色区，避免透明裂口");
+            float error=0,skinGap=0,rootSkinError=0;
+            for(int frame=0;frame<96;frame++)
+            {
+                float phase=frame/96f; horse.SetPreviewPose(phase,1);
+                foreach(var skin in horse.PaintedRig.LimbSkins) skinGap=Mathf.Max(skinGap,skin.MaximumJointGap);
+                var body=HorseBodyMotion.Sample(phase,1,horse.Appearance.BodyWidth);
+                for(int leg=0;leg<4;leg++) rootSkinError=Mathf.Max(rootSkinError,
+                    horse.PaintedRig.LimbSkins[leg].RootSurfaceCenter.DistanceTo(body.LegSkinRoot(leg>=2,leg%2==1)));
+                foreach(bool front in new[]{false,true}) foreach(bool near in new[]{false,true})
+                {
+                    var pose=HorseLocomotion.Sample(front,near,phase,1,horse.Appearance.BodyWidth);
+                    Vector2 rendered=horse.PaintedRig.ToLocal(horse.PaintedRig.HoofWorld(front,near));
+                    error=Mathf.Max(error,rendered.DistanceTo(pose.Hoof));
+                }
+            }
+            Check(error<.001f,$"实际蹄纹理的接地点与求解链对齐：{error:F6}像素");
+            Check(skinGap<.0001f,$"四腿上下骨段共用关节边界，全周期表面接缝：{skinGap:F6}像素");
+            Check(rootSkinError<.0001f,$"腿根皮肤固定胸臀表面，肩胛活动不拖着根片滑动：{rootSkinError:F6}像素");
+            horse.SetPreviewPose(0,0);
+        }
     }
 
     private static Vector2[] Points(HorseLocomotion.LegPose pose) => new[]{pose.Root,pose.Proximal,pose.Joint,pose.Fetlock,pose.Hoof};

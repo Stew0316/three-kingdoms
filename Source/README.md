@@ -1,4 +1,4 @@
-# 美术资源索引
+﻿# 美术资源索引
 
 更新日期：2026-10-17。风格目标见 [正式指南](StyleGuide/城池与地形风格指南.md)，本页只描述已存放和接入的素材。新规范不会自动改变旧图片，历史素材不因此被认定为三国时期形制或自然动作已验收。
 
@@ -35,7 +35,9 @@
 
 ## 马匹素材状态
 
-`Animals/Horses/horse-chestnut-parts-v1.png` 与 `horse-dapple-parts-v1.png` 是整理前已存在的拆件候选，当前代码未引用；本轮保留原图，没有补造生成来源或验收结论。实际骑乘仍由 `CityHorse` 与 `HorseLocomotion` 几何绘制和驱动，外观读取独立 HorseAppearance 配置。
+`Animals/Horses/horse-chestnut-parts-v1.png` 与 `horse-dapple-parts-v1.png` 已分别绑定到两匹马的 HorseAppearance 资源。原图1374×1145、透明RGBA，保留生成原件。实际骑乘由 `HorseBodyMotion`、`HorseLocomotion` 驱动 `HorsePaintedRig` 的32个骨骼控制/连接节点、胸腹网格、四条连续腿网格及15个彩绘层。`HorseLimbSkin`使用原图实色截面，连接大腿至球节，根边固定胸臀，已移除独立肩臀覆盖片；`CityHorse`负责实例时钟与骑手连接。
+
+采样不是均分网格；重复蹄、青骢原生耳与邻片鬃毛在采样阶段隔离，细节见[生成与绑定记录](../Demand/美术/2026.10.17-彩绘马拆件与全身骨架.md)。实际仍是左右侧身镜像，尚无八向独立马图。动作和回归以[骑乘重做记录](../Demand/Prompt/2026.10.16-按真实马步重做骑乘动作.md)为准。
 
 ## 制作与记录
 

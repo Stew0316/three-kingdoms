@@ -1,4 +1,6 @@
 using Godot;
+using System;
+using System.Linq;
 using System.Threading.Tasks;
 
 /// <summary>用正式CityHorse绘制器逐相位渲染马匹与关节链，输出可循环慢放的完整一轮。</summary>
@@ -100,5 +102,75 @@ public partial class HorsePosePreview : Node2D
             image.SavePng(directory+(frame<0 ? "/standing.png" : $"/canter-{frame:00}.png"));
         }
         viewport.QueueFree();
+    }
+
+    /// <summary>去掉身体和其它三条腿的遮挡，检查真正渲染出的腿皮肤与蹄是否连成一片。</summary>
+    public static async Task<(float Ratio,string Context)> CaptureLimbConnections(SceneTree tree)
+    {
+        const int cellWidth=256,cellHeight=256,columns=4;
+        const string directory="res://Build/horse-canter/limb-connections";
+        DirAccess.MakeDirRecursiveAbsolute(directory);
+        var viewport=new SubViewport { Size=new(cellWidth*columns,cellHeight*2),TransparentBg=true,RenderTargetUpdateMode=SubViewport.UpdateMode.Always };
+        tree.Root.AddChild(viewport);
+        var rigs=new HorsePaintedRig[8];
+        int[] hoofParts={21,13,17,9};
+        for(int i=0;i<rigs.Length;i++)
+        {
+            int leg=i%4;
+            var appearance=GD.Load<HorseAppearance>(i<4 ? "res://Resources/Config/World/horse-chestnut.tres" : "res://Resources/Config/World/horse-dapple.tres");
+            rigs[i]=new HorsePaintedRig {Appearance=appearance,Scale=Vector2.One*4,
+                Position=new(leg*cellWidth+128+(leg>=2?-18:19)*appearance.BodyWidth*4,(i/4)*cellHeight+220)};
+            viewport.AddChild(rigs[i]);
+            foreach(var child in rigs[i].GetNode<Node2D>("彩绘层").GetChildren().OfType<CanvasItem>())
+                child.Visible=child==rigs[i].LimbSkins[leg] || child.Name==$"部件{hoofParts[leg]:00}";
+        }
+        float minimum=1; string context="";
+        for(int frame=-1;frame<48;frame++)
+        {
+            foreach(var rig in rigs) rig.ApplyPose(Mathf.Max(0,frame)/48f,frame<0?0:1);
+            await tree.ToSignal(tree,SceneTree.SignalName.ProcessFrame);
+            await tree.ToSignal(RenderingServer.Singleton,RenderingServer.SignalName.FramePostDraw);
+            using var image=viewport.GetTexture().GetImage();
+            image.Convert(Image.Format.Rgba8);
+            byte[] pixels=image.GetData();
+            for(int i=0;i<8;i++)
+            {
+                float ratio=ConnectedRatio(pixels,image.GetWidth(),i%4*cellWidth,i/4*cellHeight,cellWidth,cellHeight);
+                if(ratio<minimum) {minimum=ratio;context=$"马{i/4+1}，腿{i%4}，帧{frame}";}
+            }
+            if(frame<0 || frame%6==0) image.SavePng(directory+(frame<0?"/standing.png":$"/canter-{frame:00}.png"));
+        }
+        viewport.QueueFree();
+        return (minimum,context);
+    }
+
+    private static float ConnectedRatio(byte[] pixels,int imageWidth,int left,int top,int width,int height)
+    {
+        var solid=new bool[width*height]; var queue=new int[solid.Length];
+        int total=0,largest=0;
+        for(int y=0;y<height;y++) for(int x=0;x<width;x++)
+        {
+            // 忽略边缘抗锯齿的极淡像素；实色皮肤和蹄必须属于同一连通区域。
+            bool present=pixels[((top+y)*imageWidth+left+x)*4+3]>=64;
+            solid[y*width+x]=present; if(present) total++;
+        }
+        for(int start=0;start<solid.Length;start++)
+        {
+            if(!solid[start]) continue;
+            int read=0,write=1; queue[0]=start; solid[start]=false;
+            while(read<write)
+            {
+                int pixel=queue[read++],x=pixel%width,y=pixel/width;
+                for(int dy=-1;dy<=1;dy++) for(int dx=-1;dx<=1;dx++)
+                {
+                    int nx=x+dx,ny=y+dy;
+                    if(nx<0 || nx>=width || ny<0 || ny>=height) continue;
+                    int next=ny*width+nx;
+                    if(solid[next]) {solid[next]=false;queue[write++]=next;}
+                }
+            }
+            largest=Math.Max(largest,write);
+        }
+        return total>0?(float)largest/total:0;
     }
 }

@@ -2,8 +2,14 @@ using Godot;
 
 public partial class CharacterRig
 {
-    /// <summary>当前近靴底的实际骨架目标，供马镫跟随；不读取或修改共享模型资源。</summary>
-    public Vector2 RidingSoleWorld => Skeleton.ToGlobal(_referenceFrame.NearFoot);
+    /// <summary>取最终靴掌纹理的底边中心；IK不可达时仍与实际画出的脚一致。</summary>
+    public Vector2 RidingSoleWorld => _referenceFeet[1] is Sprite2D foot
+        ? foot.ToGlobal(new Vector2(foot.Texture.GetWidth() * .5f, foot.Texture.GetHeight()))
+        : _bones[12].ToGlobal(new Vector2(0, _lowerLegLength));
+
+    /// <summary>主拳掌的标定握点经最终渲染变换得到世界端点，不读取手部目标。</summary>
+    public Vector2 RidingReinWorld => _partByBone[5] is Sprite2D hand
+        ? hand.ToGlobal(_partOffsets[5].AffineInverse() * Vector2.Zero) : _bones[5].GlobalPosition;
 
     /// <summary>坐骨跟随马鞍，腰髋与胸肩分开吸收跑步俯仰；手执缰、脚踩镫，沿用武将固定骨长。</summary>
     private void ProcessRidingPose()

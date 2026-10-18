@@ -10,8 +10,8 @@ public partial class HorseAppearance : Resource
     [Export] public Color Blanket { get; set; } = new("824333"); // 历史配色参考；正式鞍毯颜色来自PartsAtlas。
     [Export] public Color Trim { get; set; } = new("c49d60"); // 鞍毯包边。
     [Export] public float BodyWidth { get; set; } = 1; // 躯干宽度，不缩放四肢或碰撞。
-    [Export] public bool Dappled { get; set; } // 臀部少量大块斑纹。
-    [Export] public bool LongMane { get; set; } = true; // 长披鬃或短竖鬃。
+    [Export] public bool Dappled { get; set; } // 原图斑纹特征记录；V2不再用此字段裁改身体纹理。
+    [Export] public bool LongMane { get; set; } = true; // 原图鬃毛特征记录；V2鬃毛与颈部连续绘制。
     [Export] public bool FaceBlaze { get; set; } = true; // 原图白额白袜特征记录；不对彩绘纹理二次着色。
-    [Export] public bool SaddleBags { get; set; } = true; // 行旅皮囊或轻装尖角鞍毯。
+    [Export] public bool SaddleBags { get; set; } = true; // 原图是否带行囊；V2行囊与鞍具保留在整身皮肤。
 }

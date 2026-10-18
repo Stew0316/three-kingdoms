@@ -81,10 +81,23 @@ public partial class CityHorse : Node2D
     }
     public static Vector2 SampleHoof(float phase) => HorseLocomotion.HoofOffset(phase, true);
 
+    public readonly record struct ShadowPose(Vector2 Offset, Vector2 Scale, float Opacity);
+
+    /// <summary>可独立核对的地面影子姿态；缩放表示椭圆半径，透明度取0到1。</summary>
+    public static ShadowPose SampleShadow(float phase, float weight, float bodyWidth = 1)
+    {
+        // 影子留在地面，腾空时根据四蹄最低离地量收小、变淡；不能把近远深差当高度。
+        float lift = Mathf.SmoothStep(0, 6, HorseLocomotion.GroundClearance(phase, weight));
+        float size = Mathf.Lerp(1, .88f, lift);
+        float opacity = Mathf.Lerp(.14f, .10f, lift);
+        return new(new(0,3), new Vector2(34 * bodyWidth,6) * size, opacity);
+    }
+
     public override void _Draw()
     {
-        DrawSetTransform(new(0,3),0,new(34,6));
-        DrawCircle(Vector2.Zero,1,new Color(0,0,0,.14f));
+        var shadow = SampleShadow(GaitPhase, GaitWeight, Appearance?.BodyWidth ?? 1);
+        DrawSetTransform(shadow.Offset,0,shadow.Scale);
+        DrawCircle(Vector2.Zero,1,new Color(0,0,0,shadow.Opacity));
         DrawSetTransform(Vector2.Zero);
     }
     private void DrawConnections()

@@ -10,8 +10,9 @@ public static class HorseLocomotion
     public readonly record struct LegPose(Vector2 Root, Vector2 Proximal, Vector2 Joint,
         Vector2 Fetlock, Vector2 Hoof, float HoofAngle, bool Supporting, float Phase);
 
-    // 肩/髋至肘/膝藏于肌肉内；外露腕/飞节以下保持细长，不画成四根等粗杆。
-    public static Vector4 Lengths(bool front) => front ? new(11, 17, 13, 5) : new(13, 16, 13, 5);
+    // 按关节间距绑定，而不是沿用原图各格的像素高度。前臂/胫骨长、管骨短，
+    // 系蹄保持短段；前肢总长47、后肢总长47，整轮仅旋转，不随伸腿缩放。
+    public static Vector4 Lengths(bool front) => front ? new(13, 18, 11, 5) : new(12, 18, 12, 5);
     public static float Touchdown(bool front, bool near) => front ? (near ? .46f : .22f) : (near ? .22f : 0);
     public static float LegPhase(bool front, bool near, float phase) => Mathf.PosMod(phase - Touchdown(front, near), 1);
 
@@ -29,14 +30,28 @@ public static class HorseLocomotion
         float t = Mathf.PosMod(phase, 1);
         if (t < SupportFraction) return new(HalfStride - CycleDistance * t, 0);
         float u = (t - SupportFraction) / (1 - SupportFraction);
-        // 三段手工轨迹：回收点位于身后，前肢较高，后肢从腹下向前踏进。
-        Vector2 a = new(-HalfStride, 0), b = front ? new(-16, -18) : new(-9, -13);
+        // 对照Muybridge《Animal Locomotion》621图版的离地后收、腹下回收和前送落地。
+        // 回收段短于前送段；以下是按游戏定长骨架调整的关键点，并非摄影像素的逐点描摹。
+        // 短管骨不能把蹄强拉到肘边，
+        // 否则两骨内侧不可达，既会折成尖角，也会诱发关节拉伸；抬蹄高度据新骨长调整。
+        Vector2 a = new(-HalfStride, 0), b = front ? new(-16, -13) : new(-9, -13);
         Vector2 c = front ? new(21, -9) : new(22, -7), d = new(HalfStride, 0);
         Vector2 groundTangent = new(-CycleDistance * (1 - SupportFraction), 0);
         Vector2 middleTangent = new(78, 0), reachTangent = new(14, 35);
-        if (u < .40f) return Hermite(a, b, groundTangent * .40f, middleTangent * .40f, u / .40f);
-        if (u < .80f) return Hermite(b, c, middleTangent * .40f, reachTangent * .40f, (u - .40f) / .40f);
-        return Hermite(c, d, reachTangent * .20f, groundTangent * .20f, (u - .80f) / .20f);
+        if (u < .32f) return Hermite(a, b, groundTangent * .32f, middleTangent * .32f, u / .32f);
+        if (u < .76f) return Hermite(b, c, middleTangent * .44f, reachTangent * .44f, (u - .32f) / .44f);
+        return Hermite(c, d, reachTangent * .24f, groundTangent * .24f, (u - .76f) / .24f);
+    }
+
+    /// <summary>四蹄最低的离地高度；近远蹄的投影深差不计入高度，承重时始终为零。</summary>
+    public static float GroundClearance(float phase, float weight)
+    {
+        float fore = Mathf.Min(-HoofOffset(LegPhase(true, false, phase), true).Y,
+            -HoofOffset(LegPhase(true, true, phase), true).Y);
+        float hind = Mathf.Min(-HoofOffset(LegPhase(false, false, phase), false).Y,
+            -HoofOffset(LegPhase(false, true, phase), false).Y);
+        float clearance = Mathf.Min(fore, hind);
+        return Mathf.Max(0, clearance) * Mathf.Clamp(weight, 0, 1);
     }
 
     public static LegPose Sample(bool front, bool near, float phase, float weight, float bodyWidth = 1)
@@ -62,7 +77,8 @@ public static class HorseLocomotion
         // 承重时腕以下近乎伸直，摆动才明显折叠。先决定折叠量，再解近端骨，
         // 避免把蹄点塞进一条恒定弯曲的腿，造成站立时也像蹲着的机械折杆。
         float distance = root.DistanceTo(fetlock);
-        float desiredReach = lengths.Y + lengths.Z - (front ? .22f : 2.4f) - fold * (front ? 12 : 6);
+        // 站立后肢留有正常飞节角，但不长时间屈成蹲姿；摆动时再增加折叠。
+        float desiredReach = lengths.Y + lengths.Z - (front ? .22f : 1.6f) - fold * (front ? 12 : 6);
         // 近共线位置留出余量，并平滑接入可达范围，避免硬截断产生瞬时膝速变化。
         float minReach = Mathf.Abs(distance - lengths.X) + .30f;
         float maxReach = Mathf.Min(distance + lengths.X - .60f, lengths.Y + lengths.Z - .05f);

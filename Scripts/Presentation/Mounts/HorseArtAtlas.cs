@@ -1,25 +1,17 @@
 using Godot;
 
-/// <summary>彩绘马的独立取样窗口与源图关节。图集不是等分网格，不能按行列直接裁切。</summary>
+/// <summary>V2四件原图的采样与标定。整身和整腿保留连续毛皮，不再拼接独立肌肉圆片。</summary>
 public static class HorseArtAtlas
 {
-    // 管骨窗口在球节处结束，剔除生成图里重复出现的蹄，由独立蹄片接续。
-    public static readonly Rect2[] Regions =
-    {
-        new(12,25,364,200), new(376,10,180,223), new(557,25,185,207),
-        new(746,3,190,231), new(935,12,207,225), new(1158,0,216,237),
-        new(55,226,176,240), new(296,226,119,238), new(551,230,61,165), new(751,283,145,179),
-        new(948,235,182,239), new(1163,240,169,234),
-        new(87,465,72,161), new(279,526,141,166), new(499,473,176,218),
-        new(739,474,125,226), new(979,474,65,159), new(1207,520,146,172),
-        new(45,691,171,212), new(289,690,146,215), new(550,690,61,160), new(756,749,134,158),
-        new(962,694,150,242), new(1207,692,143,274), new(14,905,359,234),
-        new(367,904,239,241), new(573,912,233,233), new(820,937,101,180),
-        new(983,936,116,182), new(1141,968,233,160)
-    };
-
-    public static AtlasTexture Part(Texture2D atlas, int part) => new()
-    {
-        Atlas = atlas, Region = Regions[part], FilterClip = true
-    };
+    public static readonly Rect2 Body = new(225,0,1150,491);
+    public static readonly Rect2 Foreleg = new(305,495,190,510);
+    public static readonly Rect2 Hindleg = new(675,493,215,512);
+    public static readonly Rect2 Tail = new(1045,492,370,532);
+    // 源锚点依次对应肩/髋、肘/膝、腕/飞节、球节、蹄底，沿同一整腿图取样。
+    public static Vector2[] LegAnchors(bool front) => front
+        ? new[]{new Vector2(424,528),new Vector2(374,608),new Vector2(363,759),new Vector2(349,903),new Vector2(396,995)}
+        : new[]{new Vector2(749,524),new Vector2(802,620),new Vector2(731,753),new Vector2(780,903),new Vector2(834,995)};
+    public static Vector2 BodyPoint(Vector2 pixel,float width) =>
+        new((pixel.X-650)*.073f*width,-43+(pixel.Y-230)*.078f);
+    public static readonly Vector2 BridlePixel = new(1265,267);
 }

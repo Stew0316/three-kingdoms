@@ -83,7 +83,7 @@ public partial class HorsePosePreview : Node2D
     public static async Task Capture(SceneTree tree)
     {
         if(DisplayServer.GetName()=="headless") return;
-        const string directory="res://Build/horse-canter/preview";
+        const string directory="res://Build/horse-realism-v2/preview";
         DirAccess.MakeDirRecursiveAbsolute(directory);
         var viewport=new SubViewport { Size=new(1120,740),TransparentBg=false,RenderTargetUpdateMode=SubViewport.UpdateMode.Always };
         tree.Root.AddChild(viewport);
@@ -102,18 +102,49 @@ public partial class HorsePosePreview : Node2D
             image.SavePng(directory+(frame<0 ? "/standing.png" : $"/canter-{frame:00}.png"));
         }
         viewport.QueueFree();
+        await CaptureClean(tree);
+    }
+
+    /// <summary>干净的正式绘制器预览：两马放大外观及1倍尺寸，仍逐相位输出，不伪装成实机速度。</summary>
+    private static async Task CaptureClean(SceneTree tree)
+    {
+        const string directory="res://Build/horse-realism-v2/clean";
+        DirAccess.MakeDirRecursiveAbsolute(directory);
+        var viewport=new SubViewport {Size=new(960,460),TransparentBg=false,RenderTargetUpdateMode=SubViewport.UpdateMode.Always};
+        tree.Root.AddChild(viewport);
+        var background=new ColorRect {Color=new Color("e8e1d2"),Size=new(960,460)}; viewport.AddChild(background);
+        var title=new Label {Text="拟真马 V2 · Muybridge 连续摄影参考",Position=new(28,18)};
+        title.AddThemeColorOverride("font_color",new Color("453e33")); title.AddThemeFontSizeOverride("font_size",23); viewport.AddChild(title);
+        var horses=new CityHorse[4];
+        for(int i=0;i<4;i++)
+        {
+            bool grey=i%2==1,large=i<2;
+            horses[i]=new CityHorse {Appearance=GD.Load<HorseAppearance>(grey?"res://Resources/Config/World/horse-dapple.tres":"res://Resources/Config/World/horse-chestnut.tres"),
+                Position=new(grey?680:220,large?315:430),Scale=Vector2.One*(large?3.5f:1)};
+            viewport.AddChild(horses[i]);
+        }
+        var note=new Label {Text="上：3.5倍检查形体    下：游戏原始尺寸",Position=new(28,340)};
+        note.AddThemeColorOverride("font_color",new Color("655b4b")); viewport.AddChild(note);
+        for(int frame=-1;frame<48;frame++)
+        {
+            foreach(var horse in horses) horse.SetPreviewPose(Mathf.Max(0,frame)/48f,frame<0?0:1);
+            await tree.ToSignal(tree,SceneTree.SignalName.ProcessFrame);
+            await tree.ToSignal(RenderingServer.Singleton,RenderingServer.SignalName.FramePostDraw);
+            using var image=viewport.GetTexture().GetImage();
+            image.SavePng(directory+(frame<0?"/standing.png":$"/canter-{frame:00}.png"));
+        }
+        viewport.QueueFree();
     }
 
     /// <summary>去掉身体和其它三条腿的遮挡，检查真正渲染出的腿皮肤与蹄是否连成一片。</summary>
     public static async Task<(float Ratio,string Context)> CaptureLimbConnections(SceneTree tree)
     {
         const int cellWidth=256,cellHeight=256,columns=4;
-        const string directory="res://Build/horse-canter/limb-connections";
+        const string directory="res://Build/horse-realism-v2/limb-connections";
         DirAccess.MakeDirRecursiveAbsolute(directory);
         var viewport=new SubViewport { Size=new(cellWidth*columns,cellHeight*2),TransparentBg=true,RenderTargetUpdateMode=SubViewport.UpdateMode.Always };
         tree.Root.AddChild(viewport);
         var rigs=new HorsePaintedRig[8];
-        int[] hoofParts={21,13,17,9};
         for(int i=0;i<rigs.Length;i++)
         {
             int leg=i%4;
@@ -122,7 +153,7 @@ public partial class HorsePosePreview : Node2D
                 Position=new(leg*cellWidth+128+(leg>=2?-18:19)*appearance.BodyWidth*4,(i/4)*cellHeight+220)};
             viewport.AddChild(rigs[i]);
             foreach(var child in rigs[i].GetNode<Node2D>("彩绘层").GetChildren().OfType<CanvasItem>())
-                child.Visible=child==rigs[i].LimbSkins[leg] || child.Name==$"部件{hoofParts[leg]:00}";
+                child.Visible=child==rigs[i].LimbSkins[leg];
         }
         float minimum=1; string context="";
         for(int frame=-1;frame<48;frame++)

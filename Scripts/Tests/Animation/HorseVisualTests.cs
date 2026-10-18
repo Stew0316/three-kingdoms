@@ -22,7 +22,10 @@ public partial class HorseVisualTests : Node
             City.Camera.PositionSmoothingEnabled = false;
             var stable = City.Map.Actors.GetChildren().OfType<CityHorse>().ToArray();
             Check(stable.Length == 2 && stable[0].Appearance != stable[1].Appearance, "两匹展示马绑定独立外观资源");
-            Check(stable[0].Appearance.LongMane && stable[0].Appearance.SaddleBags && stable[1].Appearance.Dappled && !stable[1].Appearance.LongMane, "鬃毛、斑纹和马具差异实际接入");
+            Check(stable.All(h=>h.Appearance.LongMane && h.Appearance.SaddleBags) &&
+                stable[0].Appearance.PartsAtlas!=stable[1].Appearance.PartsAtlas &&
+                !stable[0].Appearance.Dappled && stable[1].Appearance.Dappled,
+                "两马各自的真实纹理与青骢斑纹接入，均保留自然长鬃和行囊");
             // 先保留完整可视证据，几何约束失败时也能核对对应相位的实际形态。
             await HorsePosePreview.Capture(GetTree());
             if(DisplayServer.GetName()!="headless")
@@ -32,6 +35,7 @@ public partial class HorseVisualTests : Node
             }
             VerifyPaintedRig(stable);
             VerifyJointChains(stable.Select(h => h.Appearance.BodyWidth).ToArray());
+            VerifyShadows();
             // 单腿局部相位：前30%承重，随后屈腿回收；不能沿用两拍小跑的落蹄窗口。
             Check(CityHorse.SampleHoof(.1f).Y == 0 && CityHorse.SampleHoof(.29f).Y == 0 && CityHorse.SampleHoof(.65f).Y < -9, "三拍跑步支撑蹄落地、摆动蹄明确抬起");
             Check(CityHorse.SampleHoof(.99999f).DistanceTo(CityHorse.SampleHoof(0)) < .01f, "步态周期首尾连续");
@@ -59,7 +63,8 @@ public partial class HorseVisualTests : Node
                     await Capture($"horse-{mount}-direction-{direction}");
                     InputVector(Vector2.Zero);
                     await Frames(12);
-                    Check(Horse.GaitWeight==0 && Horse.BodyBob==0 && Horse.BodyPitch==0 && Horse.SaddleOffset.Length()<.001f, "停步平滑收回中立站姿和鞍点");
+                    Check(Horse.GaitWeight==0 && Horse.BodyBob==0 && Horse.BodyPitch==0 && Horse.SaddleOffset.Length()<.001f,
+                        $"停步平滑收回中立站姿和鞍点：权重{Horse.GaitWeight:F6}，起伏{Horse.BodyBob:F6}，角度{Horse.BodyPitch:F6}，鞍点{Horse.SaddleOffset}，速度{City.Player.WalkVelocity}");
                     float stopped = Horse.GaitPhase;
                     await Frames(4);
                     Check(Horse.GaitPhase==stopped, "静止不原地踏步");
@@ -242,6 +247,26 @@ public partial class HorseVisualTests : Node
         return mask;
     }
 
+    private void VerifyShadows()
+    {
+        var standing=CityHorse.SampleShadow(0,0);
+        float smallest=standing.Scale.X,lightest=standing.Opacity,maxJump=0;
+        bool supportStable=true,cycleStable=true;
+        for(int i=0;i<1024;i++)
+        {
+            float phase=i/1024f;
+            var p=CityHorse.SampleShadow(phase,1);
+            var next=CityHorse.SampleShadow(phase+1/1024f,1);
+            var repeat=CityHorse.SampleShadow(phase+1,1);
+            smallest=Mathf.Min(smallest,p.Scale.X); lightest=Mathf.Min(lightest,p.Opacity);
+            maxJump=Mathf.Max(maxJump,p.Scale.DistanceTo(next.Scale));
+            if(SupportMask(phase)!=0) supportStable&=p.Scale.DistanceTo(standing.Scale)<.001f && Mathf.Abs(p.Opacity-standing.Opacity)<.001f;
+            cycleStable&=p.Scale.DistanceTo(repeat.Scale)<.001f && CityHorse.SampleShadow(phase,0)==standing;
+        }
+        Check(smallest<standing.Scale.X-.3f && lightest<standing.Opacity-.005f,"腾空时地面影子实际收小、变淡");
+        Check(supportStable && cycleStable && maxJump<.1f,$"承重/站立影子稳定，起落与周期无跳变：承重{supportStable}，周期{cycleStable}，相邻半径差{maxJump:F6}");
+    }
+
     /// <summary>全身各段有相对运动，颈链定长，周期和起停连续；不再要求肩髋锁成同一刚体。</summary>
     private void VerifyBodyMotion(float[] widths,int samples)
     {
@@ -266,7 +291,7 @@ public partial class HorseVisualTests : Node
             Vector2[] following={next.Poll,next.NeckMiddle,next.Saddle,next.TailRoot,next.SkinPoint(new(-10,-30))};
             Vector2[] final={end.Poll,end.NeckMiddle,end.Saddle,end.TailRoot,end.SkinPoint(new(-10,-30))};
             for(int i=0;i<points.Length;i++) { positionJump.Record(points[i].DistanceTo(following[i]),context); cycle.Record(points[i].DistanceTo(final[i]),context); }
-            if(weight==0) cycle.Record(p.Saddle.DistanceTo(new(0,-43))+p.Poll.DistanceTo(new(33,-59)),"静止挂点归位");
+            if(weight==0) cycle.Record(p.Saddle.DistanceTo(rest.Saddle)+p.Poll.DistanceTo(rest.Poll),"静止挂点归位");
             pelvisRange=Mathf.Max(pelvisRange,Mathf.Abs(p.Pelvis.Rotation-p.ChestAngle));
             neckRange=Mathf.Max(neckRange,Mathf.Abs(p.LowerNeck.Rotation-p.ChestAngle));
             shoulderRange=Mathf.Max(shoulderRange,Mathf.Abs(p.NearShoulder.Rotation-p.FarShoulder.Rotation));
@@ -282,7 +307,9 @@ public partial class HorseVisualTests : Node
         foreach(var horse in horses)
         {
             Check(horse.Appearance.PartsAtlas!=null && horse.PaintedRig?.Bones.Count==32,"正式图集绑定32骨全身马架");
-            Check(horse.PaintedRig.Parts.Count==15 && horse.PaintedRig.LimbSkins.Count==4,"胸腹、四条连续腿皮肤与15个彩绘层接入；肩臀不再叠独立覆盖片");
+            Check(horse.PaintedRig.BodySkin?.Texture!=null && horse.PaintedRig.TailSkin?.Texture!=null &&
+                horse.PaintedRig.LimbSkins.Count==4 && horse.PaintedRig.LimbSkins.All(s=>s.Texture!=null),
+                "完整躯干、尾和四条含蹄连续腿皮肤绑定真实纹理");
             Check(horse.PaintedRig.LimbSkins.All(s=>s.MinimumSampleAlpha>.9f),"四腿材质横截面位于原图实色区，避免透明裂口");
             float error=0,skinGap=0,rootSkinError=0;
             for(int frame=0;frame<96;frame++)
@@ -338,14 +365,14 @@ public partial class HorseVisualTests : Node
     private async Task Capture(string name)
     {
         if(DisplayServer.GetName()=="headless") return;
-        DirAccess.MakeDirRecursiveAbsolute("res://Build/horse-canter");
+        DirAccess.MakeDirRecursiveAbsolute("res://Build/horse-realism-v2");
         await ToSignal(RenderingServer.Singleton,RenderingServer.SignalName.FramePostDraw);
         using var image = GetViewport().GetTexture().GetImage();
         var player=City.Player;
         var horse=Horse;
         var frame=new CapturedFrame(name,player.VisualTime,player.WalkDistance,horse.GaitPhase,horse.GaitWeight,
             new(player.Position.X,player.Position.Y),horse.Facing,new(player.FacingDirection.X,player.FacingDirection.Y));
-        Error saved=image.SavePng("res://Build/horse-canter/"+name+".png");
+        Error saved=image.SavePng("res://Build/horse-realism-v2/"+name+".png");
         if(saved!=Error.Ok) throw new InvalidOperationException($"截图{name}保存失败：{saved}");
         _capturedFrames.Add(frame);
     }
@@ -358,7 +385,7 @@ public partial class HorseVisualTests : Node
     private void SaveCapturedFrames()
     {
         if(_capturedFrames.Count==0) return;
-        const string path="res://Build/horse-canter/frames.json";
+        const string path="res://Build/horse-realism-v2/frames.json";
         using var file=Godot.FileAccess.Open(path,Godot.FileAccess.ModeFlags.Write);
         if(file==null) throw new InvalidOperationException("无法写入坐骑截图时间记录："+Godot.FileAccess.GetOpenError());
         file.StoreString(JsonSerializer.Serialize(_capturedFrames,new JsonSerializerOptions

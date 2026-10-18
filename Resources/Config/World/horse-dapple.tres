@@ -1,7 +1,7 @@
 [gd_resource type="Resource" script_class="HorseAppearance" load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://Scripts/Config/World/HorseAppearance.cs" id="1"]
-[ext_resource type="Texture2D" path="res://Source/Animals/Horses/horse-dapple-parts-v1.png" id="2"]
+[ext_resource type="Texture2D" path="res://Source/Animals/Horses/horse-dapple-parts-v2.png" id="2"]
 
 [resource]
 script = ExtResource("1")
@@ -12,6 +12,6 @@ Blanket = Color(0.19, 0.35, 0.39, 1)
 Trim = Color(0.78, 0.77, 0.63, 1)
 BodyWidth = 0.95
 Dappled = true
-LongMane = false
+LongMane = true
 FaceBlaze = false
-SaddleBags = false
+SaddleBags = true

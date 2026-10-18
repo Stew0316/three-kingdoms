@@ -44,8 +44,8 @@ public static class HorseBodyMotion
             Pelvis = Map(pelvisPivot, Chest * pelvisPivot, pelvisAngle);
 
             Vector2 neckRoot = new(18 * bodyWidth, -35);
-            Vector2 neckMiddle = new(26, -49);
-            Vector2 poll = new(33, -59);
+            Vector2 neckMiddle = new(30, -47.5f);
+            Vector2 poll = new(40, -55);
             LowerNeck = Chest * Map(neckRoot, neckRoot, Angle(LowerNeckAngles, phase, weight));
             UpperNeck = LowerNeck * Map(neckMiddle, neckMiddle, Angle(UpperNeckAngles, phase, weight));
             NeckRoot = Chest * neckRoot;
@@ -58,14 +58,14 @@ public static class HorseBodyMotion
             FarShoulder = Shoulder(Chest, phase, weight, bodyWidth, false);
             // 鞍点与胸腹皮肤使用同一混合，尾根则直接跟随骨盆。
             Saddle = BlendSkin(new(0, -43), Chest, Pelvis, bodyWidth);
-            TailRoot = Pelvis * new Vector2(-29 * bodyWidth, -39);
+            TailRoot = Pelvis * new Vector2(-27 * bodyWidth, -43);
         }
 
         /// <summary>前腿根随各自肩胛，后腿根随骨盆；远近层深在整身运动后加入。</summary>
         public Vector2 LegRoot(bool front, bool near)
         {
             // 肩/髋关节位于胸臀上半部，不能放在腹缘，否则站立上臂水平、后腿像蹲伏。
-            Vector2 rest = new((front ? 18 : -19) * _bodyWidth, front ? -39 : -38);
+            Vector2 rest = new((front ? 18 : -19) * _bodyWidth, front ? -39 : -40);
             Transform2D transform = front ? (near ? NearShoulder : FarShoulder) : Pelvis;
             // 肩髋藏在躯干宽度内，投影深差小于蹄底，防止远腿根穿出马背。
             return transform * rest + new Vector2(0, near ? 1.5f : -1.5f);
@@ -74,7 +74,7 @@ public static class HorseBodyMotion
         /// <summary>皮肤的根边留在胸臀表面；肩胛在皮下运动，不让腿根整块贴片沿马身滑动。</summary>
         public Vector2 LegSkinRoot(bool front,bool near)
         {
-            Vector2 rest=new((front?18:-19)*_bodyWidth,front?-39:-38);
+            Vector2 rest=new((front?18:-19)*_bodyWidth,front?-39:-40);
             return (front?Chest:Pelvis)*rest+new Vector2(0,near?1.5f:-1.5f);
         }
 

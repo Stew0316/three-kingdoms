@@ -4,6 +4,10 @@ using Godot;
 public static class HeroCatalog
 {
     public static readonly string[] Ids = { "lubu", "weiyan", "guanyu", "liubei" };
+    // 冒险装配会立即复制基础属性，场景本身不再持有原资源。保留四份只读基线的托管强引用，
+    // 防止跨场景时Godot弱资源缓存与C#终结器同时回收/重新载入脚本Resource。
+    private static readonly CombatantConfig[] BaseConfigs = System.Array.ConvertAll(Ids,
+        id => GD.Load<CombatantConfig>(ResourceRoot(id) + ".tres"));
     // 显示名称从每位武将独立UI资源读取，目录不另外维护一套人物资料。
     public static string[] Names => System.Array.ConvertAll(Ids,
         id => GD.Load<CharacterUiConfig>(ResourceRoot(id) + "-ui.tres").DisplayName);
@@ -23,7 +27,7 @@ public static class HeroCatalog
     {
         string id = Ids[Mathf.Clamp(index, 0, Ids.Length - 1)];
         string root = ResourceRoot(id);
-        actor.Config = GD.Load<CombatantConfig>(root + ".tres");
+        actor.Config = BaseConfigs[Mathf.Clamp(index, 0, Ids.Length - 1)];
         actor.Presentation = GD.Load<CharacterPresentationConfig>(root + "-presentation.tres");
         actor.Ui = GD.Load<CharacterUiConfig>(root + "-ui.tres");
         actor.Loadout = LoadDefaultLoadout(index);

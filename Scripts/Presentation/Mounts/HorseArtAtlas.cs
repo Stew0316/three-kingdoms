@@ -14,4 +14,14 @@ public static class HorseArtAtlas
     public static Vector2 BodyPoint(Vector2 pixel,float width) =>
         new((pixel.X-650)*.073f*width,-43+(pixel.Y-230)*.078f);
     public static readonly Vector2 BridlePixel = new(1265,267);
+    // 身体原图里的上肢肌肉独立标定，不能拿站立骨链的坐标直接当作原图绑定姿势。
+    public static Vector2 MuscleRoot(bool front) => front?new(900,280):new(390,280);
+    public static Vector2 MuscleEnd(bool front) => front?new(925,475):new(410,445);
+    // 鞍具外缘单独覆盖活动肌肉，沿原图取样；不是新增或重绘一套马具。
+    public static readonly Vector2[] TackOutline = {
+        new(489,169),new(532,174),new(530,115),new(567,115),new(601,172),new(717,187),
+        new(769,172),new(773,140),new(802,140),new(810,179),new(847,183),new(850,402),
+        new(779,410),new(779,478),new(727,478),new(718,414),new(590,389),new(588,338),
+        new(572,364),new(494,338),new(486,304)
+    };
 }

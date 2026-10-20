@@ -3,9 +3,14 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 
-/// <summary>用正式CityHorse绘制器逐相位渲染马匹与关节链，输出可循环慢放的完整一轮。</summary>
+/// <summary>用独立HorseActor组件逐相位渲染马匹与关节链，不依赖城市适配层。</summary>
 public partial class HorsePosePreview : Node2D
 {
+    public static string OutputRoot => OS.GetCmdlineUserArgs().Contains("--horse-component-regression") ? "res://Build/horse-components/regression" :
+        OS.GetCmdlineUserArgs().Contains("--horse-skin-preview") ? "res://Build/horse-skin-join/working" :
+        OS.GetCmdlineUserArgs().Contains("--horse-skin-regression") ? "res://Build/horse-skin-join/final" :
+        OS.GetCmdlineUserArgs().Contains("--horse-clarity-regression")
+        ? "res://Build/horse-clarity/after-fix/horse-regression" : "res://Build/horse-realism-v2";
     private float _phase, _weight;
     private Font _font;
     private static readonly Color Ink = new("332e28");
@@ -83,13 +88,15 @@ public partial class HorsePosePreview : Node2D
     public static async Task Capture(SceneTree tree)
     {
         if(DisplayServer.GetName()=="headless") return;
-        const string directory="res://Build/horse-realism-v2/preview";
+        string directory=OutputRoot+"/preview";
         DirAccess.MakeDirRecursiveAbsolute(directory);
         var viewport=new SubViewport { Size=new(1120,740),TransparentBg=false,RenderTargetUpdateMode=SubViewport.UpdateMode.Always };
         tree.Root.AddChild(viewport);
         var backdrop=new HorsePosePreview(); viewport.AddChild(backdrop);
-        var brown=new CityHorse { Position=new(240,350-2.5f*PreviewScale),Scale=Vector2.One*PreviewScale,Appearance=GD.Load<HorseAppearance>("res://Resources/Config/World/horse-chestnut.tres") };
-        var dapple=new CityHorse { Position=new(240,655-2.5f*PreviewScale),Scale=Vector2.One*PreviewScale,Appearance=GD.Load<HorseAppearance>("res://Resources/Config/World/horse-dapple.tres") };
+        var brown=HorseActor.Create(GD.Load<HorseAppearance>("res://Resources/Config/World/horse-chestnut.tres"));
+        brown.Position=new(240,350-2.5f*PreviewScale); brown.Scale=Vector2.One*PreviewScale;
+        var dapple=HorseActor.Create(GD.Load<HorseAppearance>("res://Resources/Config/World/horse-dapple.tres"));
+        dapple.Position=new(240,655-2.5f*PreviewScale); dapple.Scale=Vector2.One*PreviewScale;
         viewport.AddChild(brown); viewport.AddChild(dapple);
         for(int frame=-1;frame<48;frame++)
         {
@@ -108,19 +115,19 @@ public partial class HorsePosePreview : Node2D
     /// <summary>干净的正式绘制器预览：两马放大外观及1倍尺寸，仍逐相位输出，不伪装成实机速度。</summary>
     private static async Task CaptureClean(SceneTree tree)
     {
-        const string directory="res://Build/horse-realism-v2/clean";
+        string directory=OutputRoot+"/clean";
         DirAccess.MakeDirRecursiveAbsolute(directory);
         var viewport=new SubViewport {Size=new(960,460),TransparentBg=false,RenderTargetUpdateMode=SubViewport.UpdateMode.Always};
         tree.Root.AddChild(viewport);
         var background=new ColorRect {Color=new Color("e8e1d2"),Size=new(960,460)}; viewport.AddChild(background);
         var title=new Label {Text="拟真马 V2 · Muybridge 连续摄影参考",Position=new(28,18)};
         title.AddThemeColorOverride("font_color",new Color("453e33")); title.AddThemeFontSizeOverride("font_size",23); viewport.AddChild(title);
-        var horses=new CityHorse[4];
+        var horses=new HorseActor[4];
         for(int i=0;i<4;i++)
         {
             bool grey=i%2==1,large=i<2;
-            horses[i]=new CityHorse {Appearance=GD.Load<HorseAppearance>(grey?"res://Resources/Config/World/horse-dapple.tres":"res://Resources/Config/World/horse-chestnut.tres"),
-                Position=new(grey?680:220,large?315:430),Scale=Vector2.One*(large?3.5f:1)};
+            horses[i]=HorseActor.Create(GD.Load<HorseAppearance>(grey?"res://Resources/Config/World/horse-dapple.tres":"res://Resources/Config/World/horse-chestnut.tres"));
+            horses[i].Position=new(grey?680:220,large?315:430); horses[i].Scale=Vector2.One*(large?3.5f:1);
             viewport.AddChild(horses[i]);
         }
         var note=new Label {Text="上：3.5倍检查形体    下：游戏原始尺寸",Position=new(28,340)};
@@ -137,10 +144,11 @@ public partial class HorsePosePreview : Node2D
     }
 
     /// <summary>去掉身体和其它三条腿的遮挡，检查真正渲染出的腿皮肤与蹄是否连成一片。</summary>
-    public static async Task<(float Ratio,string Context)> CaptureLimbConnections(SceneTree tree)
+    public static async Task<(float Ratio,string Context)> CaptureLimbConnections(SceneTree tree,bool includeBody=false)
     {
-        const int cellWidth=256,cellHeight=256,columns=4;
-        const string directory="res://Build/horse-realism-v2/limb-connections";
+        int cellWidth=includeBody?512:256,cellHeight=includeBody?320:256;
+        const int columns=4;
+        string directory=OutputRoot+(includeBody?"/body-connections":"/limb-connections");
         DirAccess.MakeDirRecursiveAbsolute(directory);
         var viewport=new SubViewport { Size=new(cellWidth*columns,cellHeight*2),TransparentBg=true,RenderTargetUpdateMode=SubViewport.UpdateMode.Always };
         tree.Root.AddChild(viewport);
@@ -150,10 +158,11 @@ public partial class HorsePosePreview : Node2D
             int leg=i%4;
             var appearance=GD.Load<HorseAppearance>(i<4 ? "res://Resources/Config/World/horse-chestnut.tres" : "res://Resources/Config/World/horse-dapple.tres");
             rigs[i]=new HorsePaintedRig {Appearance=appearance,Scale=Vector2.One*4,
-                Position=new(leg*cellWidth+128+(leg>=2?-18:19)*appearance.BodyWidth*4,(i/4)*cellHeight+220)};
+                Position=includeBody?new(leg*cellWidth+240,(i/4)*cellHeight+285):
+                    new(leg*cellWidth+128+(leg>=2?-18:19)*appearance.BodyWidth*4,(i/4)*cellHeight+220)};
             viewport.AddChild(rigs[i]);
             foreach(var child in rigs[i].GetNode<Node2D>("彩绘层").GetChildren().OfType<CanvasItem>())
-                child.Visible=child==rigs[i].LimbSkins[leg];
+                child.Visible=child==rigs[i].LimbSkins[leg] || includeBody && (child==rigs[i].BodySkin || child==rigs[i].TackSkin);
         }
         float minimum=1; string context="";
         for(int frame=-1;frame<48;frame++)

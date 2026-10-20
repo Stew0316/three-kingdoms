@@ -1,0 +1,7 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="PackedScene" path="res://Components/Mounts/Horse.tscn" id="1"]
+[ext_resource type="Resource" path="res://Resources/Config/World/horse-dapple.tres" id="2"]
+
+[node name="DappleHorse" instance=ExtResource("1")]
+Appearance = ExtResource("2")

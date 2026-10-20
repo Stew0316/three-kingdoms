@@ -1,125 +1,37 @@
 using Godot;
 
-/// <summary>实例步态时钟与骑乘连接；真实路程驱动全身骨架，外观不决定速度或碰撞。</summary>
-public partial class CityHorse : Node2D
+/// <summary>现有Combatant与通用马组件之间的薄适配层；动画、骨架和渲染由HorseActor组合。</summary>
+public partial class CityHorse : HorseActor,IHorseMotionSource,IHorseRiderContacts
 {
-    public HorseAppearance Appearance { get; set; }
-    public Combatant Rider { get; set; }
-    public float GaitPhase { get; private set; }
-    public float GaitWeight { get; private set; }
-    public float Facing { get; private set; } = 1;
-    public float BodyBob => HorseLocomotion.Bob(GaitPhase, GaitWeight);
-    public float BodyPitch => HorseLocomotion.BodyPitch(GaitPhase, GaitWeight);
-    public float RiderLean => HorseLocomotion.RiderLean(GaitPhase, GaitWeight);
-    public HorsePaintedRig PaintedRig { get; private set; }
-    public const float CycleDistance = HorseLocomotion.CycleDistance;
-    public Vector2 SaddleOffset
+    private Combatant _rider;
+    public Combatant Rider
     {
-        get
+        get => _rider;
+        set
         {
-            Vector2 offset = HorseBodyMotion.Sample(GaitPhase, GaitWeight, Appearance?.BodyWidth ?? 1).Saddle - new Vector2(0,-43);
-            return new(offset.X * Facing, offset.Y);
+            UnbindRider(); _rider=value;
+            MotionSource=value==null?null:this;
+            RiderContacts=value==null?null:this;
+            if(IsNodeReady()) { BindRider(); ResetGait(); }
         }
     }
-    private float _lastDistance;
-    private HorseAppearance _boundAppearance;
-    private Node2D _connections;
-    private static readonly Color Leather = new("49392c");
-
-    public override void _Ready()
+    private static PackedScene _cityScene;
+    public static CityHorse CreateForCity(HorseAppearance appearance)
     {
-        ProcessPriority = -10; // 先更新马身，骑手再读取同帧鞍点。
-        _connections = new Node2D { Name = "缰绳与马镫" };
-        AddChild(_connections);
-        _connections.Draw += DrawConnections;
-        ResetGait();
+        _cityScene??=GD.Load<PackedScene>("res://Components/Mounts/CityHorse.tscn");
+        var horse=_cityScene.Instantiate<CityHorse>(); horse.Appearance=appearance; return horse;
     }
-    public void ResetGait()
+    HorseMotionSample IHorseMotionSource.HorseMotion =>
+        new(_rider.GlobalPosition,_rider.WalkDistance,_rider.WalkVelocity,_rider.FacingDirection,_rider.IsMounted);
+    bool IHorseRiderContacts.HasRiderContacts => _rider?.IsMounted==true && _rider.Rig!=null;
+    Vector2 IHorseRiderContacts.ReinHandWorld => _rider.Rig.RidingReinWorld;
+    Vector2 IHorseRiderContacts.StirrupFootWorld => _rider.Rig.RidingSoleWorld;
+    public override void _Ready() { base._Ready(); BindRider(); }
+    public override void _ExitTree() => UnbindRider();
+    private void BindRider() { if(_rider?.Rig!=null) _rider.Rig.RidingMount=this; }
+    private void UnbindRider()
     {
-        _lastDistance = Rider?.WalkDistance ?? 0;
-        GaitPhase = GaitWeight = 0;
-        Facing = Rider?.FacingDirection.X < -.1f ? -1 : 1;
-        UpdateRig();
-    }
-    internal void SetPreviewPose(float phase, float weight)
-    {
-        if (Rider != null) return;
-        GaitPhase = Mathf.PosMod(phase, 1);
-        GaitWeight = weight;
-        UpdateRig();
-    }
-    public override void _Process(double delta)
-    {
-        if (Rider != null)
-        {
-            float distance = Mathf.Max(0, Rider.WalkDistance - _lastDistance);
-            _lastDistance = Rider.WalkDistance;
-            if (Rider.IsMounted)
-            {
-                if (Mathf.Abs(Rider.FacingDirection.X) > .1f) Facing = Mathf.Sign(Rider.FacingDirection.X);
-                GaitPhase = Mathf.PosMod(GaitPhase + distance / CycleDistance, 1);
-                GaitWeight = Mathf.MoveToward(GaitWeight, Rider.WalkVelocity.LengthSquared() > 1 ? 1 : 0, (float)delta * 9);
-            }
-            else GaitWeight = 0;
-        }
-        UpdateRig();
-    }
-    private void UpdateRig()
-    {
-        if (!IsInsideTree() || Appearance?.PartsAtlas == null) return;
-        if (_boundAppearance != Appearance)
-        {
-            if (PaintedRig != null) { RemoveChild(PaintedRig); PaintedRig.QueueFree(); }
-            PaintedRig = new HorsePaintedRig { Name = "彩绘马骨架", Appearance = Appearance };
-            AddChild(PaintedRig); MoveChild(PaintedRig, 0);
-            _boundAppearance = Appearance;
-        }
-        PaintedRig.Scale = new(Facing, 1);
-        PaintedRig.ApplyPose(GaitPhase, GaitWeight);
-        QueueRedraw();
-        _connections?.QueueRedraw();
-    }
-    public static Vector2 SampleHoof(float phase) => HorseLocomotion.HoofOffset(phase, true);
-
-    public readonly record struct ShadowPose(Vector2 Offset, Vector2 Scale, float Opacity);
-
-    /// <summary>可独立核对的地面影子姿态；缩放表示椭圆半径，透明度取0到1。</summary>
-    public static ShadowPose SampleShadow(float phase, float weight, float bodyWidth = 1)
-    {
-        // 影子留在地面，腾空时根据四蹄最低离地量收小、变淡；不能把近远深差当高度。
-        float lift = Mathf.SmoothStep(0, 6, HorseLocomotion.GroundClearance(phase, weight));
-        float size = Mathf.Lerp(1, .88f, lift);
-        float opacity = Mathf.Lerp(.14f, .10f, lift);
-        return new(new(0,3), new Vector2(34 * bodyWidth,6) * size, opacity);
-    }
-
-    public override void _Draw()
-    {
-        var shadow = SampleShadow(GaitPhase, GaitWeight, Appearance?.BodyWidth ?? 1);
-        DrawSetTransform(shadow.Offset,0,shadow.Scale);
-        DrawCircle(Vector2.Zero,1,new Color(0,0,0,shadow.Opacity));
-        DrawSetTransform(Vector2.Zero);
-    }
-    private void DrawConnections()
-    {
-        if (PaintedRig == null) return;
-        Vector2 saddle = ToLocal(PaintedRig.SaddleWorld);
-        Vector2 sole = Rider?.IsMounted == true && Rider.Rig != null
-            ? ToLocal(Rider.Rig.RidingSoleWorld) : saddle + new Vector2(6*Facing,20);
-        _connections.DrawLine(saddle+new Vector2(2*Facing,3),sole+new Vector2(-2*Facing,-3),Leather,.85f,true);
-        _connections.DrawPolyline(new[]{sole+new Vector2(-3,-3),sole+new Vector2(-3,.6f),
-            sole+new Vector2(3,.6f),sole+new Vector2(3,-3)},Appearance.Trim,.8f,true);
-        if (Rider?.IsMounted != true || Rider.Rig == null) return;
-        Vector2 mouth = ToLocal(PaintedRig.BridleWorld);
-        Vector2 hand = ToLocal(Rider.Rig.RidingReinWorld);
-        // 细缰绳自然下垂，端点取最终渲染的辔环与拳掌，不能用未求解的手部目标替代。
-        Vector2 mid = mouth.Lerp(hand,.5f)+new Vector2(0,3.2f);
-        var curve = new Vector2[13];
-        for (int i=0;i<curve.Length;i++)
-        {
-            float t=(float)i/(curve.Length-1);
-            curve[i]=mouth*(1-t)*(1-t)+2*mid*t*(1-t)+hand*t*t;
-        }
-        _connections.DrawPolyline(curve,Leather,.8f,true);
+        if(GodotObject.IsInstanceValid(_rider) && GodotObject.IsInstanceValid(_rider.Rig) && _rider.Rig.RidingMount==this)
+            _rider.Rig.RidingMount=null;
     }
 }

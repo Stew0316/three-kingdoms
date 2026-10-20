@@ -22,16 +22,24 @@ public partial class HorseVisualTests : Node
             City.Camera.PositionSmoothingEnabled = false;
             var stable = City.Map.Actors.GetChildren().OfType<CityHorse>().ToArray();
             Check(stable.Length == 2 && stable[0].Appearance != stable[1].Appearance, "两匹展示马绑定独立外观资源");
+            Check(stable[0].Position.IsEqualApprox(new Vector2(671,528)) && stable[1].Position.IsEqualApprox(new Vector2(748,528)),
+                "展示马初始化保留马厩摆放位置，骑乘插值不改无骑手实例坐标");
             Check(stable.All(h=>h.Appearance.LongMane && h.Appearance.SaddleBags) &&
                 stable[0].Appearance.PartsAtlas!=stable[1].Appearance.PartsAtlas &&
                 !stable[0].Appearance.Dappled && stable[1].Appearance.Dappled,
                 "两马各自的真实纹理与青骢斑纹接入，均保留自然长鬃和行囊");
             // 先保留完整可视证据，几何约束失败时也能核对对应相位的实际形态。
             await HorsePosePreview.Capture(GetTree());
+            if(OS.GetCmdlineUserArgs().Contains("--horse-skin-preview"))
+            {
+                GD.Print("HORSE_SKIN_PREVIEW_DONE"); GetTree().Quit(); return;
+            }
             if(DisplayServer.GetName()!="headless")
             {
                 var connection=await HorsePosePreview.CaptureLimbConnections(GetTree());
                 Check(connection.Ratio>.995f,$"移除遮挡后，八条渲染腿从上段到蹄连成一片：最小主区域占比{connection.Ratio:P3}；{connection.Context}");
+                var assembled=await HorsePosePreview.CaptureLimbConnections(GetTree(),true);
+                Check(assembled.Ratio>.995f,$"身体与逐条腿的真实合成轮廓连接：最小主区域占比{assembled.Ratio:P3}；{assembled.Context}");
             }
             VerifyPaintedRig(stable);
             VerifyJointChains(stable.Select(h => h.Appearance.BodyWidth).ToArray());
@@ -57,8 +65,8 @@ public partial class HorseVisualTests : Node
                     Check(City.Player.Position.DistanceTo(start)>20, $"马{mount}方向{direction}真实移动");
                     float expected = Mathf.PosMod(phase+(City.Player.WalkDistance-distance)/CityHorse.CycleDistance,1);
                     Check(Mathf.Abs(expected-Horse.GaitPhase)<.001f, "步态随实际路程推进");
-                    Check(City.Player.Rig.Position.DistanceTo(Horse.SaddleOffset+new Vector2(0,-24))<.001f, "骑手与鞍点同帧平移，包含马身俯仰造成的前后位移");
-                    Check(Mathf.Abs(Horse.BodyPitch-HorseLocomotion.BodyPitch(Horse.GaitPhase,Horse.GaitWeight))<.0001f, "坐骑绘制与腿链读取同一马身俯仰");
+                    Check(City.Player.Rig.Position.DistanceTo(Horse.Position+Horse.SaddleOffset+new Vector2(0,-24))<.001f, "骑手与鞍点同帧平移，包含马身俯仰与物理帧之间的显示位移");
+                    Check(Mathf.Abs(Horse.BodyPitch-HorseLocomotion.BodyPitch(Horse.RenderGaitPhase,Horse.GaitWeight))<.0001f, "坐骑绘制与腿链读取同一显示相位和马身俯仰");
                     if(direction==0) speeds[mount-1] = City.Player.Position.DistanceTo(start);
                     await Capture($"horse-{mount}-direction-{direction}");
                     InputVector(Vector2.Zero);
@@ -311,7 +319,7 @@ public partial class HorseVisualTests : Node
                 horse.PaintedRig.LimbSkins.Count==4 && horse.PaintedRig.LimbSkins.All(s=>s.Texture!=null),
                 "完整躯干、尾和四条含蹄连续腿皮肤绑定真实纹理");
             Check(horse.PaintedRig.LimbSkins.All(s=>s.MinimumSampleAlpha>.9f),"四腿材质横截面位于原图实色区，避免透明裂口");
-            float error=0,skinGap=0,rootSkinError=0;
+            float error=0,skinGap=0,rootSkinError=0,muscleError=0;
             for(int frame=0;frame<96;frame++)
             {
                 float phase=frame/96f; horse.SetPreviewPose(phase,1);
@@ -322,6 +330,7 @@ public partial class HorseVisualTests : Node
                 foreach(bool front in new[]{false,true}) foreach(bool near in new[]{false,true})
                 {
                     var pose=HorseLocomotion.Sample(front,near,phase,1,horse.Appearance.BodyWidth);
+                    if(near) muscleError=Mathf.Max(muscleError,horse.PaintedRig.UpperMuscleEnd(front).DistanceTo(pose.Proximal));
                     Vector2 rendered=horse.PaintedRig.ToLocal(horse.PaintedRig.HoofWorld(front,near));
                     error=Mathf.Max(error,rendered.DistanceTo(pose.Hoof));
                 }
@@ -329,6 +338,8 @@ public partial class HorseVisualTests : Node
             Check(error<.001f,$"实际蹄纹理的接地点与求解链对齐：{error:F6}像素");
             Check(skinGap<.0001f,$"四腿上下骨段共用关节边界，全周期表面接缝：{skinGap:F6}像素");
             Check(rootSkinError<.0001f,$"腿根皮肤固定胸臀表面，肩胛活动不拖着根片滑动：{rootSkinError:F6}像素");
+            Check(muscleError<.0001f,$"整身图的肩/臀肌肉末端实际网格顶点跟随肘/膝：{muscleError:F6}像素");
+            Check(horse.PaintedRig.TackSkin.GetIndex()>horse.PaintedRig.LimbSkins[3].GetIndex(),"鞍具表层覆盖近肢，抬腿不穿过鞍带");
             horse.SetPreviewPose(0,0);
         }
     }
@@ -365,14 +376,14 @@ public partial class HorseVisualTests : Node
     private async Task Capture(string name)
     {
         if(DisplayServer.GetName()=="headless") return;
-        DirAccess.MakeDirRecursiveAbsolute("res://Build/horse-realism-v2");
+        DirAccess.MakeDirRecursiveAbsolute(HorsePosePreview.OutputRoot);
         await ToSignal(RenderingServer.Singleton,RenderingServer.SignalName.FramePostDraw);
         using var image = GetViewport().GetTexture().GetImage();
         var player=City.Player;
         var horse=Horse;
         var frame=new CapturedFrame(name,player.VisualTime,player.WalkDistance,horse.GaitPhase,horse.GaitWeight,
             new(player.Position.X,player.Position.Y),horse.Facing,new(player.FacingDirection.X,player.FacingDirection.Y));
-        Error saved=image.SavePng("res://Build/horse-realism-v2/"+name+".png");
+        Error saved=image.SavePng(HorsePosePreview.OutputRoot+"/"+name+".png");
         if(saved!=Error.Ok) throw new InvalidOperationException($"截图{name}保存失败：{saved}");
         _capturedFrames.Add(frame);
     }
@@ -385,7 +396,7 @@ public partial class HorseVisualTests : Node
     private void SaveCapturedFrames()
     {
         if(_capturedFrames.Count==0) return;
-        const string path="res://Build/horse-realism-v2/frames.json";
+        string path=HorsePosePreview.OutputRoot+"/frames.json";
         using var file=Godot.FileAccess.Open(path,Godot.FileAccess.ModeFlags.Write);
         if(file==null) throw new InvalidOperationException("无法写入坐骑截图时间记录："+Godot.FileAccess.GetOpenError());
         file.StoreString(JsonSerializer.Serialize(_capturedFrames,new JsonSerializerOptions

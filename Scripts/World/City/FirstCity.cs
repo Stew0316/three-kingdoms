@@ -20,15 +20,22 @@ public partial class FirstCity : Node2D
     private Label _quest, _stats, _hint, _notice;
     private CityHorse _ridingHorse;
     private readonly HorseAppearance[] _horseAppearances = {
-        GD.Load<HorseAppearance>("res://Resources/Config/World/horse-chestnut.tres"),
-        GD.Load<HorseAppearance>("res://Resources/Config/World/horse-dapple.tres") };
+        HorseAppearanceCatalog.Chestnut, HorseAppearanceCatalog.Dapple };
     private readonly CityHorse[] _stableHorses = new CityHorse[2];
     private float _smashRemaining, _toastRemaining, _trainingBeat;
     private bool _training, _switching;
     private CityOverview _overview;
     private static bool _testsStarted;
+    private double _previousPhysicsJitterFix;
     // 北侧屋舍是主要交互目标，给屋顶留出HUD下方的完整展示空间。
     private static readonly Vector2 CityCameraLookAhead=new(0,-95);
+    public override void _EnterTree()
+    {
+        // 首城骑乘自行插值位置与网格相位，关闭引擎的时间步补偿以免两套平滑互相干扰。
+        _previousPhysicsJitterFix=Engine.PhysicsJitterFix;
+        Engine.PhysicsJitterFix=0;
+    }
+    public override void _ExitTree() => Engine.PhysicsJitterFix=_previousPhysicsJitterFix;
     public override void _Ready()
     {
         Map = new CityMap { Name="Map", Broken=Progress.BoulderBroken,CacheOpen=Progress.CacheClaimed }; AddChild(Map);
@@ -45,7 +52,8 @@ public partial class FirstCity : Node2D
         {
             Vector2 position=new(671+i*77,528);
             // 展示马放在敞栏内，头部低于棚檐；骑乘仍使用玩家身上的完整坐骑表现。
-            _stableHorses[i]=new CityHorse { Position=position,Scale=new(.8f,.8f),Appearance=_horseAppearances[i] }; Map.Actors.AddChild(_stableHorses[i]);
+            _stableHorses[i]=CityHorse.CreateForCity(_horseAppearances[i]);
+            _stableHorses[i].Position=position; _stableHorses[i].Scale=new(.8f,.8f); Map.Actors.AddChild(_stableHorses[i]);
             AddInteraction(i==0 ? "horse-brown" : "horse-white",i==0 ? "枣红马" : "青骢马",position+new Vector2(0,8));
         }
         Player=GD.Load<PackedScene>(WorldScenePaths.Combatant).Instantiate<Combatant>();
@@ -55,8 +63,10 @@ public partial class FirstCity : Node2D
         Map.Actors.AddChild(Player); Session.RestoreHealth(Player);
         Player.GetNode(NodeNames.GroundEffects).ProcessMode=ProcessModeEnum.Disabled;
         Player.GetNode<Node2D>(NodeNames.GroundEffects).Hide();
-        _ridingHorse=new CityHorse { Name="RidingHorse",Rider=Player,Appearance=_horseAppearances[0],Visible=false }; Player.AddChild(_ridingHorse); Player.MoveChild(_ridingHorse,0);
-        Camera=new Camera2D { Position=Player.Position+CityCameraLookAhead,Zoom=new(.85f,.85f), LimitLeft=0,LimitTop=-80,LimitRight=960,LimitBottom=640,PositionSmoothingEnabled=true,PositionSmoothingSpeed=9 };
+        _ridingHorse=CityHorse.CreateForCity(_horseAppearances[0]);
+        _ridingHorse.Name="RidingHorse"; _ridingHorse.Rider=Player; _ridingHorse.Visible=false;
+        Player.AddChild(_ridingHorse); Player.MoveChild(_ridingHorse,0);
+        Camera=new Camera2D { Position=Player.Position+CityCameraLookAhead,Zoom=new(.85f,.85f), LimitLeft=0,LimitTop=-80,LimitRight=960,LimitBottom=640,PositionSmoothingEnabled=true,PositionSmoothingSpeed=9,ProcessCallback=Camera2D.Camera2DProcessCallback.Idle };
         AddChild(Camera);
         BuildHud();
         Dialogue=new CityDialogue(); AddChild(Dialogue);
@@ -76,7 +86,6 @@ public partial class FirstCity : Node2D
         float dt=(float)delta;
         bool blocked=Dialogue.IsOpen || _training || _smashRemaining>0 || _switching || _overview.Visible;
         Player.SetMoveInput(blocked ? Vector2.Zero : Input.GetVector(InputActions.MoveLeft, InputActions.MoveRight, InputActions.MoveUp, InputActions.MoveDown));
-        Camera.Position=Player.Position+CityCameraLookAhead;
         if(_training)
         {
             TrainingRemaining=Mathf.Max(0,TrainingRemaining-dt); _trainingBeat-=dt;
@@ -110,6 +119,11 @@ public partial class FirstCity : Node2D
         }
         _hint.Text=_training ? $"军营锻炼中 · {TrainingRemaining:0.0} 秒" : _smashRemaining>0 ? "蓄力 · 崩击" : Nearest!=null && !blocked ? "E  "+Nearest.Title : "WASD 移动   ·   E 交互   ·   I 行囊   ·   M 导览   ·   X 下马";
         RefreshHud();
+    }
+    public override void _Process(double delta)
+    {
+        // CityHorse优先于此回调计算显示位置；镜头与人马读取同一时刻，物理根节点仍只负责碰撞。
+        Camera.GlobalPosition=(Player.IsMounted ? _ridingHorse.RenderedGlobalPosition : Player.GlobalPosition)+CityCameraLookAhead;
     }
     /// <summary>统一最近目标查询；射线阻止隔着建筑和封路巨石与后方物品交互。</summary>
     public CityInteractable FindNearest() => InteractionQuery.FindNearest(Player, Interactions,

@@ -9,6 +9,8 @@ public partial class HorseLimbSkin : Polygon2D
     private static readonly float[] ForeRadii={6.2f,3.5f,1.7f,1.5f,2.7f};
     private static readonly float[] HindRadii={7.6f,4.6f,2.0f,1.5f,2.7f};
     private readonly Vector2[] _vertices=new Vector2[SegmentVertices*4];
+    // 每条腿独享五个骨轴点与法线缓冲，连续运动时不在每帧制造临时数组。
+    private readonly Vector2[] _posePoints=new Vector2[5], _poseNormals=new Vector2[5];
     public float MaximumJointGap { get; private set; }
     public float MinimumSampleAlpha { get; private set; }=1;
     public Vector2 RootSurfaceCenter => (_vertices[0]+_vertices[Columns])*.5f;
@@ -18,7 +20,7 @@ public partial class HorseLimbSkin : Polygon2D
     {
         _front=front; _near=near;
         Name=(near?"近":"远")+(front?"前":"后")+"腿连续皮肤";
-        Texture=atlas; TextureFilter=TextureFilterEnum.Linear; Antialiased=true;
+        Texture=atlas; TextureFilter=TextureFilterEnum.LinearWithMipmaps; Material=HorseSurfaceMaterial.Shared; Antialiased=true;
         Vector2[] source=HorseArtAtlas.LegAnchors(front);
         Vector2[] sourceNormals=JointNormals(source);
         var uv=new Vector2[_vertices.Length]; var colors=new Color[_vertices.Length];
@@ -37,8 +39,9 @@ public partial class HorseLimbSkin : Polygon2D
                 int i=segment*SegmentVertices+row*Stride+col;
                 uv[i]=left.Lerp(right,col/(float)Columns);
                 MinimumSampleAlpha=Mathf.Min(MinimumSampleAlpha,image.GetPixel((int)uv[i].X,(int)uv[i].Y).A);
-                // 根部大面积平滑融入同色躯干，肌肉沿上肢运动，边缘不形成圆形补丁。
-                float alpha=segment==0?Mathf.SmoothStep(.03f,.80f,t):1;
+                // 近侧上肢的主肌肉已由身体网格绑定；这里只保留末段重叠，接到肘/膝以下。
+                // 不得完全隐藏第一段，否则伸展时两个不同法线的截面间会露出三角缝。
+                float alpha=segment==0?(near?Mathf.SmoothStep(.55f,.92f,t):Mathf.SmoothStep(.03f,.80f,t)):1;
                 float shade=near?1:FarShade;
                 colors[i]=new(shade,shade,shade,alpha);
                 if(row<Rows && col<Columns)
@@ -54,8 +57,9 @@ public partial class HorseLimbSkin : Polygon2D
 
     public void Apply(HorseLocomotion.LegPose pose,HorseBodyMotion.Pose body)
     {
-        Vector2[] points={pose.Root,pose.Proximal,pose.Joint,pose.Fetlock,pose.Hoof};
-        Vector2[] normals=JointNormals(points);
+        Vector2[] points=_posePoints, normals=_poseNormals;
+        points[0]=pose.Root; points[1]=pose.Proximal; points[2]=pose.Joint; points[3]=pose.Fetlock; points[4]=pose.Hoof;
+        JointNormals(points,normals);
         normals[0]=-(_front?body.Chest.X:body.Pelvis.X).Normalized();
         Vector2 skinOffset=body.LegSkinRoot(_front,_near)-pose.Root;
         for(int segment=0;segment<4;segment++) for(int row=0;row<=Rows;row++)
@@ -90,10 +94,14 @@ public partial class HorseLimbSkin : Polygon2D
     private static Vector2[] JointNormals(Vector2[] points)
     {
         var normals=new Vector2[points.Length];
+        JointNormals(points,normals);
+        return normals;
+    }
+    private static void JointNormals(Vector2[] points,Vector2[] normals)
+    {
         normals[0]=Normal((points[1]-points[0]).Normalized());
         normals[^1]=Normal((points[^1]-points[^2]).Normalized());
         for(int i=1;i<points.Length-1;i++) normals[i]=Normal(((points[i]-points[i-1]).Normalized()+(points[i+1]-points[i]).Normalized()).Normalized());
-        return normals;
     }
     private static Vector2 SectionNormal(Vector2[] points,Vector2[] normals,int segment,float t)
     {

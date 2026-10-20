@@ -1,0 +1,57 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://Scripts/Tools/HorseComponentDemo.cs" id="1"]
+[ext_resource type="PackedScene" path="res://Components/Mounts/ChestnutHorse.tscn" id="2"]
+[ext_resource type="PackedScene" path="res://Components/Mounts/DappleHorse.tscn" id="3"]
+
+[node name="HorseComponentDemo" type="Node2D"]
+script = ExtResource("1")
+
+[node name="Background" type="ColorRect" parent="."]
+offset_right = 640.0
+offset_bottom = 360.0
+mouse_filter = 2
+color = Color(0.91, 0.88, 0.82, 1)
+
+[node name="Title" type="Label" parent="."]
+offset_left = 22.0
+offset_top = 15.0
+theme_override_colors/font_color = Color(0.23, 0.21, 0.17, 1)
+theme_override_font_sizes/font_size = 21
+text = "马匹组件 · 独立动作预览"
+
+[node name="Hint" type="Label" parent="."]
+offset_left = 22.0
+offset_top = 49.0
+theme_override_colors/font_color = Color(0.38, 0.34, 0.28, 1)
+theme_override_font_sizes/font_size = 13
+text = "空格 播放/暂停    R 站立    ← / → 朝向"
+
+[node name="ChestnutLarge" parent="." instance=ExtResource("2")]
+position = Vector2(160, 221)
+scale = Vector2(2.5, 2.5)
+AutoPlayPreview = true
+PreviewSpeed = 190.0
+
+[node name="DappleLarge" parent="." instance=ExtResource("3")]
+position = Vector2(465, 221)
+scale = Vector2(2.5, 2.5)
+AutoPlayPreview = true
+PreviewSpeed = 250.0
+
+[node name="SizeHint" type="Label" parent="."]
+offset_left = 22.0
+offset_top = 248.0
+theme_override_colors/font_color = Color(0.38, 0.34, 0.28, 1)
+theme_override_font_sizes/font_size = 13
+text = "上方放大检查连接 · 下方为游戏尺寸"
+
+[node name="ChestnutSmall" parent="." instance=ExtResource("2")]
+position = Vector2(160, 338)
+AutoPlayPreview = true
+PreviewSpeed = 190.0
+
+[node name="DappleSmall" parent="." instance=ExtResource("3")]
+position = Vector2(465, 338)
+AutoPlayPreview = true
+PreviewSpeed = 250.0

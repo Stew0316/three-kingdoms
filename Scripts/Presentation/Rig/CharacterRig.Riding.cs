@@ -2,6 +2,8 @@ using Godot;
 
 public partial class CharacterRig
 {
+    /// <summary>骑乘适配层显式绑定，不依赖坐骑的节点名或城市类型。</summary>
+    public HorseActor RidingMount { get; set; }
     /// <summary>取最终靴掌纹理的底边中心；IK不可达时仍与实际画出的脚一致。</summary>
     public Vector2 RidingSoleWorld => _referenceFeet[1] is Sprite2D foot
         ? foot.ToGlobal(new Vector2(foot.Texture.GetWidth() * .5f, foot.Texture.GetHeight()))
@@ -18,48 +20,46 @@ public partial class CharacterRig
         _lastTime = Actor.VisualTime;
         _lastWalkDistance = Actor.WalkDistance;
         _walkWeight = 0;
-        var horse = Actor.GetNodeOrNull<CityHorse>("RidingHorse");
+        var horse = RidingMount;
         float facing = horse?.Facing ?? (Actor.FacingDirection.X < -.1f ? -1 : 1);
         float scale = ArtScale / .05f;
         Scale = new Vector2(facing * scale, scale * Actor.Presentation.Model.DepthScale);
 
         // 鞍点已经包含马躯干起伏与俯仰造成的位移；不能再叠加一套骑手弹跳时钟。
-        Position = new Vector2(0, -24) + (horse?.SaddleOffset ?? Vector2.Zero);
+        // 用世界鞍点换到人物局部坐标，坐骑重命名或换父节点后仍保持实际接触。
+        Position = horse?.PaintedRig!=null ? Actor.ToLocal(horse.PaintedRig.SaddleWorld)+new Vector2(0,19)
+            : new Vector2(0,-24);
         Rotation = 0;
         Modulate = Colors.White;
         float pitch = horse?.BodyPitch ?? 0;
         float lean = horse?.RiderLean ?? 0;
-        float phase = (horse?.GaitPhase ?? 0) * Mathf.Tau;
         float weight = horse?.GaitWeight ?? 0;
+        var riding = HorseRiderPose.Sample(pitch,lean,horse?.RenderGaitPhase??0,weight,_pelvisHeight);
 
         _referenceFrame = ReferenceFrame.From(Actor.Presentation.Animation.StandingPose);
         _referenceFrame.Pelvis = new Vector2(0, -2);
         // Chest/Head 都是父骨相对角度：腰随鞍滚动，胸椎抵消大部分摇摆并保持轻前倾。
         // 这使肩髋有相对运动，视线仍稳定向前，避免整个人像木柱一样跟马背平移。
-        _referenceFrame.Waist = pitch * .7f;
-        _referenceFrame.Chest = .045f + lean - _referenceFrame.Waist * .82f;
-        float upperBodyAngle = _referenceFrame.Waist + _referenceFrame.Chest;
-        _referenceFrame.Head = .015f - upperBodyAngle * .9f;
+        _referenceFrame.Waist = riding.Waist;
+        _referenceFrame.Chest = riding.Chest;
+        _referenceFrame.Head = riding.Head;
 
         // 手脚属于鞍的接触点，绕同一坐骨基准变换；腰部摇摆由膝、肘的固定骨长 IK 吸收。
-        Vector2 seat = new(0, -_pelvisHeight - 2);
-        Vector2 FollowSaddle(Vector2 point) => seat + (point - seat).Rotated(pitch);
-        _referenceFrame.FarFoot = FollowSaddle(new Vector2(10, -9));
-        _referenceFrame.NearFoot = FollowSaddle(new Vector2(15, -5));
-        Vector2 reinFollow = new(lean * 4, -lean * 2);
-        _referenceFrame.FarHand = FollowSaddle(new Vector2(16, -36)) + reinFollow;
-        _referenceFrame.FreeHand = FollowSaddle(new Vector2(19, -32)) + reinFollow;
+        _referenceFrame.FarFoot = riding.FarFoot;
+        _referenceFrame.NearFoot = riding.NearFoot;
+        _referenceFrame.FarHand = riding.FarHand;
+        _referenceFrame.FreeHand = riding.NearHand;
         _referenceFrame.Grip = 0;
         _referenceFrame.Weapon = _referenceFrame.OffhandWeapon = 0;
-        _referenceFrame.FarFootRoll = _referenceFrame.NearFootRoll = pitch * .7f;
+        _referenceFrame.FarFootRoll = _referenceFrame.NearFootRoll = riding.FootRoll;
         ApplyReferenceFrame(_referenceFrame);
 
         // 执缰时拳掌沿前臂保持中立，不能继承各武将为长柄刀剑设置的握械腕角。
         SetReferenceHandRotation(5, 4, 0, 0);
         SetReferenceHandRotation(8, 7, 0, 0);
         // 披风与冠翎只作滞后小摆，主节奏仍来自实际路程，不用视觉时间让停马继续颠簸。
-        _bones[13].Rotation = -.08f - lean * .45f + Mathf.Sin(phase - .65f) * .035f * weight;
-        _bones[15].Rotation = -upperBodyAngle * .12f + Mathf.Sin(phase - .9f) * .025f * weight;
+        _bones[13].Rotation = riding.Cape;
+        _bones[15].Rotation = riding.Crest;
         SyncParts();
     }
 }

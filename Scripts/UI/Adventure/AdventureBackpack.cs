@@ -17,7 +17,7 @@ public static class AdventureBackpack
             (session.TorchInUse ? "收起火把" : "使用火把", () =>
             {
                 if (session.TorchInUse) { session.PutAwayTorch(); notify("已收起火把 · 已点燃的蜡烛继续照明"); }
-                else if (session.UseTorch()) notify("火把已点燃 · 靠近墙上蜡烛按 E 点火");
+                else if (session.UseTorch()) notify($"火把已点燃 · 靠近墙上蜡烛按 {session.Bindings.Label(InputActions.Interact)} 点火");
             }));
     }
 }

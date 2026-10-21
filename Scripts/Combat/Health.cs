@@ -9,9 +9,22 @@ public partial class Health : Node
     [Signal] public delegate void DiedEventHandler();
 
     // 生命上限，在角色场景 Inspector 中配置，生成与重置时作为初始血量。
-    [Export] public int MaxHealth { get; set; } = 100;
+    private int _maxHealth = 100, _currentHealth;
+    private CharacterAttributes _attributes;
+    [Export] public int MaxHealth
+    {
+        get => _attributes?.Config.MaxHealth ?? _maxHealth;
+        set { if (_attributes != null) _attributes.Config.MaxHealth = value; else _maxHealth = value; }
+    }
     // 当前剩余生命，只允许生命组件内部修改。
-    public int CurrentHealth { get; private set; }
+    public int CurrentHealth
+    {
+        get => _attributes?.CurrentHealth ?? _currentHealth;
+        private set { if (_attributes != null) _attributes.CurrentHealth = value; else _currentHealth = value; }
+    }
+
+    /// <summary>绑定跨图唯一生命数据；局部组件只负责结算并发信号。</summary>
+    public void Bind(CharacterAttributes attributes) => _attributes = attributes;
 
     /// <summary>角色入树时按上限初始化生命。</summary>
     public override void _Ready()

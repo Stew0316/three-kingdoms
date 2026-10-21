@@ -14,6 +14,8 @@ public sealed class AdventureProgress
     public bool WeaponForged { get; set; }
     public int Coins { get; set; } = 120;
     public float HealthRatio { get; set; } = 1;
+    // 按人物稳定 ID 保存倍率；缺省为 1，兼容已有版本 1 存档。
+    public Dictionary<string, float> CharacterMoveRates { get; set; } = new();
     // 兼容旧版存档：缺失的新字段自动初始化，不重置原有任务与成长。
     public Dictionary<string, int> Items { get; set; } = new();
     public HashSet<string> LitCaveCandles { get; set; } = new();

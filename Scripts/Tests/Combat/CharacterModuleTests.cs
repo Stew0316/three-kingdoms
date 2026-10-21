@@ -79,7 +79,9 @@ public partial class CharacterModuleTests : Node
                 && !Player.TryAction(CombatAction.Dash), "卸装重装不会清空冷却或绕过冷却施法");
             Check(!Player.TryEquipSkill(CombatAction.Basic, borrowedSweep), "同一单位禁止重复装入相同技能ID");
             await Frames(2);
-            Check(HasLabel(_arena.GetNode(NodeNames.Hud), text => text.Contains("K " + borrowedSweep.DisplayName)), "HUD技能名跟随当前装备，不写死突进标签");
+            Check(_arena.Navigation.StatusBar.Skills[0].TooltipText==borrowedSweep.Description
+                && _arena.Player.GetSkill(CombatAction.Dash).DisplayName==borrowedSweep.DisplayName,
+                "底栏技能说明跟随当前装备，不写死突进标签");
             await Frames(240); // 狂骨战意到期后单独验收被动，避免主动吸血影响反伤血量断言。
 
             var playerPassive = Player.Skills.Passives[0];

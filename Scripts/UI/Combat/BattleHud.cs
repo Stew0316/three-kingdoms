@@ -34,6 +34,7 @@ public partial class BattleHud : CanvasLayer
     private bool _showDebug;
     private Control _roster;
     private bool _pausedBeforeRoster;
+    public bool RosterVisible => _roster?.Visible == true;
 
     /// <summary>按 640×360 布局坐标建立控件并订阅生命信号；暂停时仍处理界面。</summary>
     public override void _Ready()
@@ -48,7 +49,7 @@ public partial class BattleHud : CanvasLayer
         root.Theme = new Theme { DefaultFont = font, DefaultFontSize = 12 };
         AddChild(root);
         var header = new Control { Visible = !_arena.IsGroupPractice, MouseFilter = Control.MouseFilterEnum.Ignore };
-        root.AddChild(header);
+        root.AddChild(header); header.Position=new(0,40);
         AddPanel(header, new Rect2(16, 10, 608, 53), new Color(BattleUiColors.Panel));
         AddLabel(header, configuredPlayer.Ui.DisplayName, new Rect2(29, 16, 110, 22), 18, configuredPlayer.Ui.NameColor);
         AddLabel(header, _arena.IsSoloPractice ? "单人练习" : configuredEnemy.Ui.DisplayName, new Rect2(501, 16, 110, 22), 18, configuredEnemy.Ui.NameColor, HorizontalAlignment.Right);
@@ -59,19 +60,19 @@ public partial class BattleHud : CanvasLayer
         _playerBar = AddBar(header, new Rect2(29, 45, 190, 6), configuredPlayer.Ui.HealthColor);
         _enemyBar = AddBar(header, new Rect2(421, 45, 190, 6), configuredEnemy.Ui.HealthColor);
         _enemyBar.Visible = _enemyHealth.Visible = !_arena.IsSoloPractice;
-        if (_arena.IsGroupPractice) BuildGroupHeader(root);
-        AddPanel(root, new Rect2(16, 66, 529, 20), new Color(BattleUiColors.Panel));
-        _skills = AddLabel(root, string.Empty, new Rect2(20, 67, 520, 17), 11, new Color(BattleUiColors.SkillText), HorizontalAlignment.Center);
-        _state = AddLabel(root, string.Empty, new Rect2(26, 100, 550, 18), 10, new Color(BattleUiColors.DebugText));
-        _playerEffects = AddLabel(root, string.Empty, new Rect2(29, 87, 260, 16), 10, configuredPlayer.Ui.DetailColor);
-        _enemyEffects = AddLabel(root, string.Empty, new Rect2(326, 87, 285, 16), 10, configuredEnemy.Ui.DetailColor, HorizontalAlignment.Right);
-        AddPanel(root,new Rect2(22,301,596,23),new Color("f5e4b9"));
-        _playerPassives = AddLabel(root, DescribePassives(configuredPlayer), new Rect2(30,304,282,16),10,configuredPlayer.Ui.DetailColor);
-        _enemyPassives = AddLabel(root, _arena.IsSoloPractice ? "对手已停用 · 自由移动观察步态" : DescribePassives(configuredEnemy), new Rect2(322,304,286,16),10,configuredEnemy.Ui.DetailColor,HorizontalAlignment.Right);
+        if (_arena.IsGroupPractice) { var group=new Control { Position=new(0,40),MouseFilter=Control.MouseFilterEnum.Ignore }; root.AddChild(group); BuildGroupHeader(group); }
+        AddPanel(root, new Rect2(16, 106, 529, 20), new Color(BattleUiColors.Panel));
+        _skills = AddLabel(root, string.Empty, new Rect2(20, 107, 520, 17), 11, new Color(BattleUiColors.SkillText), HorizontalAlignment.Center);
+        _state = AddLabel(root, string.Empty, new Rect2(26, 140, 550, 18), 10, new Color(BattleUiColors.DebugText));
+        _playerEffects = AddLabel(root, string.Empty, new Rect2(29, 127, 260, 16), 10, configuredPlayer.Ui.DetailColor);
+        _enemyEffects = AddLabel(root, string.Empty, new Rect2(326, 127, 285, 16), 10, configuredEnemy.Ui.DetailColor, HorizontalAlignment.Right);
+        AddPanel(root,new Rect2(168,260,450,23),new Color("f5e4b9"));
+        _playerPassives = AddLabel(root, DescribePassives(configuredPlayer), new Rect2(176,263,205,16),10,configuredPlayer.Ui.DetailColor);
+        _enemyPassives = AddLabel(root, _arena.IsSoloPractice ? "对手已停用 · 自由移动观察步态" : DescribePassives(configuredEnemy), new Rect2(389,263,219,16),10,configuredEnemy.Ui.DetailColor,HorizontalAlignment.Right);
         _playerPassives.ClipText = _enemyPassives.ClipText = true; // 长技能名不能挤出边框；悬停仍可查看完整内容。
         _playerPassives.MouseFilter = _enemyPassives.MouseFilter = Control.MouseFilterEnum.Pass;
-        _controls = AddLabel(root, string.Empty, new Rect2(14, 329, 612, 16), 11, new Color(BattleUiColors.ControlText), HorizontalAlignment.Center);
-        AddLabel(root, BattleTexts.DebugControls, new Rect2(14, 345, 612, 14), 9, new Color(BattleUiColors.HelpText), HorizontalAlignment.Center);
+        _controls = AddLabel(root, string.Empty, new Rect2(14, 285, 612, 16), 11, new Color(BattleUiColors.ControlText), HorizontalAlignment.Center);
+
 
         _overlay = new Control { Visible = false, MouseFilter = Control.MouseFilterEnum.Stop };
         _overlay.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
@@ -84,7 +85,7 @@ public partial class BattleHud : CanvasLayer
         _subtitle = AddLabel(_overlay, string.Empty, new Rect2(180, 163, 280, 20), 12, new Color(BattleUiColors.OverlayText), HorizontalAlignment.Center);
         _resume = AddButton(_overlay, BattleTexts.Resume, new Rect2(206, 213, 106, 30));
         _resume.Pressed += TogglePause;
-        var restart = AddButton(_overlay, BattleTexts.Restart, new Rect2(326, 213, 110, 30));
+        var restart = AddButton(_overlay, "重新挑战", new Rect2(326, 213, 110, 30));
         restart.Pressed += Restart;
         var player = _arena.GetNode<Combatant>(SceneNodePaths.Player);
         var enemy = _arena.GetNode<Combatant>(SceneNodePaths.Enemy);
@@ -92,13 +93,13 @@ public partial class BattleHud : CanvasLayer
         enemy.Health.Damaged += UpdateEnemyHealth;
         UpdatePlayerHealth(player.Health.CurrentHealth, player.Health.MaxHealth);
         UpdateEnemyHealth(enemy.Health.CurrentHealth, enemy.Health.MaxHealth);
-        var choose = AddButton(root, "选武将", new Rect2(552, 66, 72, 23));
+        var choose = AddButton(root, "选武将", new Rect2(552, 106, 72, 23));
         choose.Pressed += () => { _pausedBeforeRoster = GetTree().Paused; GetTree().Paused = true; _roster.Show(); };
         BuildRoster(root);
         if (AdventureSession.Instance?.InCityTrial == true)
         {
             choose.Hide();
-            var back = AddButton(root, "返回槐安", new Rect2(552, 66, 72, 23));
+            var back = AddButton(root, "返回槐安", new Rect2(552, 106, 72, 23));
             back.Pressed += () => AdventureSession.Instance.ReturnToCity(GetTree(), _arena.Player);
             var resultBack = AddButton(_overlay, "返回城池 / 交任务", new Rect2(230, 270, 180, 28));
             resultBack.Pressed += () => AdventureSession.Instance.ReturnToCity(GetTree(), _arena.Player);
@@ -124,6 +125,7 @@ public partial class BattleHud : CanvasLayer
     /// <summary>处理尚未被其他控件消费的 input；重开前先消费事件，避免访问已离树的 HUD。</summary>
     public override void _UnhandledInput(InputEvent input)
     {
+        if (_arena.Navigation?.IsOpen == true) { GetViewport().SetInputAsHandled(); return; }
         if (_roster?.Visible == true)
         {
             if (input.IsActionPressed(InputActions.Pause)) { _roster.Hide(); GetTree().Paused = _pausedBeforeRoster; }
@@ -160,7 +162,7 @@ public partial class BattleHud : CanvasLayer
         var configuredEnemy = _arena.Enemy;
         _clock.Text = _arena.IsSoloPractice ? $"练习 {_arena.BattleSeconds:0.0}s" : string.Format(BattleTexts.BattleClockFormat,
             configuredPlayer.Ui.DisplayName, configuredEnemy.Ui.DisplayName, _arena.BattleSeconds);
-        _skills.Text = $"K {SkillText(CombatAction.Dash)}    L {SkillText(CombatAction.Sweep)}    空格 {SkillText(CombatAction.Dodge)}";
+        _skills.Text = $"{AdventureSession.Instance.Bindings.Label(InputActions.Attack)} / 左键 普攻    {AdventureSession.Instance.Bindings.Label(InputActions.Dodge)} 闪避    {AdventureSession.Instance.Bindings.Label(InputActions.Restart)} 重开";
         _playerPassives.Text = DescribePassives(configuredPlayer);
         _enemyPassives.Text = _arena.IsSoloPractice ? "对手已停用 · 自由移动观察步态" : _arena.IsGroupPractice
             ? $"四将同场 · 剩余对手 {_arena.Enemies.Count(actor => !actor.IsDead)}/3 · {_arena.BattleSeconds:0}s"
@@ -173,18 +175,18 @@ public partial class BattleHud : CanvasLayer
             ? string.Join(" · ", _arena.Enemies.Where(actor => DescribeEffects(actor) != "").Select(actor => actor.Ui.DisplayName + " " + DescribeEffects(actor)))
             : DescribeEffects(configuredEnemy);
         _enemyEffects.ClipText = true;
-        _controls.Text = $"WASD / 方向键 移动    J / 左键 {SkillName(CombatAction.Basic)}    K {SkillName(CombatAction.Dash)}    L {SkillName(CombatAction.Sweep)}    空格 {SkillName(CombatAction.Dodge)}";
+        _controls.Text = "Esc 菜单 / 设置   ·   M 天下图   ·   技能与物品可点击底栏使用";
         _state.Visible = _showDebug;
         _state.Text = _arena.IsSoloPractice ? $"{configuredPlayer.Ui.DisplayName}：{_arena.Player.Phase}　实际速度 {_arena.Player.WalkVelocity.Length():0}　步态 {_arena.Player.Rig.WalkPhase:0.00}" : string.Format(BattleTexts.DebugStateFormat,
             configuredPlayer.Ui.DisplayName, _arena.Player.CurrentState, _arena.Player.Phase,
             configuredEnemy.Ui.DisplayName, _arena.Enemy.CurrentState,
             _arena.Enemy.GetNode<WeiYanController>(NodeNames.Controller).Decision);
         bool paused = GetTree().Paused;
-        _overlay.Visible = (_arena.Finished || paused) && !_roster.Visible;
+        _overlay.Visible = (_arena.Finished || paused) && !_roster.Visible && _arena.Navigation?.IsOpen != true;
         if (!_overlay.Visible) return;
         _result.Text = _arena.Finished ? _arena.Result : BattleTexts.PauseTitle;
         _subtitle.Text = _arena.Finished
-            ? string.Format(BattleTexts.FinishedSubtitleFormat, _arena.BattleSeconds)
+            ? $"用时 {_arena.BattleSeconds:0.0} 秒 · 按 {AdventureSession.Instance.Bindings.Label(InputActions.Restart)} 再战一局"
             : BattleTexts.PausedSubtitle;
         _resume.Visible = !_arena.Finished;
     }
@@ -266,7 +268,11 @@ public partial class BattleHud : CanvasLayer
     /// <summary>在对战尚未结算时切换暂停；HUD 自身使用 Always 模式保持可操作。</summary>
     private void TogglePause() { if (!_arena.Finished) GetTree().Paused = !GetTree().Paused; }
     /// <summary>先解除暂停，再重载当前场景；调用后旧 HUD 已离树，不应继续访问其节点。</summary>
-    private void Restart() { GetTree().Paused = false; GetTree().ReloadCurrentScene(); }
+    private void Restart()
+    {
+        AdventureSession.Instance?.PrepareTrialRestart();
+        GetTree().Paused = false; GetTree().ReloadCurrentScene();
+    }
 
     /// <summary>以 color 创建统一圆角底色样式，每次返回独立资源。</summary>
     private static StyleBoxFlat Box(Color color) => UiStyles.Panel(color, new Color("5c6849"), border: 2);

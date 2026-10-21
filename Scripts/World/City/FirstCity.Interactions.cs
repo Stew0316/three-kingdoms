@@ -7,8 +7,8 @@ public partial class FirstCity
 {
     public void Interact(CityInteractable target)
     {
-        if(Dialogue.IsOpen || _training || _smashRemaining>0 || _switching || target!=FindNearest()) return;
-        Player.SetMoveInput(Vector2.Zero);
+        if(Dialogue.IsOpen || Navigation.IsOpen || _training || _smashRemaining>0 || _switching || target!=FindNearest()) return;
+        Player.StopMoving();
         switch(target.ContentId)
         {
             case "captain": CaptainDialogue(); break;
@@ -22,8 +22,8 @@ public partial class FirstCity
                     else Toast(Progress.WeaponForged ? "兵刃已经开锋" : "铜钱不足，先去完成演武任务或寻找旧驿道木匣");
                 })); break;
             case "resident": Dialogue.Open("槐婆 · 槐下民居","城门旁那块巨石，寻常刀剑打不动。韩教头会教你崩击。石后是废弃的旧驿道，据说还留着一只木匣。\n东边出城是演武场；南边马厩的两匹马脚程可不一样。"); break;
-            case "groom": Dialogue.Open("小满 · 马厩","枣红马性子稳，青骢马脚程快。走进马厩，靠近想骑的马按 E 上马；按 X 下马，马匹会送回原栏。\n骑马可以在城里赶路，进演武场时先下马。",
-                ($"枣红马 {Config.BrownHorseSpeed:0} / 青骢马 {Config.WhiteHorseSpeed:0} 像素每秒",()=>Toast("进马厩靠近马匹，按 E 选择坐骑"))); break;
+            case "groom": Dialogue.Open("小满 · 马厩",$"枣红马性子稳，青骢马脚程快。走进马厩，靠近想骑的马按 {Session.Bindings.Label(InputActions.Interact)} 上马；按 X 下马，马匹会送回原栏。\n骑马可以在城里赶路，进演武场时先下马。",
+                ($"枣红马 {Config.BrownHorseSpeed:0} / 青骢马 {Config.WhiteHorseSpeed:0} 像素每秒",()=>Toast($"进马厩靠近马匹，按 {Session.Bindings.Label(InputActions.Interact)} 选择坐骑"))); break;
             case "horse-brown": HorseDialogue(1); break;
             case "horse-white": HorseDialogue(2); break;
             case "gate": Dialogue.Open("东门 · 演武场",Progress.Trial==AdventureProgress.QuestStage.Available ? "城外演武场默认魏延、关羽、刘备三将同场。建议先去军营接任务，击败魏延后即可回城交付。" : "进入四人演武场，与魏延、关羽、刘备切磋。击败魏延即可按“返回槐安”回城交任务，也可继续挑战其余两将；失败可回驿站恢复。",

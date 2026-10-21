@@ -10,6 +10,12 @@ public static class InputActions
     public const string Attack = "attack";
     public const string Skill1 = "skill_1";
     public const string Skill2 = "skill_2";
+    public const string Skill3 = "skill_3";
+    public const string Skill4 = "skill_4";
+    public const string Interact = "interact";
+    public static readonly string[] SkillSlots = { Skill1, Skill2, Skill3, Skill4 };
+    public static readonly string[] ItemSlots = { "item_1", "item_2", "item_3", "item_4" };
+    public static readonly CombatAction[] SkillActions = { CombatAction.Dash, CombatAction.Sweep, CombatAction.Skill3, CombatAction.Skill4 };
     public const string Dodge = "dodge";
     public const string Pause = "pause_game";
     public const string Restart = "restart_battle";

@@ -4,7 +4,7 @@ using System.Collections.Generic;
 /// <summary>单位独占的技能槽和冷却。共享 Resource 始终只读，卸下技能仍保留其剩余冷却。</summary>
 public sealed class SkillLoadoutRuntime
 {
-    private readonly CombatActionConfig[] _slots = new CombatActionConfig[4];
+    private readonly CombatActionConfig[] _slots = new CombatActionConfig[6];
     private readonly List<PassiveConfig> _passives = new();
     private readonly Dictionary<string, float> _cooldowns = new();
     private readonly List<string> _cooldownKeys = new();

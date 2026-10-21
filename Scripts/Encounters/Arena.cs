@@ -8,6 +8,7 @@ public partial class Arena : Node2D
 {
     // 本场玩家角色，在场景 Ready 完成后可用。
     public Combatant Player { get; private set; }
+    public AdventureMenu Navigation { get; private set; }
     // 本场敌方角色，作为玩家对手并由 AI 驱动。
     public Combatant Enemy { get; private set; }
     // Enemy 保留为首位对手，兼容单角色姿态测试；遭遇逻辑统一读取集合。
@@ -68,6 +69,13 @@ public partial class Arena : Node2D
     {
         Player = GetNode<Combatant>(SceneNodePaths.Player);
         Enemy = GetNode<Combatant>(SceneNodePaths.Enemy);
+        if(!Hd2D)
+        {
+            GetNode<Camera2D>("Camera2D").Zoom=Vector2.One*AdventureSession.Instance.Settings.ArenaZoom;
+            Navigation=new AdventureMenu { Player=Player,World=this,Region="演武场",
+                CanOpen=()=>!Finished && !GetNode<BattleHud>("HUD").RosterVisible };
+            AddChild(Navigation);
+        }
         if (AdventureSession.Instance?.InCityTrial == true) AdventureSession.Instance.RestoreHealth(Player);
         foreach (var enemy in Enemies) enemy.GetNode<WeiYanController>(NodeNames.Controller).Target = Player;
         Resolver = new CombatResolver();
@@ -206,7 +214,7 @@ public partial class Arena : Node2D
     public override void _Draw()
     {
         if (Hd2D) return;
-        DrawRect(new Rect2(0,0,640,360),new Color(ArenaVisualConstants.GrassDark));
+        DrawRect(new Rect2(-640,-360,1920,1080),new Color(ArenaVisualConstants.GrassDark));
         // 16 像素网格草地使用固定随机明暗，强调 GBA 时代地图块感但不要求逐格移动。
         var random = new RandomNumberGenerator { Seed = ArenaVisualConstants.StonePatternSeed };
         for(int row=4;row<22;row++) for(int col=0;col<40;col++)

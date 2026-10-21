@@ -4,7 +4,18 @@ using Godot;
 public partial class Combatant : CharacterBody2D
 {
     // 冒险成长与骑乘是单位实例状态，不修改技能定义和武将共享配置。
-    public float ProgressionDamageMultiplier { get; set; } = 1;
+    public CharacterAttributes Attributes { get; set; }
+    private float _localDamageMultiplier = 1;
+    public float ProgressionDamageMultiplier
+    {
+        get => Attributes?.DamageMultiplier ?? _localDamageMultiplier;
+        set { if (Attributes != null) Attributes.DamageMultiplier = value; else _localDamageMultiplier = value; }
+    }
+    public float LocalMoveRate { get; set; } = 1; // 独立演武倍率不写回冒险人物。
+    public bool SuppressActionsUntilReleased { get; set; } // 菜单关闭后等待攻击键松开，避免确认点击穿透。
+    public float MoveRate => Attributes?.MoveRate ?? LocalMoveRate;
+    public float BaseMoveSpeed => ExplorationSpeedOverride > 0 ? ExplorationSpeedOverride : Config.MoveSpeed;
+    public float TargetMoveSpeed => BaseMoveSpeed * MoveRate * Status.MoveMultiplier;
     public float ExplorationSpeedOverride { get; set; }
     public bool IsMounted { get; set; }
     // Idle/Move 接收行动，Attack/Dodge 执行动作，Hurt 锁定受击，Dead 永久停止行动。
@@ -102,6 +113,7 @@ public partial class Combatant : CharacterBody2D
         Rig = GetNode<CharacterRig>(NodeNames.Rig);
         Trail = GetNode<WeaponTrail>(NodeNames.WeaponTrail);
         Health.Configure(Config.MaxHealth);
+        if (Attributes != null) Health.Bind(Attributes);
         _visual = GetNode<Sprite2D>(NodeNames.Visual);
         _hitbox = GetNode<Hitbox>(NodeNames.AttackHitbox);
         _hurtbox = GetNode<Hurtbox>(NodeNames.Hurtbox);
@@ -125,6 +137,13 @@ public partial class Combatant : CharacterBody2D
     {
         _moveInput = input.LimitLength();
         if (CanAct && !input.IsZeroApprox()) Face(input);
+    }
+
+    /// <summary>模态界面立即截断移动，不能因制动过渡滑入交互目标。</summary>
+    public void StopMoving()
+    {
+        _moveInput = Vector2.Zero;
+        if (CurrentState is State.Idle or State.Move) Velocity = Vector2.Zero;
     }
 
     /// <summary>以 direction 更新朝向；攻击、受击等锁定状态下忽略转向。</summary>
@@ -193,8 +212,11 @@ public partial class Combatant : CharacterBody2D
         }
         else
         {
-            Velocity = _moveInput * (ExplorationSpeedOverride > 0 ? ExplorationSpeedOverride : Config.MoveSpeed) * Status.MoveMultiplier;
-            SetState(_moveInput.IsZeroApprox() ? State.Idle : State.Move);
+            Vector2 target = _moveInput * TargetMoveSpeed;
+            var settings = AdventureSession.Instance?.Settings;
+            float acceleration = _moveInput.IsZeroApprox() ? settings?.Deceleration ?? 2200 : settings?.Acceleration ?? 1500;
+            Velocity = Velocity.MoveToward(target, acceleration * dt);
+            SetState(Velocity.IsZeroApprox() ? State.Idle : State.Move);
             Vector2 beforeMove = GlobalPosition;
             MoveAndSlide();
             Vector2 travel = GlobalPosition - beforeMove;

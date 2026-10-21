@@ -10,6 +10,7 @@ public partial class OldRoadCave : Node2D
     public CaveMap Map { get; private set; }
     public CityDialogue Dialogue { get; private set; }
     public Camera2D Camera { get; private set; }
+    public AdventureMenu Navigation { get; private set; }
     public CanvasModulate Darkness { get; private set; }
     public List<CityInteractable> Interactions { get; } = new();
     public Dictionary<string,CaveFlame> Candles { get; } = new();
@@ -38,10 +39,12 @@ public partial class OldRoadCave : Node2D
         Map.Actors.AddChild(Player); Session.RestoreHealth(Player);
         Player.GetNode<Node2D>(NodeNames.GroundEffects).Hide(); Player.GetNode(NodeNames.GroundEffects).ProcessMode=ProcessModeEnum.Disabled;
         Torch=new CaveFlame { IsTorch=true,Position=new(-17,-17),Burning=Session.TorchInUse }; Player.AddChild(Torch);
-        Camera=new Camera2D { Position=Player.Position,Zoom=new(1,1),PositionSmoothingEnabled=true,PositionSmoothingSpeed=9,
+        Camera=new Camera2D { Position=Player.Position,Zoom=Vector2.One*Session.Settings.CaveZoom,PositionSmoothingEnabled=true,PositionSmoothingSpeed=9,
             LimitLeft=0,LimitRight=1152,LimitTop=0,LimitBottom=704 }; AddChild(Camera);
         BuildHud(); Dialogue=new CityDialogue(); AddChild(Dialogue);
-        Toast(Session.Progress.LitCaveCandles.Count>0 ? "重返旧道 · 已点燃的壁烛仍在照亮石室" : Session.TorchInUse ? "举火探路 · 靠近墙上蜡烛按 E 点火" : "洞里一片昏暗 · 领取入口火把，按 I 打开行囊并使用",6);
+        Navigation=new AdventureMenu { Player=Player,World=Map,Region="暗窟",Dialogue=Dialogue,CanOpen=()=>!_switching };
+        AddChild(Navigation);
+        Toast(Session.Progress.LitCaveCandles.Count>0 ? "重返旧道 · 已点燃的壁烛仍在照亮石室" : Session.TorchInUse ? $"举火探路 · 靠近墙上蜡烛按 {Session.Bindings.Label(InputActions.Interact)} 点火" : "洞里一片昏暗 · 领取入口火把，按 I 打开行囊并使用",6);
         if(!_testsStarted && OS.GetCmdlineUserArgs().Contains("--cave-test"))
         { _testsStarted=true; GetTree().Root.CallDeferred(Node.MethodName.AddChild,new CaveTests()); }
     }
@@ -52,12 +55,14 @@ public partial class OldRoadCave : Node2D
     }
     public override void _PhysicsProcess(double delta)
     {
-        Player.SetMoveInput(Dialogue.IsOpen || _switching ? Vector2.Zero : Input.GetVector(InputActions.MoveLeft, InputActions.MoveRight, InputActions.MoveUp, InputActions.MoveDown));
+        bool blocked=Dialogue.IsOpen || _switching || Navigation.IsOpen;
+        if(blocked) Player.StopMoving();
+        Player.SetMoveInput(blocked ? Vector2.Zero : Input.GetVector(InputActions.MoveLeft, InputActions.MoveRight, InputActions.MoveUp, InputActions.MoveDown));
         Camera.Position=Player.Position+new Vector2(0,-35);
         Torch.Burning=Session.TorchInUse && Session.Progress.HasTorch;
         var nearest=FindNearest();
         foreach(var item in Interactions) { item.Highlighted=item==nearest && !Dialogue.IsOpen; item.QueueRedraw(); }
-        _hint.Text=nearest==null ? "WASD 移动   ·   I 行囊 / 使用火把   ·   E 点火或调查" : "E  "+nearest.Title+"    ·    I 行囊";
+        _hint.Text=nearest==null ? $"I 行囊 / 使用火把 · {Session.Bindings.Label(InputActions.Interact)} 点火或调查" : Session.Bindings.Label(InputActions.Interact)+"  "+nearest.Title+"    ·    I 行囊";
         _status.Text=$"旧驿道 · 暗窟     壁烛 {Session.Progress.LitCaveCandles.Count} / {Candles.Count}     火把：{(Torch.Burning ? "使用中" : Session.Progress.HasTorch ? "未使用 · 按 I" : "未领取")}";
         _noticeTime-=(float)delta; _notice.Visible=_noticeTime>0;
     }
@@ -66,11 +71,11 @@ public partial class OldRoadCave : Node2D
     {
         if(input is not InputEventKey { Pressed:true,Echo:false } key || Dialogue.IsOpen || _switching) return;
         if(key.PhysicalKeycode==Key.I || key.Keycode==Key.I) { AdventureBackpack.Open(Dialogue,t=>Toast(t)); GetViewport().SetInputAsHandled(); }
-        if(key.PhysicalKeycode==Key.E || key.Keycode==Key.E) { Interact(FindNearest()); GetViewport().SetInputAsHandled(); }
+        if(input.IsActionPressed(InputActions.Interact)) { Interact(FindNearest()); GetViewport().SetInputAsHandled(); }
     }
     public void Interact(CityInteractable target)
     {
-        if(target==null || Dialogue.IsOpen || _switching || target!=FindNearest()) return;
+        if(target==null || Dialogue.IsOpen || Navigation.IsOpen || _switching || target!=FindNearest()) return;
         if(target.ContentId=="exit")
         {
             Dialogue.Open("旧驿道出口","沿石阶返回槐安城。已经点燃的蜡烛会继续照亮各自区域。",("返回槐安",()=>
@@ -100,12 +105,12 @@ public partial class OldRoadCave : Node2D
         var layer=new CanvasLayer { Layer=2 }; AddChild(layer);
         var root=new Control { MouseFilter=Control.MouseFilterEnum.Ignore }; root.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect); layer.AddChild(root);
         root.Theme=UiStyles.ChineseTheme(12);
-        var top=new Panel { Position=new(10,8),Size=new(620,37),MouseFilter=Control.MouseFilterEnum.Ignore };
+        var top=new Panel { Position=new(10,48),Size=new(620,37),MouseFilter=Control.MouseFilterEnum.Ignore };
         top.AddThemeStyleboxOverride("panel",CityDialogue.Box(new Color("162d30e8"),new Color("8c865d"))); root.AddChild(top);
-        _status=new Label { Position=new(22,16),Size=new(598,24),Modulate=new Color("ead5a0") }; root.AddChild(_status);
-        var bottom=new ColorRect { Position=new(0,332),Size=new(640,28),Color=new Color("132c2ded"),MouseFilter=Control.MouseFilterEnum.Ignore }; root.AddChild(bottom);
-        _hint=new Label { Position=new(12,337),Size=new(616,18),HorizontalAlignment=HorizontalAlignment.Center }; root.AddChild(_hint);
-        _notice=new Label { Position=new(12,301),Size=new(616,25),HorizontalAlignment=HorizontalAlignment.Center,Modulate=new Color("fff1c0") }; root.AddChild(_notice);
+        _status=new Label { Position=new(22,56),Size=new(598,24),Modulate=new Color("ead5a0") }; root.AddChild(_status);
+        var bottom=new ColorRect { Position=new(0,285),Size=new(640,17),Color=new Color("132c2ded"),MouseFilter=Control.MouseFilterEnum.Ignore }; root.AddChild(bottom);
+        _hint=new Label { Position=new(12,285),Size=new(616,18),HorizontalAlignment=HorizontalAlignment.Center }; root.AddChild(_hint);
+        _notice=new Label { Position=new(168,260),Size=new(460,25),HorizontalAlignment=HorizontalAlignment.Center,Modulate=new Color("fff1c0") }; root.AddChild(_notice);
         _notice.AddThemeColorOverride("font_shadow_color",new Color("162d30")); _notice.AddThemeConstantOverride("shadow_offset_y",1);
     }
 }

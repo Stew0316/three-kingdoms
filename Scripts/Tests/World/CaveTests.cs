@@ -22,7 +22,7 @@ public partial class CaveTests : Node
             Check(!Session.UseTorch(),"无火把物品不能使用");
             Check(!Session.Progress.LightCaveCandle(CaveLayout.Candles[0].Id,true),"没有物品时伪造使用状态也不能点火");
             await Visit(CaveLayout.Candles[0].Id);
-            Press(Cave,Key.E); Check(Session.Progress.LitCaveCandles.Count==0,"无火把时实际交互不能点火");
+            Press(Cave,Key.G); Check(Session.Progress.LitCaveCandles.Count==0,"无火把时实际交互不能点火");
             // 每个目标都要在连通的地面上，避免只靠瞬移测试掩盖断路。
             var seen=new HashSet<Vector2I>(); var queue=new Queue<Vector2I>();
             queue.Enqueue(new(6,18)); seen.Add(new(6,18));
@@ -30,10 +30,10 @@ public partial class CaveTests : Node
             { var q=p+d; if(CaveLayout.IsFloor(q.X,q.Y) && seen.Add(q)) queue.Enqueue(q); }
             foreach(var candle in CaveLayout.Candles)
                 Check(seen.Contains(new((int)candle.Position.X/32,(int)(candle.Position.Y+32)/32)),"地面通路可达："+candle.Title);
-            await Visit("supplies"); Press(Cave,Key.E);
+            await Visit("supplies"); Press(Cave,Key.G);
             Check(Session.Progress.HasTorch && !Session.TorchInUse,"领取物品入袋，但不会自动使用");
             Cave.Dialogue.Close();
-            await Visit(CaveLayout.Candles[0].Id); Press(Cave,Key.E);
+            await Visit(CaveLayout.Candles[0].Id); Press(Cave,Key.G);
             Check(Session.Progress.LitCaveCandles.Count==0,"仅拥有未使用火把不能点火");
             Press(Cave,Key.I); Check(Cave.Dialogue.IsOpen,"I打开实际行囊界面");
             await Capture("01-backpack");
@@ -45,7 +45,7 @@ public partial class CaveTests : Node
             // 灯光对比使用相同镜头与位置，排除随身光及火焰的影响。
             Session.PutAwayTorch(); await Frames(3);
             using var dark=await Capture("03-before-candle");
-            Session.UseTorch(); Press(Cave,Key.E); await Frames(3); Session.PutAwayTorch(); await Frames(3);
+            Session.UseTorch(); Press(Cave,Key.G); await Frames(3); Session.PutAwayTorch(); await Frames(3);
             Check(Session.Progress.LitCaveCandles.Count==1 && Cave.Candles.Values.Count(c=>c.Light.Enabled)==1,"点亮一盏只启用一个固定区域光源");
             using var lit=await Capture("04-one-region");
             if(dark!=null && lit!=null)
@@ -55,7 +55,7 @@ public partial class CaveTests : Node
                 Check(ln>dn*1.8f && ln>dn+.06f,$"实机像素：近处明显增亮 {dn:0.000} → {ln:0.000}");
                 Check(Math.Abs(lf-df)<.025f,$"实机像素：远处保持黑暗 {df:0.000} → {lf:0.000}");
             }
-            Session.UseTorch(); Press(Cave,Key.E); Check(Session.Progress.LitCaveCandles.Count==1,"重复点火幂等且不消耗火把");
+            Session.UseTorch(); Press(Cave,Key.G); Check(Session.Progress.LitCaveCandles.Count==1,"重复点火幂等且不消耗火把");
             Check(Session.Progress.Items[AdventureProgress.TorchId]==1,"多次使用仍持有一支火把");
             Check(!Session.Progress.LightCaveCandle("unknown",true),"未知蜡烛ID不能写入进度");
             // 跨墙交互：西侧蜡烛在岩壁另一侧，即使距离够近也必须拒绝。
@@ -64,7 +64,7 @@ public partial class CaveTests : Node
             Cave.Interact(west); Check(!Session.Progress.LitCaveCandles.Contains(west.ContentId),"岩壁阻止隔墙点火");
             Cave.Player.Position=new(113,210); await Frames(3); Input.ActionPress("move_left"); await Frames(25); Input.ActionRelease("move_left");
             Check(Cave.Player.Position.X>=107,"岩壁实际阻挡身体，轮廓与碰撞一致");
-            foreach(var c in CaveLayout.Candles.Skip(1)) { await Visit(c.Id); Press(Cave,Key.E); await Frames(2); Check(Cave.Candles[c.Id].Light.Enabled,"独立点亮："+c.Title); }
+            foreach(var c in CaveLayout.Candles.Skip(1)) { await Visit(c.Id); Press(Cave,Key.G); await Frames(2); Check(Cave.Candles[c.Id].Light.Enabled,"独立点亮："+c.Title); }
             await Capture("05-deep-cave");
             Check(AdventureSaveStore.Write("res://Build/cave/isolated-save.json",Session.Progress)==Error.Ok,"隔离磁盘存档成功");
             var loaded=AdventureSaveStore.Read("res://Build/cave/isolated-save.json",Session.Config);
@@ -74,16 +74,16 @@ public partial class CaveTests : Node
             var legacy=AdventureSaveStore.Read("res://Build/cave/legacy-save.json",Session.Config);
             Check(!legacy.HasTorch && legacy.LitCaveCandles.Count==0 && legacy.Coins==345 && legacy.TrainingCount==2,"旧档兼容且保留原有成长和货币");
             Session.Progress.AcceptTrial(); Session.Progress.Smash();
-            await Visit("exit"); Press(Cave,Key.E); Choose(Cave.Dialogue,"返回槐安"); await Frames(8);
+            await Visit("exit"); Press(Cave,Key.G); Choose(Cave.Dialogue,"返回槐安"); await Frames(8);
             var city=(FirstCity)GetTree().CurrentScene;
             Check(city.Player.Position.DistanceTo(new(864,512))<2,"洞窟出口返回城市正确入口");
-            city.Player.Position=new(864,506); await Frames(3); Press(city,Key.E);
+            city.Player.Position=new(864,506); await Frames(3); Press(city,Key.G);
             Check(city.Dialogue.IsOpen,"城市洞窟入口可交互"); Choose(city.Dialogue,"进入洞窟"); await Frames(8);
             Check(Cave.Candles.Values.All(c=>c.Light.Enabled) && !Cave.Player.IsMounted,"重入还原全部壁烛，洞内徒步");
             Session.PutAwayTorch(); await Frames(3);
             Check(Cave.Candles.Values.All(c=>c.Light.Enabled) && !Cave.Torch.Light.Enabled,"收起随身火把不熄灭固定壁烛");
             Session.Progress.BoulderBroken=false;
-            await Visit("exit"); Press(Cave,Key.E); Choose(Cave.Dialogue,"返回槐安"); await Frames(8);
+            await Visit("exit"); Press(Cave,Key.G); Choose(Cave.Dialogue,"返回槐安"); await Frames(8);
             Check(((FirstCity)GetTree().CurrentScene).Player.Position.DistanceTo(new(857,294))<2,"独立运行洞窟且未破石时返回城门安全点");
             GD.Print($"CAVE_TEST_PASS: {_checks} 项；真实渲染 {DisplayServer.GetName()!="headless"}"); GetTree().Quit();
         }

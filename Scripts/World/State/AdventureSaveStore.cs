@@ -15,6 +15,14 @@ public static class AdventureSaveStore
         data.TrainingCount=Math.Clamp(data.TrainingCount,0,Math.Min(config.TrainingHealth.Length,config.TrainingPower.Length));
         data.HealthRatio=float.IsFinite(data.HealthRatio) ? Math.Clamp(data.HealthRatio,.01f,1) : 1;
         data.Coins=Math.Max(0,data.Coins);
+        data.CharacterMoveRates ??= new();
+        foreach (string id in new List<string>(data.CharacterMoveRates.Keys))
+        {
+            float rate = data.CharacterMoveRates[id];
+            if (!Array.Exists(HeroCatalog.Ids, hero => "core:" + hero == id) || !float.IsFinite(rate))
+                data.CharacterMoveRates.Remove(id);
+            else data.CharacterMoveRates[id] = Math.Clamp(rate, .5f, 2f);
+        }
         data.Items ??= new Dictionary<string,int>();
         data.Items = data.HasTorch ? new Dictionary<string,int> { [AdventureProgress.TorchId]=1 } : new();
         data.LitCaveCandles ??= new HashSet<string>();

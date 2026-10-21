@@ -6,7 +6,7 @@ public static class BattleTexts
     public const string Defeat = "胜败乃兵家常事";
     public const string PauseTitle = "稍作休整";
     public const string Resume = "继续";
-    public const string Restart = "重新挑战 · R";
+    public const string Restart = "重新挑战 · F5";
     public const string Ready = "就绪";
     public const string Stop = "停止";
     public const string Observe = "观察";
@@ -21,11 +21,11 @@ public static class BattleTexts
     public const string DeadState = "阵亡";
     public const string MoveState = "移动";
     public const string IdleState = "待机";
-    public const string DebugControls = "红色扇形是敌方预警    |    Esc 暂停    R 重开    F3 状态    F4 骨骼";
+    public const string DebugControls = "红色扇形是敌方预警    |    Esc 菜单    M 天下图    F5 重开    F3 状态    F4 骨骼";
     // 以下模板统一约束 HUD 的动态文案，参数顺序由调用处的注释和类型表达。
     public const string BattleClockFormat = "{0} · 对 · {1}   {2:0}s";
     public const string DebugStateFormat = "{0} {1} / {2}     {3} {4} / {5}";
-    public const string FinishedSubtitleFormat = "用时 {0:0.0} 秒 · 按 R 再战一局";
+    public const string FinishedSubtitleFormat = "用时 {0:0.0} 秒 · 按 F5 再战一局";
     public const string PausedSubtitle = "按 Esc 继续对战";
     public const string HealthFormat = "{0} / {1}";
     public const string CooldownFormat = "{0:0.0}s";

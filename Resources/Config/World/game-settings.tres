@@ -1,0 +1,37 @@
+[gd_resource type="Resource" script_class="GameSettings" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://Scripts/Config/World/GameSettings.cs" id="1"]
+
+[resource]
+; 配置类型脚本，下面所有参数由此类型导出。
+script = ExtResource("1")
+; 普通起步加速度，像素/秒²；不影响技能突进。
+Acceleration = 1500.0
+; 普通移动制动力，像素/秒²；大于零。
+Deceleration = 2200.0
+; 玩家可选移动倍率下限，无量纲，大于零。
+MinimumMoveRate = 0.5
+; 玩家可选移动倍率上限，不小于下限。
+MaximumMoveRate = 2.0
+; 城市镜头缩放，小于 1 拉远。
+CityZoom = 0.72
+; 洞窟镜头缩放，小于 1 拉远。
+CaveZoom = 0.8
+; 演武场镜头缩放，小于 1 拉远。
+ArenaZoom = 0.8
+; 徒步小地图每像素对应世界像素，越大视野越广。
+MinimapWorldUnitsPerPixel = 3.2
+; 骑乘小地图每像素对应世界像素，上下马时平滑切换。
+MinimapMountedWorldUnitsPerPixel = 4.2
+; 每格真实游戏秒数：300 秒 = 5 分钟，12 格 = 60 分钟；暂停停止计时，最小 1 秒。
+DayNightSecondsPerSegment = 300.0
+; 新会话初始格位 [0,12)：0 黎明、3 日中、6 黄昏、9 午夜。
+DayNightStartSegment = 1.0
+; 室外白昼环境乘色，白色不改变原始材质；不影响 UI。
+DayAmbient = Color(1, 1, 1, 1)
+; 室外黎明暖光乘色，平滑过渡至白昼。
+DawnAmbient = Color(0.74, 0.65, 0.58, 1)
+; 室外黄昏暖光乘色，平滑过渡至月夜。
+DuskAmbient = Color(0.72, 0.49, 0.4, 1)
+; 室外夜间蓝灰乘色，保留通路辨识；洞窟仍使用自身局部照明。
+NightAmbient = Color(0.32, 0.4, 0.58, 1)

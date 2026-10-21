@@ -8,16 +8,15 @@ public partial class FirstCity
         var layer=new CanvasLayer(); AddChild(layer);
         var root=new Control { MouseFilter=Control.MouseFilterEnum.Ignore }; root.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect); layer.AddChild(root);
         root.Theme=UiStyles.ChineseTheme(11);
-        var top=new Panel { Position=new(10,8),Size=new(620,54),MouseFilter=Control.MouseFilterEnum.Ignore }; top.AddThemeStyleboxOverride("panel",CityDialogue.Box(new Color("162d30e8"),new Color("8c865d"))); root.AddChild(top);
+        var top=new Panel { Position=new(10,48),Size=new(620,54),MouseFilter=Control.MouseFilterEnum.Ignore }; top.AddThemeStyleboxOverride("panel",CityDialogue.Box(new Color("162d30e8"),new Color("8c865d"))); root.AddChild(top);
         Label LabelAt(Vector2 pos,Vector2 size,int font=11)
         { var label=new Label { Position=pos,Size=size,MouseFilter=Control.MouseFilterEnum.Ignore }; label.AddThemeFontSizeOverride("font_size",font); root.AddChild(label); return label; }
-        var title=LabelAt(new(22,13),new(132,22),18); title.Text=Config.CityName+" · 初行"; title.Modulate=new Color("f0d89f");
-        _stats=LabelAt(new(162,16),new(454,20));
-        _quest=LabelAt(new(23,39),new(590,18)); _quest.Modulate=new Color("c7d5b7");
-        var bottom=new ColorRect { Position=new(0,332),Size=new(640,28),Color=new Color("132c2dec"),MouseFilter=Control.MouseFilterEnum.Ignore }; root.AddChild(bottom);
-        _hint=LabelAt(new(14,337),new(612,18)); _hint.HorizontalAlignment=HorizontalAlignment.Center;
-        _notice=LabelAt(new(20,304),new(600,24),12); _notice.HorizontalAlignment=HorizontalAlignment.Center; _notice.AddThemeColorOverride("font_color",new Color("fff1c0")); _notice.AddThemeColorOverride("font_shadow_color",new Color("162d30")); _notice.AddThemeConstantOverride("shadow_offset_x",1); _notice.AddThemeConstantOverride("shadow_offset_y",1);
-        _overview=new CityOverview { City=this,Visible=false }; root.AddChild(_overview);
+        var title=LabelAt(new(22,53),new(132,22),18); title.Text=Config.CityName+" · 初行"; title.Modulate=new Color("f0d89f");
+        _stats=LabelAt(new(162,56),new(454,20));
+        _quest=LabelAt(new(23,79),new(590,18)); _quest.Modulate=new Color("c7d5b7");
+        var bottom=new ColorRect { Position=new(0,285),Size=new(640,17),Color=new Color("132c2dec"),MouseFilter=Control.MouseFilterEnum.Ignore }; root.AddChild(bottom);
+        _hint=LabelAt(new(14,285),new(612,18)); _hint.HorizontalAlignment=HorizontalAlignment.Center;
+        _notice=LabelAt(new(168,260),new(454,24),11); _notice.HorizontalAlignment=HorizontalAlignment.Center; _notice.AddThemeColorOverride("font_color",new Color("fff1c0")); _notice.AddThemeColorOverride("font_shadow_color",new Color("162d30")); _notice.AddThemeConstantOverride("shadow_offset_x",1); _notice.AddThemeConstantOverride("shadow_offset_y",1);
     }
     private void RefreshHud()
     {

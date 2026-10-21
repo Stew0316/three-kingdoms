@@ -14,6 +14,7 @@ public partial class FirstCity : Node2D
     public float TrainingRemaining { get; private set; }
     public CityInteractable Nearest { get; private set; }
     public Camera2D Camera { get; private set; }
+    public AdventureMenu Navigation { get; private set; }
     private AdventureSession Session => AdventureSession.Instance;
     private AdventureProgress Progress => Session.Progress;
     private FirstCityConfig Config => Session.Config;
@@ -24,7 +25,6 @@ public partial class FirstCity : Node2D
     private readonly CityHorse[] _stableHorses = new CityHorse[2];
     private float _smashRemaining, _toastRemaining, _trainingBeat;
     private bool _training, _switching;
-    private CityOverview _overview;
     private static bool _testsStarted;
     private double _previousPhysicsJitterFix;
     // 北侧屋舍是主要交互目标，给屋顶留出HUD下方的完整展示空间。
@@ -66,12 +66,17 @@ public partial class FirstCity : Node2D
         _ridingHorse=CityHorse.CreateForCity(_horseAppearances[0]);
         _ridingHorse.Name="RidingHorse"; _ridingHorse.Rider=Player; _ridingHorse.Visible=false;
         Player.AddChild(_ridingHorse); Player.MoveChild(_ridingHorse,0);
-        Camera=new Camera2D { Position=Player.Position+CityCameraLookAhead,Zoom=new(.85f,.85f), LimitLeft=0,LimitTop=-80,LimitRight=960,LimitBottom=640,PositionSmoothingEnabled=true,PositionSmoothingSpeed=9,ProcessCallback=Camera2D.Camera2DProcessCallback.Idle };
+        Camera=new Camera2D { Position=Player.Position+CityCameraLookAhead,Zoom=Vector2.One*Session.Settings.CityZoom, LimitLeft=0,LimitTop=-80,LimitRight=960,LimitBottom=640,PositionSmoothingEnabled=true,PositionSmoothingSpeed=9,ProcessCallback=Camera2D.Camera2DProcessCallback.Idle };
         AddChild(Camera);
         BuildHud();
         Dialogue=new CityDialogue(); AddChild(Dialogue);
+        Navigation=new AdventureMenu { Player=Player,World=Map,Region=Config.CityName,Dialogue=Dialogue,City=this,
+            CanOpen=()=>!_training && _smashRemaining<=0 && !_switching };
+        AddChild(Navigation);
         RefreshHud();
-        Toast(Session.SaveWarning.Length>0 ? Session.SaveWarning : "初到槐安 · 先与军营教头交谈。按 M 查看全城导览。",6);
+        Toast(Session.SaveWarning.Length>0 ? Session.SaveWarning : "初到槐安 · Esc 行旅菜单 · M 天下图",6);
+        if(!_testsStarted && OS.GetCmdlineUserArgs().Any(a=>a is "--status-cycle-test" or "--status-quit-test")) { _testsStarted=true; GetTree().Root.CallDeferred(Node.MethodName.AddChild,new StatusCycleTests()); }
+        if(!_testsStarted && OS.GetCmdlineUserArgs().Contains("--navigation-test")) { _testsStarted=true; GetTree().Root.CallDeferred(Node.MethodName.AddChild,new NavigationTests()); }
         if(!_testsStarted && OS.GetCmdlineUserArgs().Contains("--horse-test")) { _testsStarted=true; GetTree().Root.CallDeferred(Node.MethodName.AddChild,new HorseVisualTests()); }
         if(!_testsStarted && OS.GetCmdlineUserArgs().Contains("--city-test")) { _testsStarted=true; GetTree().Root.CallDeferred(Node.MethodName.AddChild,new FirstCityTests()); }
     }
@@ -84,7 +89,8 @@ public partial class FirstCity : Node2D
     public override void _PhysicsProcess(double delta)
     {
         float dt=(float)delta;
-        bool blocked=Dialogue.IsOpen || _training || _smashRemaining>0 || _switching || _overview.Visible;
+        bool blocked=Dialogue.IsOpen || _training || _smashRemaining>0 || _switching || Navigation.IsOpen;
+        if(blocked) Player.StopMoving();
         Player.SetMoveInput(blocked ? Vector2.Zero : Input.GetVector(InputActions.MoveLeft, InputActions.MoveRight, InputActions.MoveUp, InputActions.MoveDown));
         if(_training)
         {
@@ -117,7 +123,7 @@ public partial class FirstCity : Node2D
             item.QuestMarker=item.ContentId=="captain" && Progress.Trial is AdventureProgress.QuestStage.Available or AdventureProgress.QuestStage.Completed;
             item.QueueRedraw();
         }
-        _hint.Text=_training ? $"军营锻炼中 · {TrainingRemaining:0.0} 秒" : _smashRemaining>0 ? "蓄力 · 崩击" : Nearest!=null && !blocked ? "E  "+Nearest.Title : "WASD 移动   ·   E 交互   ·   I 行囊   ·   M 导览   ·   X 下马";
+        _hint.Text=_training ? $"军营锻炼中 · {TrainingRemaining:0.0} 秒" : _smashRemaining>0 ? "蓄力 · 崩击" : Nearest!=null && !blocked ? Session.Bindings.Label(InputActions.Interact)+"  "+Nearest.Title : $"{Session.Bindings.Label(InputActions.MoveUp)}{Session.Bindings.Label(InputActions.MoveLeft)}{Session.Bindings.Label(InputActions.MoveDown)}{Session.Bindings.Label(InputActions.MoveRight)} 移动 · {Session.Bindings.Label(InputActions.Interact)} 交互 · Esc 菜单 · M 天下图 · X 下马";
         RefreshHud();
     }
     public override void _Process(double delta)
@@ -132,12 +138,12 @@ public partial class FirstCity : Node2D
     public override void _UnhandledInput(InputEvent input)
     {
         if(input is not InputEventKey { Pressed:true,Echo:false } key || Dialogue.IsOpen || _switching) return;
-        if(key.PhysicalKeycode==Key.M || key.Keycode==Key.M) { _overview.Visible=!_overview.Visible; GetViewport().SetInputAsHandled(); return; }
-        if(_overview.Visible) { if(key.Keycode==Key.Escape) _overview.Hide(); return; }
+        if(key.PhysicalKeycode==Key.M || key.Keycode==Key.M) { if(Navigation.IsOpen) Navigation.Close(); else Navigation.Open("地图"); GetViewport().SetInputAsHandled(); return; }
+        if(Navigation.IsOpen) return;
         if(_training || _smashRemaining>0) return;
         if(key.PhysicalKeycode==Key.I || key.Keycode==Key.I) { AdventureBackpack.Open(Dialogue,t=>Toast(t)); GetViewport().SetInputAsHandled(); return; }
         if(key.PhysicalKeycode==Key.X || key.Keycode==Key.X) { Dismount(); GetViewport().SetInputAsHandled(); }
-        if(key.PhysicalKeycode==Key.E || key.Keycode==Key.E)
+        if(input.IsActionPressed(InputActions.Interact))
         {
             GetViewport().SetInputAsHandled();
             var target=FindNearest(); if(target!=null && Player.CanAct) Interact(target);

@@ -9,8 +9,7 @@ public partial class GameEntry : Node
     {
         if(OS.GetCmdlineUserArgs().Any(a=>a is "--cave" or "--cave-test"))
         { GetTree().ChangeSceneToFile(WorldScenePaths.OldRoadCave); return; }
-        bool arena = OS.GetCmdlineUserArgs().Any(a => a == "--arena" || ((a.Contains("test") || a.StartsWith("--capture")) && a != "--city-test" && a != "--horse-test"));
+        bool arena = OS.GetCmdlineUserArgs().Any(a => a == "--arena" || ((a.Contains("test") || a.StartsWith("--capture")) && a != "--city-test" && a != "--horse-test" && a != "--navigation-test" && a != "--status-cycle-test" && a != "--status-quit-test"));
         GetTree().ChangeSceneToFile(arena ? WorldScenePaths.Arena : WorldScenePaths.FirstCity);
     }
 }
-

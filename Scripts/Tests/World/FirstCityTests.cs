@@ -113,7 +113,7 @@ public partial class FirstCityTests : Node
     private async Task Visit(string id,Vector2 position)
     {
         City.Dialogue.Close(); City.Player.Position=position; City.Player.SetMoveInput(Vector2.Zero); await Frames(4);
-        Check(City.FindNearest()?.ContentId==id,"可接近并选中交互："+id); PressKey(City,Key.E); await Frames(1);
+        Check(City.FindNearest()?.ContentId==id,"可接近并选中交互："+id); PressKey(City,Key.G); await Frames(1);
     }
     private static void PressKey(Node node,Key key)
     { using var input=new InputEventKey { Keycode=key,PhysicalKeycode=key,Pressed=true }; node._UnhandledInput(input); }
@@ -143,5 +143,3 @@ public partial class FirstCityTests : Node
     private void Check(bool condition,string text)
     { if(!condition) throw new InvalidOperationException(text); _checks++; GD.Print("通过："+text); }
 }
-
-

@@ -1,9 +1,11 @@
-[gd_resource type="Resource" script_class="CombatActionConfig" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="CombatActionConfig" load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://Scripts/Config/Combat/CombatActionConfig.cs" id="1"]
+[ext_resource type="Texture2D" path="res://Source/UI/Icons/Skills/HalberdSweepV1.png" id="Icon"]
 
 [resource]
 script = ExtResource("1")
+Icon = ExtResource("Icon")
 Prepare = 0.32
 Active = 0.14
 Recover = 0.4

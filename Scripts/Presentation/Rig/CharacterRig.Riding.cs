@@ -22,7 +22,7 @@ public partial class CharacterRig
         _walkWeight = 0;
         var horse = RidingMount;
         float facing = horse?.Facing ?? (Actor.FacingDirection.X < -.1f ? -1 : 1);
-        float scale = ArtScale / .05f;
+        float scale = ScreenLockedScale();
         Scale = new Vector2(facing * scale, scale * Actor.Presentation.Model.DepthScale);
 
         // 鞍点已经包含马躯干起伏与俯仰造成的位移；不能再叠加一套骑手弹跳时钟。

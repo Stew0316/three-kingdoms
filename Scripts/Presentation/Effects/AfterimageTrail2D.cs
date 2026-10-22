@@ -25,11 +25,12 @@ public partial class AfterimageTrail2D : Node2D
 
     public override void _Process(double delta)
     {
-        if(_actor?.Presentation?.Afterimages==true && !_actor.IsDead && !_actor.BattleFinished
+        bool empoweredBlueTrail = _actor?.Presentation?.EmpowerBlueTrail == true && _actor.Status.EmpowerRemaining > 0;
+        if((_actor?.Presentation?.Afterimages==true || empoweredBlueTrail) && !_actor.IsDead && !_actor.BattleFinished
             && _actor.Velocity.Length()>30 && _actor.VisualTime-_lastSpawn>=_actor.Presentation.AfterimageInterval)
         {
             _lastSpawn=_actor.VisualTime;
-            SpawnGhost();
+            SpawnGhost(empoweredBlueTrail);
         }
         for(int i=_ghosts.Count-1;i>=0;i--)
         {
@@ -45,7 +46,7 @@ public partial class AfterimageTrail2D : Node2D
     }
 
     /// <summary>复制当前每个拆件的局部姿态；残影生成后不再跟随人物和骨骼。</summary>
-    private void SpawnGhost()
+    private void SpawnGhost(bool empoweredBlueTrail)
     {
         if(_actor.Rig.Parts.Count==0 || _actor.GetParent() is not Node2D fighters) return;
         var root=new Node2D { Name=$"{_actor.Name}残影",Position=_actor.Position };
@@ -59,7 +60,7 @@ public partial class AfterimageTrail2D : Node2D
             {
                 Texture=part.Texture,Centered=part.Centered,Offset=part.Offset,FlipH=part.FlipH,FlipV=part.FlipV,
                 RegionEnabled=part.RegionEnabled,RegionRect=part.RegionRect,ZIndex=part.ZIndex,
-                TextureFilter=part.TextureFilter,Modulate=_actor.Presentation.AfterimageColor,Material=GhostMaterial(part)
+                TextureFilter=part.TextureFilter,Modulate=empoweredBlueTrail ? new Color("48b8ff", .46f) : _actor.Presentation.AfterimageColor,Material=GhostMaterial(part)
             };
             root.AddChild(copy);
             copy.Transform=inverseActor*part.GlobalTransform;

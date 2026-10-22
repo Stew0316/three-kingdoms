@@ -59,7 +59,7 @@ public partial class CharacterRig
         }
 
         float facing = Actor.FacingDirection.X < -.15f ? -1 : Actor.FacingDirection.X > .15f ? 1 : Mathf.Sign(Scale.X);
-        float baseScale = ArtScale / .05f;
+        float baseScale = ScreenLockedScale();
         float squash = Actor.IsDead ? .52f : 1;
         bool hurt = Actor.CurrentState == Combatant.State.Hurt;
         Scale = new Vector2(facing * baseScale * (hurt ? 1.025f : 1), baseScale * Actor.Presentation.Model.DepthScale * squash * (hurt ? .97f : 1));

@@ -14,8 +14,8 @@ public partial class FirstCity
         var title=LabelAt(new(22,53),new(132,22),18); title.Text=Config.CityName+" · 初行"; title.Modulate=new Color("f0d89f");
         _stats=LabelAt(new(162,56),new(454,20));
         _quest=LabelAt(new(23,79),new(590,18)); _quest.Modulate=new Color("c7d5b7");
-        var bottom=new ColorRect { Position=new(0,285),Size=new(640,17),Color=new Color("132c2dec"),MouseFilter=Control.MouseFilterEnum.Ignore }; root.AddChild(bottom);
         _hint=LabelAt(new(14,285),new(612,18)); _hint.HorizontalAlignment=HorizontalAlignment.Center;
+        _hint.AddThemeColorOverride("font_outline_color",new Color("14201b")); _hint.AddThemeConstantOverride("outline_size",3);
         _notice=LabelAt(new(168,260),new(454,24),11); _notice.HorizontalAlignment=HorizontalAlignment.Center; _notice.AddThemeColorOverride("font_color",new Color("fff1c0")); _notice.AddThemeColorOverride("font_shadow_color",new Color("162d30")); _notice.AddThemeConstantOverride("shadow_offset_x",1); _notice.AddThemeConstantOverride("shadow_offset_y",1);
     }
     private void RefreshHud()

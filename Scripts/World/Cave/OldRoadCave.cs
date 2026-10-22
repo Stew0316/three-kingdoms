@@ -108,8 +108,8 @@ public partial class OldRoadCave : Node2D
         var top=new Panel { Position=new(10,48),Size=new(620,37),MouseFilter=Control.MouseFilterEnum.Ignore };
         top.AddThemeStyleboxOverride("panel",CityDialogue.Box(new Color("162d30e8"),new Color("8c865d"))); root.AddChild(top);
         _status=new Label { Position=new(22,56),Size=new(598,24),Modulate=new Color("ead5a0") }; root.AddChild(_status);
-        var bottom=new ColorRect { Position=new(0,285),Size=new(640,17),Color=new Color("132c2ded"),MouseFilter=Control.MouseFilterEnum.Ignore }; root.AddChild(bottom);
         _hint=new Label { Position=new(12,285),Size=new(616,18),HorizontalAlignment=HorizontalAlignment.Center }; root.AddChild(_hint);
+        _hint.AddThemeColorOverride("font_outline_color",new Color("14201b")); _hint.AddThemeConstantOverride("outline_size",3);
         _notice=new Label { Position=new(168,260),Size=new(460,25),HorizontalAlignment=HorizontalAlignment.Center,Modulate=new Color("fff1c0") }; root.AddChild(_notice);
         _notice.AddThemeColorOverride("font_shadow_color",new Color("162d30")); _notice.AddThemeConstantOverride("shadow_offset_y",1);
     }

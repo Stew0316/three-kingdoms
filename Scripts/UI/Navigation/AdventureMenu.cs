@@ -32,14 +32,14 @@ public partial class AdventureMenu : CanvasLayer
         Layer = 15; ProcessMode = ProcessModeEnum.Always;
         var root = new Control { MouseFilter = Control.MouseFilterEnum.Ignore, Theme = UiStyles.ChineseTheme(12) };
         AddChild(root); root.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
-        Minimap = new LocalMinimap { Player=Player, World=World, Region=Region, Position=new(10,181), Size=new(148,104) };
-        // 暗窟出生点受镜头边界约束位于屏幕左侧，使用稍窄面板避免挡住人物。
-        if(Region=="暗窟") { Minimap.Position=new(10,197); Minimap.Size=new(118,88); }
+        Minimap = new LocalMinimap { Player=Player, World=World, Region=Region, Position=new(10,298), Size=new(58,58),Circular=true };
+        // 小地图与动作栏共用底部一行，圆形裁切不挡住左侧出生人物。
+
         root.AddChild(Minimap);
-        StatusBar=new PlayerStatusBar { Player=Player,Position=new(0,302),Size=new(640,58),
+        StatusBar=new PlayerStatusBar { Player=Player,Position=new(0,298),Size=new(640,62),
             CanUse=()=>!IsOpen && !GetTree().Paused && Dialogue?.IsOpen!=true && CanOpen() };
         root.AddChild(StatusBar);
-        root.AddChild(new DayNightDial { Position=new(260,1),Size=new(120,46) });
+        root.AddChild(new DayNightDial { Position=new(260,9),Size=new(120,46) });
         // 同一世界画布只允许一个环境乘色；暗窟已经拥有自己的 CanvasModulate。
         if(Region!="暗窟") { Daylight=new CanvasModulate { Color=Session.Clock.Ambient }; GetParent().AddChild(Daylight); }
         _overlay = new Control { Visible=false }; root.AddChild(_overlay);
@@ -289,4 +289,5 @@ public partial class AdventureMenu : CanvasLayer
         return button;
     }
 }
+
 

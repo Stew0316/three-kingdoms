@@ -11,6 +11,7 @@ public partial class CharacterRig : Node2D
     public IReadOnlyList<Sprite2D> Parts => _parts;
     public IReadOnlyList<Bone2D> Joints => _bones; // 业务关节顺序；Skeleton2D.GetBone 的树序索引会随父子结构重排。
     public IReadOnlyList<Sprite2D> DrawOrderedParts => _drawOrderedParts; // 角色内部从后往前的绘制顺序，残影使用同一顺序。
+    public Sprite2D WeaponPart => _partByBone[14]; // 主武器图层，强化效果只对它施加白色辉光。
     public Combatant Actor { get; private set; }
     private readonly List<Sprite2D> _parts = new();
     private readonly List<Sprite2D> _drawOrderedParts = new();
@@ -96,7 +97,7 @@ public partial class CharacterRig : Node2D
         for(int i=0;i<CharacterRigDefaults.JointCount;i++) _bones[i].Rotation=Mathf.LerpAngle(_bones[i].Rotation,_angles[i]*MotionStrength,blend);
         SolveSupportArm();
         float facing=Actor.FacingDirection.X<-.15f ? -1 : Actor.FacingDirection.X>.15f ? 1 : Mathf.Sign(Scale.X);
-        float baseScale=ArtScale/.05f;
+        float baseScale=ScreenLockedScale();
         float depthScale=Actor.Presentation?.Model.DepthScale ?? .92f;
         Vector2 poseScale=new(1,depthScale);
         if(Actor.CurrentState==Combatant.State.Hurt) poseScale=new(1.08f,depthScale*.86f);
@@ -119,6 +120,16 @@ public partial class CharacterRig : Node2D
         }
         SyncParts();
         _overlay.QueueRedraw();
+    }
+
+    /// <summary>将人物锁定在约 200px 屏幕高度。相机 Zoom、窗口拉伸都会改变 Canvas 变换，故反向补偿；碰撞与战斗坐标保持世界尺度。</summary>
+    private float ScreenLockedScale()
+    {
+        // CanvasTransform 含相机，StretchTransform 含窗口/高 DPI 拉伸；两者都要抵消才是物理屏幕像素恒定。
+        float canvasScale = GetViewport().GetCanvasTransform().X.Length() * GetViewport().GetStretchTransform().X.Length();
+        if (canvasScale <= .001f) return ArtScale / .05f;
+        // 参考姿态的头顶到武器/脚点约为 100 个骨架单位，预留少量飘动特效空间。
+        return Actor.Presentation?.Model.TargetScreenPixels / (100f * canvasScale) ?? ArtScale / .05f;
     }
 
     private void DrawBones()

@@ -9,6 +9,8 @@ public partial class DayNightDial : Control
     private ShaderMaterial _haloMaterial;
     // 光晕相位与全局时辰分开：只改变外圈细光丝，不影响五分钟一格的推进。
     private double _haloPhase;
+    // 由各缕的整数频率进一步变速；相位速度约为最初版本的两倍。
+    private const double HaloDriftRadiansPerSecond=.38;
     private float Daylight => Mathf.SmoothStep(-.14f,.14f,Mathf.Sin((float)AdventureSession.Instance.Clock.Position/12*Mathf.Tau));
     public override void _Ready()
     {
@@ -22,7 +24,7 @@ public partial class DayNightDial : Control
     public override void _Process(double delta)
     {
         var clock=AdventureSession.Instance.Clock;
-        if(!GetTree().Paused) _haloPhase=(_haloPhase+delta*.20)%Mathf.Tau;
+        if(!GetTree().Paused) _haloPhase=(_haloPhase+delta*HaloDriftRadiansPerSecond)%Mathf.Tau;
         _haloMaterial.SetShaderParameter("drift_phase",(float)_haloPhase);
         _haloMaterial.SetShaderParameter("daylight",Daylight);
         TooltipText=$"{(clock.IsDay ? "日光" : "月光")} · 第 {clock.Segment+1} / 12 时辰\n每格 {AdventureSession.Instance.Settings.DayNightSecondsPerSegment/60:0.#} 分钟";

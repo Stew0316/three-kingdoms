@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="CombatActionConfig" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://Scripts/Config/Combat/CombatActionConfig.cs" id="1"]
+
+[resource]
+script = ExtResource("1")
+SkillId = "core:weiyan/fury"
+DisplayName = "狂骨奋起"
+Description = "长刀泛起白光；接下来5秒攻击造成125%伤害，移动时留下短促蓝色残影。"
+Motion = 2
+Prepare = 0.20
+Active = 0.08
+Recover = 0.20
+Cooldown = 12.0
+StatusDuration = 5.0
+DamageMultiplier = 1.25

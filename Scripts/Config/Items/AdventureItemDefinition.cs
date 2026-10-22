@@ -7,4 +7,6 @@ public partial class AdventureItemDefinition : Resource
     [Export] public string ItemId { get; set; } = "core:item/torch";
     [Export] public string DisplayName { get; set; } = "火把";
     [Export(PropertyHint.MultilineText)] public string Description { get; set; } = "";
+    /// <summary>快捷物品槽显示的图标；仅决定外观，不代表玩家已经拥有该物品。</summary>
+    [Export] public Texture2D Icon { get; set; }
 }

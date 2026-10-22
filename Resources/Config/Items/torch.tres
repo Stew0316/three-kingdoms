@@ -1,7 +1,9 @@
-[gd_resource type="Resource" script_class="AdventureItemDefinition" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="AdventureItemDefinition" load_steps=3 format=3]
 [ext_resource type="Script" path="res://Scripts/Config/Items/AdventureItemDefinition.cs" id="1"]
+[ext_resource type="Texture2D" path="res://Source/UI/Icons/Items/TorchV1.png" id="2_icon"]
 [resource]
 script = ExtResource("1")
 ItemId = "core:item/torch"
 DisplayName = "火把"
 Description = "松脂浸过的布条缠在木柄上。使用后照亮身边，并可点燃洞窟墙上的蜡烛。可反复使用，不消耗数量。"
+Icon = ExtResource("2_icon")

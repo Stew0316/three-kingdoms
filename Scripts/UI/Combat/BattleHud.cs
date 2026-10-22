@@ -162,7 +162,7 @@ public partial class BattleHud : CanvasLayer
         var configuredEnemy = _arena.Enemy;
         _clock.Text = _arena.IsSoloPractice ? $"练习 {_arena.BattleSeconds:0.0}s" : string.Format(BattleTexts.BattleClockFormat,
             configuredPlayer.Ui.DisplayName, configuredEnemy.Ui.DisplayName, _arena.BattleSeconds);
-        _skills.Text = $"{AdventureSession.Instance.Bindings.Label(InputActions.Attack)} / 左键 普攻    {AdventureSession.Instance.Bindings.Label(InputActions.Dodge)} 闪避    {AdventureSession.Instance.Bindings.Label(InputActions.Restart)} 重开";
+        _skills.Text = $"{AdventureSession.Instance.Bindings.Label(InputActions.Attack)} / 左键 普攻    {AdventureSession.Instance.Bindings.Label(InputActions.Dodge)} 闪避    {AdventureSession.Instance.Bindings.Label(InputActions.Skill3)} {SkillText(CombatAction.Skill3)}    {AdventureSession.Instance.Bindings.Label(InputActions.Restart)} 重开";
         _playerPassives.Text = DescribePassives(configuredPlayer);
         _enemyPassives.Text = _arena.IsSoloPractice ? "对手已停用 · 自由移动观察步态" : _arena.IsGroupPractice
             ? $"四将同场 · 剩余对手 {_arena.Enemies.Count(actor => !actor.IsDead)}/3 · {_arena.BattleSeconds:0}s"
@@ -231,8 +231,8 @@ public partial class BattleHud : CanvasLayer
         void Describe()
         {
             var loadout = HeroCatalog.LoadDefaultLoadout(player.Selected);
-            detail.Text = $"主动：{loadout.Dash.DisplayName} / {loadout.Sweep.DisplayName}\n被动：{loadout.Passives[0].DisplayName}（普攻与空格闪避为基础动作）";
-            detail.TooltipText = loadout.Dash.Description + "\n" + loadout.Sweep.Description + "\n" + loadout.Passives[0].Description;
+            detail.Text = $"主动：{loadout.Dash.DisplayName} / {loadout.Sweep.DisplayName} / {loadout.Skill3?.DisplayName ?? "无"}\n被动：{loadout.Passives[0].DisplayName}（普攻与空格闪避为基础动作）";
+            detail.TooltipText = loadout.Dash.Description + "\n" + loadout.Sweep.Description + "\n" + (loadout.Skill3?.Description ?? "") + "\n" + loadout.Passives[0].Description;
         }
         player.ItemSelected += _ => { if (_arena.IsGroupPractice && enemy.Selected == player.Selected) enemy.Select((player.Selected + 1) % HeroCatalog.Ids.Length); Describe(); };
         enemy.ItemSelected += _ => { if (_arena.IsGroupPractice && enemy.Selected == player.Selected) enemy.Select((player.Selected + 1) % HeroCatalog.Ids.Length); };

@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="SkillLoadoutConfig" load_steps=8 format=3]
+[gd_resource type="Resource" script_class="SkillLoadoutConfig" load_steps=9 format=3]
 
 [ext_resource type="Script" path="res://Scripts/Config/Combat/SkillLoadoutConfig.cs" id="1"]
 [ext_resource type="Resource" path="res://Resources/Config/Skills/guanyu-passive.tres" id="Counter"]
@@ -6,6 +6,7 @@
 [ext_resource type="Resource" path="res://Resources/Config/Skills/guanyu-dash.tres" id="Dash"]
 [ext_resource type="Resource" path="res://Resources/Config/Skills/guanyu-sweep.tres" id="Sweep"]
 [ext_resource type="Resource" path="res://Resources/Config/Skills/guanyu-dodge.tres" id="Dodge"]
+[ext_resource type="Resource" path="res://Resources/Config/Skills/guanyu-fury.tres" id="Fury"]
 [ext_resource type="Script" path="res://Scripts/Config/Combat/PassiveConfig.cs" id="passive_type"]
 
 [resource]
@@ -14,4 +15,5 @@ Basic = ExtResource("Basic")
 Dash = ExtResource("Dash")
 Sweep = ExtResource("Sweep")
 Dodge = ExtResource("Dodge")
+Skill3 = ExtResource("Fury")
 Passives = Array[ExtResource("passive_type")]([ExtResource("Counter")])

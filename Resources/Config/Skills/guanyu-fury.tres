@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="CombatActionConfig" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://Scripts/Config/Combat/CombatActionConfig.cs" id="1"]
+
+[resource]
+script = ExtResource("1")
+SkillId = "core:guanyu/fury"
+DisplayName = "武圣奋起"
+Description = "沉肩蓄势，红色人形描边与气劲外发；接下来5秒攻击造成125%伤害。"
+Motion = 2
+Prepare = 0.22
+Active = 0.08
+Recover = 0.22
+Cooldown = 13.0
+StatusDuration = 5.0
+DamageMultiplier = 1.25

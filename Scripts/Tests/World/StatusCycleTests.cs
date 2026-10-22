@@ -31,7 +31,7 @@ public partial class StatusCycleTests : Node
                         await ToSignal(RenderingServer.Singleton,RenderingServer.SignalName.FramePostDraw);
                         using var screenshot=GetViewport().GetTexture().GetImage();
                         int scale=screenshot.GetWidth()/640;
-                        using var crop=screenshot.GetRegion(new Rect2I(260*scale,0,120*scale,58*scale));
+                        using var crop=screenshot.GetRegion(new Rect2I(260*scale,0,120*scale,72*scale));
                         crop.SavePng($"{folder}/{frame:000}.png");
                     }
                 }
@@ -47,14 +47,46 @@ public partial class StatusCycleTests : Node
             Check(Math.Abs(dusk.R-clock.Ambient.R)+Math.Abs(dusk.G-clock.Ambient.G)+Math.Abs(dusk.B-clock.Ambient.B)<.001f,"日夜交界平滑无跳色");
             var menu=City.Navigation; var bar=menu.StatusBar;
             Check(bar.Skills.Length==4 && bar.Items.Length==4,"四技能槽和四物品槽");
-            Check(bar.Skills[2].Text.Contains("空槽") && bar.Skills[3].Disabled,"未装备技能显示空槽");
+            Check(bar.Skills[3].Text=="" && bar.Skills[3].Disabled && !bar.Skills[3].GetNode<TextureRect>("SkillIcon").Visible,"未装备第四槽只留快捷键");
+            Check(menu.Minimap.Circular && menu.Minimap.Size==new Vector2(58,58) && menu.Minimap.Position.X==10,"小地图为底部最左的小圆形");
+            Check(bar.Skills[1].Position.X==bar.Skills[0].Position.X+bar.Skills[0].Size.X
+                && bar.Items[1].Position.X==bar.Items[0].Position.X+bar.Items[0].Size.X
+                && bar.Skills[0].Size==new Vector2(30,30),"技能与物品槽缩小且相邻无间隙");
+            var sword=bar.GetNode<VerticalResourceGauge>("HealthSword");
+            var gourd=bar.GetNode<VerticalResourceGauge>("ManaGourd");
+            City.Player.Health.ApplyDamage(new DamageInfo(null,City.Player.Health.MaxHealth/2,Vector2.Zero)); await Frames(2);
+            Check(Math.Abs(sword.Ratio-.5f)<.01f && sword.Size.Y>sword.Size.X && gourd.IsMana && gourd.Size.Y>gourd.Size.X,"竖剑按真实半血填充，右侧为竖葫芦");
+            await Capture("00-half-health"); City.Player.Health.Heal(City.Player.Health.MaxHealth); await Frames(2);
+            Check(Enumerable.Range(0,3).All(i=>bar.Skills[i].GetNode<TextureRect>("SkillIcon").Texture!=null
+                && bar.Skills[i].GetNode<TextureRect>("SkillIcon").Visible && bar.Skills[i].Text==""),"已装备三技能实际显示图标");
+            var originalIconSkill=City.Player.GetSkill(CombatAction.Dash);
+            var alternateIconSkill=(CombatActionConfig)originalIconSkill.Duplicate();
+            alternateIconSkill.SkillId="test:icon-swap";
+            alternateIconSkill.Icon=City.Player.GetSkill(CombatAction.Sweep).Icon;
+            Check(City.Player.TryEquipSkill(CombatAction.Dash,alternateIconSkill),"可替换带不同图标的技能");
+            await Frames(2);
+            Check(bar.Skills[0].GetNode<TextureRect>("SkillIcon").Texture==alternateIconSkill.Icon,"换装立即刷新实际图标");
+            Check(City.Player.TryEquipSkill(CombatAction.Dash,originalIconSkill),"图标验证后恢复原技能");
+            await Frames(2);
             Check(!bar.UseItem(0),"没有火把时不能使用"); Session.Progress.ReceiveTorch();
             KeyPress(Key.Key1); await Frames(3);
             Check(Session.TorchInUse && Session.Progress.Items[AdventureProgress.TorchId]==1,"数字一使用火把且不消耗库存");
+            Check(bar.Items[0].GetNode<TextureRect>("ItemIcon").Texture!=null && bar.Items[0].Text==""
+                && bar.Items[0].GetNode<Label>("Quantity").Text=="1" && bar.Items[0].GetNode<ColorRect>("InUse").Visible,"火把图标、库存与使用标记真实显示");
+            await Capture("00-toolbar-ready");
+            Session.Progress.Items[AdventureProgress.TorchId]=3; await Frames(2);
+            Check(bar.Items[0].GetNode<Label>("Quantity").Text=="3","物品数量跟随库存更新");
+            Session.Progress.Items[AdventureProgress.TorchId]=1;
+            Check(Session.Bindings.TrySet(InputActions.ItemSlots[0],Key.T,out _),"可修改物品快捷键"); await Frames(2);
+            KeyPress(Key.T); await Frames(2);
+            Check(!Session.TorchInUse && bar.Items[0].GetNode<Label>("Shortcut").Text=="T","物品图标键帽及实际输入跟随配置");
+            Session.Bindings.TrySet(InputActions.ItemSlots[0],Key.Key1,out _);
+            KeyPress(Key.Key1); await Frames(2);
             KeyPress(Key.Key1); await Frames(2); Check(!Session.TorchInUse,"重复快捷键收起火把");
             KeyPress(Key.Q); await Frames(2);
             Check(City.Player.Cooldown(CombatAction.Dash)>0,"Q 实际施放第一技能");
             Check(bar.Skills[0].Disabled,"冷却槽禁止重复使用");
+            Check(bar.Skills[0].GetNode<TextureRect>("SkillIcon").Visible,"冷却时保留技能图标");
             await Capture("01-city-cooldown");
             menu.Open("设置"); await Frames(3); double position=Session.Clock.Position;
             await Frames(8); Check(Session.Clock.Position==position,"打开菜单冻结全局时钟");
@@ -72,6 +104,7 @@ public partial class StatusCycleTests : Node
             Check(Session.Bindings.Label(InputActions.Skill1)=="Q","冲突按键不覆盖既有映射");
             KeyPress(Key.T); await Frames(2);
             Check(Session.Bindings.Label(InputActions.Skill1)=="T","设置页面实际捕获并应用新键");
+            Check(bar.Skills[0].GetNode<Label>("Shortcut").Text=="T","图标快捷键随设置更新");
             await Capture("02-settings");
             menu.Close(); await Frames(70);
             City.Player.Skills.Tick(100); KeyPress(Key.Q); await Frames(2);
@@ -146,6 +179,9 @@ public partial class StatusCycleTests : Node
     private async Task Capture(string name)
     {
         if(DisplayServer.GetName()=="headless") return;
+        // 截图前移出提示控件，避免系统鼠标的初始位置弹出悬浮说明遮住底栏。
+        using(var motion=new InputEventMouseMotion { Position=new(4,4),GlobalPosition=new(4,4) }) Input.ParseInputEvent(motion);
+        await Frames(2);
         await ToSignal(RenderingServer.Singleton,RenderingServer.SignalName.FramePostDraw);
         using var image=GetViewport().GetTexture().GetImage(); image.SavePng("res://Build/status-cycle/"+name+".png");
     }

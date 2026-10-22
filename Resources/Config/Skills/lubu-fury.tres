@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="CombatActionConfig" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://Scripts/Config/Combat/CombatActionConfig.cs" id="1"]
+[ext_resource type="Texture2D" path="res://Source/UI/Icons/Skills/CrimsonFuryV1.png" id="Icon"]
+
+[resource]
+script = ExtResource("1")
+Icon = ExtResource("Icon")
+SkillId = "core:lubu/crimson-fury"
+DisplayName = "赤焰爆气"
+Description = "短暂蓄势，周身赤红人形气焰翻涌；接下来6秒攻击造成130%伤害。"
+Motion = 2
+Prepare = 0.20
+Active = 0.08
+Recover = 0.20
+Cooldown = 14.0
+StatusDuration = 6.0
+DamageMultiplier = 1.3

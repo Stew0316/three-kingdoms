@@ -26,7 +26,8 @@ public partial class CharacterModelConfig : Resource
     [Export(PropertyHint.Range, "12,22,0.5")] public float LowerLegLength { get; set; } = 18; // 固定膝到靴底长度，动作中禁止压缩。
     [Export] public bool AlignBootsForward { get; set; } // 校正近侧小腿贴图：双脚同向，整个人物镜像时一起转向。
     [Export] public bool FlipFarBootHorizontal { get; set; } // 魏延 v2 远靴原图朝左，单独翻转远小腿和靴掌使其朝前。
-    [Export(PropertyHint.Range, "0.025,0.06,0.001")] public float CharacterScale { get; set; } = .038f; // 二维世界中的角色整体尺寸，不影响碰撞和技能范围。
+    [Export(PropertyHint.Range, "0.025,0.06,0.001")] public float CharacterScale { get; set; } = .038f; // 旧世界尺度兼容值；正式角色改由 TargetScreenPixels 锁定屏幕显示尺寸。
+    [Export(PropertyHint.Range, "120,260,1")] public float TargetScreenPixels { get; set; } = 200; // 人物连同武器的目标屏幕高度；镜头缩放、窗口缩放时反向补偿，不影响碰撞与技能范围。
     [Export(PropertyHint.Range, "0.75,1,0.01")] public float DepthScale { get; set; } = .92f; // 轻微压缩纵向比例，使正面拆件更接近俯视小人而非卡牌立绘。
     [Export(PropertyHint.Range, "6,16,0.5")] public float SupportGripDistance { get; set; } = 10; // 远手沿武器向上握持的距离，骨架单位；避免两只手重叠成一团。
     [Export] public bool CartoonFilter { get; set; } = true; // 对现有写实拆件执行轻量色阶化与描边，替换美术时可关闭。

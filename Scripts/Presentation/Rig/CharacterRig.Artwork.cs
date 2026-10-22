@@ -8,7 +8,8 @@ public partial class CharacterRig
     {
         using var image = atlas.GetImage();
         if (image.IsCompressed()) image.Decompress();
-        if(Actor.Presentation.Model.CartoonFilter) _cartoonMaterial=BuildCartoonMaterial(Actor.Presentation.Model);
+        // 即使关闭卡通滤镜也保持统一 Shader：强化时的人形描边与武器辉光不能依赖贴图替换。
+        _cartoonMaterial=BuildCartoonMaterial(Actor.Presentation.Model);
         int cellW = image.GetWidth()/4, cellH = image.GetHeight()/4;
         var tiles = CharacterRigDefaults.AtlasTiles;
         Rect2[] rectangles = CharacterRigDefaults.CreatePartRectangles();
@@ -144,6 +145,9 @@ public partial class CharacterRig
             uniform float saturation = 1.15;
             uniform vec4 outline_color : source_color = vec4(0.10,0.08,0.07,0.92);
             uniform bool cartoon_enabled = true;
+            uniform vec4 empower_color : source_color = vec4(1.0,0.2,0.2,1.0);
+            uniform float empower_strength = 0.0;
+            uniform float weapon_glow = 0.0;
             uniform int clip_count = 0;
             uniform vec2 clip_polygon[16];
             varying vec4 vertex_tint;
@@ -168,6 +172,10 @@ public partial class CharacterRig
                 vec3 posterized = floor(clamp(saturated,0.0,1.0)*color_steps+0.5)/color_steps;
                 float inner_edge = tex.a>0.08 ? 1.0-smoothstep(0.05,0.42,edge_alpha) : 0.0;
                 vec3 color = mix(posterized,outline_color.rgb,inner_edge*outline_color.a);
+                // 在每个拆件边缘叠加同一强化色，组合起来仍沿人体与武器轮廓，而非画成圆形光圈。
+                float aura = inner_edge * empower_strength;
+                color = mix(color, empower_color.rgb, aura);
+                color += empower_color.rgb * weapon_glow * (0.28 + inner_edge * .72);
                 // fragment 的输入 COLOR 已乘过纹理；使用顶点颜色避免贴图二次相乘而发黑。
                 COLOR = vec4(cartoon_enabled ? color : tex.rgb,tex.a)*vertex_tint;
             }
@@ -177,6 +185,9 @@ public partial class CharacterRig
         material.SetShaderParameter("color_steps",config.CartoonColorSteps);
         material.SetShaderParameter("saturation",config.CartoonSaturation);
         material.SetShaderParameter("outline_color",config.CartoonOutlineColor);
+        material.SetShaderParameter("empower_color",new Color("ff3d3d"));
+        material.SetShaderParameter("empower_strength",0f);
+        material.SetShaderParameter("weapon_glow",0f);
         return material;
     }
 }

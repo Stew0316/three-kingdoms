@@ -17,6 +17,30 @@ public partial class StatusCycleTests : Node
         {
             await Frames(10);
             DirAccess.MakeDirRecursiveAbsolute("res://Build/status-cycle");
+            if(OS.GetCmdlineUserArgs().Contains("--empower-preview"))
+            {
+                GetTree().Root.AddChild(new EmpowerVisualTests());
+                return;
+            }
+            if(OS.GetCmdlineUserArgs().Contains("--dial-preview"))
+            {
+                // 加速采样唯一全局时钟，输出一整圈日月升落；不改正式时长和玩家存档。
+                if(DisplayServer.GetName()=="headless") throw new InvalidOperationException("日月预览需要真实图形渲染");
+                const string folder="res://Build/DayNightDial";
+                DirAccess.MakeDirRecursiveAbsolute(folder);
+                for(int frame=0;frame<96;frame++)
+                {
+                    Session.Clock.SetPosition(frame/8.0);
+                    await Frames(2);
+                    await ToSignal(RenderingServer.Singleton,RenderingServer.SignalName.FramePostDraw);
+                    using var screenshot=GetViewport().GetTexture().GetImage();
+                    int scale=screenshot.GetWidth()/640;
+                    using var crop=screenshot.GetRegion(new Rect2I(291*scale,0,58*scale,50*scale));
+                    crop.SavePng($"{folder}/{frame:000}.png");
+                    if(frame==24 || frame==72) screenshot.SavePng($"{folder}/Full{frame:000}.png");
+                }
+                GD.Print("DIAL_PREVIEW_CAPTURED: 完整昼夜 96 帧实际渲染"); GetTree().Quit(); return;
+            }
             if(OS.GetCmdlineUserArgs().Contains("--halo-preview"))
             {
                 // 仅采集真实渲染，用于观察细光丝的连续性；不修改正式存档或时长配置。
@@ -38,6 +62,13 @@ public partial class StatusCycleTests : Node
                 GD.Print("HALO_PREVIEW_CAPTURED: 日光与月光各 36 帧实际渲染"); GetTree().Quit(); return;
             }
             Check(Session.Settings.DayNightSecondsPerSegment==300,"全局每格默认五分钟");
+            var calendar=new DayNightClock(Session.Settings);
+            Check(calendar.Year==160 && calendar.Month==1,"剧情从公元160年1月开始");
+            calendar.Advance(3599); Check(calendar.Month==1,"从初始格走满一圈前不提前计月");
+            calendar.Advance(1); Check(calendar.Month==2 && calendar.CompletedCycles==1,"完整周期增加一个月");
+            calendar.Advance(3600*11); Check(calendar.Year==161 && calendar.Month==1,"长帧跨多个周期与十二月跨年正确");
+            calendar.SetPosition(9); calendar.Advance(double.NaN); calendar.Advance(-1);
+            Check(calendar.Year==161 && calendar.Month==1,"调试调时与无效时间不改日期");
             var clock=new DayNightClock(Session.Settings); clock.SetPosition(0); clock.Advance(299);
             Check(clock.Segment==0,"不足五分钟不越格"); clock.Advance(1);
             Check(clock.Segment==1,"五分钟推进一格"); clock.Advance(1500);
@@ -46,9 +77,45 @@ public partial class StatusCycleTests : Node
             clock.SetPosition(5.99999); var dusk=clock.Ambient; clock.Advance(.006);
             Check(Math.Abs(dusk.R-clock.Ambient.R)+Math.Abs(dusk.G-clock.Ambient.G)+Math.Abs(dusk.B-clock.Ambient.B)<.001f,"日夜交界平滑无跳色");
             var menu=City.Navigation; var bar=menu.StatusBar;
+            var trees=City.Map.Actors.GetChildren().OfType<CityTree>().ToArray();
+            Check(trees.Length==7 && trees.Select(t=>t.Variant).Distinct().Count()==4,"七个安全树位随机包含四种外观");
+            var originalTrees=trees.Select(t=>t.Variant).ToArray();
+            var clockControl=menu.GetChild<Control>(0).GetNode<DayNightDial>("DayNightDial");
+            Check(clockControl.Scale==Vector2.One*.6f,"日月钟缩至原来60%");
+            Check(bar.GetNode<TextureRect>("StonePanel").Size==new Vector2(280,45),"石板只包住技能与物品并保留上下边距");
+            await Frames(120);
+            Check(Mathf.Abs(menu.Minimap.WorldUnitsPerPixel-Session.Settings.MinimapWorldUnitsPerPixel*Session.Settings.MinimapRangeMultiplier)<.01f,"局部地图使用全局视野倍率");
+            City.Toast("锻炼完成 · 生命上限 +100，伤害 +6%",1.2f);
+            await Frames(15); await Capture("13-message-stone-jade");
+            var message=City.GetNode<CanvasLayer>("CityFeedback").GetChild<Control>(0).GetNode<MessageToast>("Notice");
+            Check(message.Count==1 && message.Position.Y==50,"完成消息位于日期下方并自动计时");
+            await Frames(80); Check(message.Count==0,"完成提示自动消失");
             Check(bar.Skills.Length==4 && bar.Items.Length==4,"四技能槽和四物品槽");
             Check(bar.Skills[3].Text=="" && bar.Skills[3].Disabled && !bar.Skills[3].GetNode<TextureRect>("SkillIcon").Visible,"未装备第四槽只留快捷键");
-            Check(menu.Minimap.Circular && menu.Minimap.Size==new Vector2(58,58) && menu.Minimap.Position.X==10,"小地图为底部最左的小圆形");
+            Check(menu.Minimap.Circular && menu.Minimap.Size==new Vector2(70,70) && menu.Minimap.Position==new Vector2(10,286),"小地图放大约20%且仍贴左下角");
+            Check(City.ActivityHintText=="","没有常驻移动与交互说明");
+            var oldPosition=City.Player.Position;
+            var smith=City.Interactions.First(target=>target.ContentId=="smith");
+            City.Player.Position=new(748,278); City.Player.StopMoving(); await Frames(5);
+            Check(City.Nearest==smith && smith.PromptVisible && City.InteractionPromptText=="G · 交谈","靠近铁匠时在其头顶显示交谈键");
+            await Capture("10-smith-prompt");
+            Session.Bindings.TrySet(InputActions.Interact,Key.T,out _); await Frames(3);
+            Check(City.InteractionPromptText=="T · 交谈","头顶交互提示跟随玩家改键");
+            Session.Bindings.TrySet(InputActions.Interact,Key.G,out _);
+            menu.Open(); await Frames(3); Check(!smith.PromptVisible,"暂停菜单立即隐藏头顶交互提示"); menu.Close();
+            City.Player.Position=oldPosition; await Frames(5);
+            Check(!smith.PromptVisible,"离开铁匠后不残留名字或交互提示");
+            var savedStage=Session.Progress.Trial;
+            foreach(var stage in Enum.GetValues<AdventureProgress.QuestStage>())
+            {
+                Session.Progress.Trial=stage; await Frames(2);
+                Check(menu.QuestBook.HasQuest==(stage!=AdventureProgress.QuestStage.Rewarded),"任务书光圈跟随阶段："+stage);
+            }
+            await Capture("11-quest-finished");
+            Session.Progress.Trial=savedStage; await Frames(2);
+            await ClickControl(menu.QuestBook);
+            Check(menu.IsOpen && menu.Page=="任务" && GetTree().Paused,"点击右侧任务书打开任务详情并暂停");
+            await Capture("12-quest-details"); menu.Close(); await Frames(2);
             Check(bar.Skills[1].Position.X==bar.Skills[0].Position.X+bar.Skills[0].Size.X
                 && bar.Items[1].Position.X==bar.Items[0].Position.X+bar.Items[0].Size.X
                 && bar.Skills[0].Size==new Vector2(30,30),"技能与物品槽缩小且相邻无间隙");
@@ -128,6 +195,7 @@ public partial class StatusCycleTests : Node
             Session.Clock.SetPosition(3); await Frames(3); await Capture("04-day");
             Session.Clock.SetPosition(6); await Frames(3); await Capture("05-dusk");
             Session.Clock.SetPosition(9); await Frames(3); await Capture("06-night");
+            Check(City.Player.Rig.DrawOrderedParts.All(p=>p.Material is ShaderMaterial shader && !shader.Shader.Code.Contains("render_mode unshaded")),"人物全部拆件采用受光着色器");
             Check(City.Navigation.Daylight.Color.B>City.Navigation.Daylight.Color.R,"夜间实际应用蓝灰月光");
             double before=Session.Clock.Position;
             Session.EnterCave(GetTree(),City.Player); await Frames(12);
@@ -135,6 +203,8 @@ public partial class StatusCycleTests : Node
             Check(Session.Clock.Position>=before && Session.Clock.Position<before+.1,"切换洞窟不重置时钟");
             Check(cave.Navigation.Daylight==null && cave.Darkness.Color.R<.15,"洞窟保留自身暗度与局部照明");
             await Capture("07-cave");
+            Session.LeaveCave(GetTree(),cave.Player); await Frames(12);
+            Check(City.Map.Actors.GetChildren().OfType<CityTree>().Select(t=>t.Variant).SequenceEqual(originalTrees),"跨图返回保持同次会话的随机树种");
             Session.EnterTrial(GetTree()); await Frames(12); var arena=(Arena)GetTree().CurrentScene;
             foreach(var actor in arena.Fighters) actor.GetNode(NodeNames.Controller).ProcessMode=ProcessModeEnum.Disabled;
             arena.Player.GetNode(NodeNames.Controller).ProcessMode=ProcessModeEnum.Inherit;
@@ -147,6 +217,11 @@ public partial class StatusCycleTests : Node
             await Frames(75); KeyDown(Key.F,true); await Frames(4); KeyDown(Key.F,false);
             Check(arena.Player.Cooldown(CombatAction.Skill4)>0,"F 实际施放第四槽");
             Session.Clock.SetPosition(3); await Frames(2); await Capture("08-arena");
+            foreach(var fighter in arena.Fighters)
+                Check(fighter.Rig.DrawOrderedParts.All(p=>p.Material is ShaderMaterial shader && !shader.Shader.Code.Contains("render_mode unshaded")),"四将共用受光材质："+fighter.Name);
+            Session.Clock.SetPosition(6); await Frames(2); await Capture("14-arena-dusk");
+            Session.Clock.SetPosition(9); await Frames(2); await Capture("15-arena-night");
+            Session.Clock.SetPosition(3);
             await Frames(75);
             bool torchBefore=Session.TorchInUse;
             var item=arena.Navigation.StatusBar.Items[0];
@@ -175,6 +250,16 @@ public partial class StatusCycleTests : Node
     private static void KeyDown(Key key,bool down)
     { using var input=new InputEventKey { Keycode=key,PhysicalKeycode=key,Pressed=down }; Input.ParseInputEvent(input); }
     private static void KeyPress(Key key) { KeyDown(key,true); KeyDown(key,false); }
+    private async Task ClickControl(Control control)
+    {
+        Vector2 point=GetViewport().GetFinalTransform()*control.GetGlobalTransformWithCanvas()*(control.Size*.5f);
+        using(var motion=new InputEventMouseMotion { Position=point,GlobalPosition=point }) Input.ParseInputEvent(motion);
+        await Frames(2);
+        using(var press=new InputEventMouseButton { Position=point,GlobalPosition=point,ButtonIndex=MouseButton.Left,Pressed=true }) Input.ParseInputEvent(press);
+        await Frames(2);
+        using(var release=new InputEventMouseButton { Position=point,GlobalPosition=point,ButtonIndex=MouseButton.Left,Pressed=false }) Input.ParseInputEvent(release);
+        await Frames(2);
+    }
     private async Task Frames(int count) { for(int i=0;i<count;i++) await ToSignal(GetTree(),SceneTree.SignalName.ProcessFrame); }
     private async Task Capture(string name)
     {

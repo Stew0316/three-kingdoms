@@ -12,6 +12,7 @@ public partial class CityMap : Node2D
     {
         _font = new SystemFont { FontNames = GameFontNames.CreateChineseFallbacks() };
         BuildTiles();
+        BuildExterior();
         Actors = new Node2D { Name = "Actors", YSortEnabled = true }; AddChild(Actors);
         // 小屋采用紧凑 RPG 比例，缩小屋体，不移动门前 NPC 和任务交互点。
         AddBuilding(new(166,202),new(136,100),"槐安驿站",new("66706a"),0);
@@ -19,15 +20,23 @@ public partial class CityMap : Node2D
         AddBuilding(new(748,202),new(128,96),"铁匠铺",new("6e7067"),2);
         AddBuilding(new(169,496),new(128,96),"槐下民居",new("6b7466"),3);
         AddBuilding(new(704,532),new(166,124),"马厩",new("786752"),4);
-        Wall(new(0,0,960,32)); Wall(new(0,608,960,32)); Wall(new(0,0,28,640)); Wall(new(932,0,28,640));
+        Wall(new(0,0,960,32)); Wall(new(0,608,960,32)); Wall(new(0,0,28,640));
+        // 东门与主街同宽开口，骑马也可走向雪山；其余城墙保持封闭。
+        Wall(new(932,0,28,242)); Wall(new(932,320,28,320));
         // 独立封闭口袋：北口宽56像素，碎石后徒步/骑马均可通过，不可绕侧面取得宝箱。
         Wall(new(808,356,16,252)); Wall(new(916,356,16,252));
         Wall(new(808,350,28,16)); Wall(new(892,350,40,16));
         BoulderBody = Wall(new(836,350,56,34));
         if (Broken) RemoveBoulder();
+        var vegetation=new RandomNumberGenerator { Seed=AdventureSession.Instance.VegetationSeed };
+        var variants=new[]{0,1,2,3};
+        // 随机洗牌的树种袋先保证每种出现一次，再重复取样，避免偶然整城全是同一种。
+        for(int i=variants.Length-1;i>0;i--) { int j=vegetation.RandiRange(0,i); (variants[i],variants[j])=(variants[j],variants[i]); }
+        int treeIndex=0;
         foreach(var p in new Vector2[]{new(56,93),new(307,76),new(580,96),new(880,126),new(60,565),new(354,525),new(531,510)})
         {
-            var tree = new CityTree { Position=p }; Actors.AddChild(tree);
+            var tree = new CityTree { Position=p,Variant=treeIndex<4 ? variants[treeIndex] : vegetation.RandiRange(0,3) }; Actors.AddChild(tree);
+            treeIndex++;
             Wall(new Rect2(p-new Vector2(7,6),new Vector2(14,12)));
         }
     }

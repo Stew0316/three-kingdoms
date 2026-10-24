@@ -66,7 +66,7 @@ public partial class FirstCityTests : Node
             Check(white>brown*1.22f && white<brown*1.42f,$"真实碰撞位移体现不同马速：枣红{brown:0.0} / 青骢{white:0.0}");
             Check(City.Player.Rig.Parts.Where(p=>p.Name.ToString().Contains("武器")).All(p=>!p.Visible),"骑乘隐藏手持武器，改为执缰姿态");
             await Capture("04-white-horse");
-            City.Player.Position=new(917,294); await Move("move_right",25); Check(City.Player.Position.X<922,"高速骑马仍受城墙碰撞限制");
+            City.Player.Position=new(917,400); await Move("move_right",25); Check(City.Player.Position.X<922,"高速骑马仍受东门开口以外的城墙碰撞限制");
             PressKey(City,Key.X);
             await Visit("boulder",new(864,317)); Choose("施展崩击"); await Frames(65);
             Check(Session.Progress.BoulderBroken && City.Map.Broken,"崩击在动作后解除巨石及碰撞");

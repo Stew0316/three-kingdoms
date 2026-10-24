@@ -12,6 +12,8 @@ public partial class AdventureSession : Node
     public GameSettings Settings { get; private set; }
     public KeyBindings Bindings { get; private set; }
     public DayNightClock Clock { get; private set; }
+    // 每次启动随机，跨图保持植被外观，避免从洞窟返回时树种突然变化。
+    public uint VegetationSeed { get; private set; }
     public WorldAtlas Atlas { get; private set; }
     private readonly Dictionary<string, CharacterAttributes> _characters = new();
     public IReadOnlyDictionary<string, CharacterAttributes> Characters => _characters;
@@ -55,6 +57,7 @@ public partial class AdventureSession : Node
         _testing = OS.GetCmdlineUserArgs().Any(a => a.Contains("test") || a.StartsWith("--capture"));
         Bindings = new KeyBindings(_testing);
         Clock = new DayNightClock(Settings);
+        VegetationSeed = GD.Randi();
         Progress = new AdventureProgress { Coins = Config.StartingCoins };
         if (!_testing && FileAccess.FileExists(SavePath))
         {

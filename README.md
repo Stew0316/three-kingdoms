@@ -19,7 +19,7 @@
 
 ## 运行与验证
 
-使用 Godot .NET 编辑器打开 `project.godot` 并构建 C# 项目。正常运行由 `GameEntry` 进入槐安城；引擎命令行自定义参数 `--arena` 进入演武场，`--cave` 预览洞窟。
+使用 Godot .NET 编辑器打开 `project.godot` 并构建 C# 项目。正常运行由 `GameEntry` 显示黑底致谢与猫头鹰启动页，加载后进入槐安城；东门可步行沿草路前往雪山麓。引擎命令行自定义参数 `--arena` 进入演武场，`--cave` 预览洞窟。
 
 构建可使用 `dotnet build Three-Kingdoms.csproj`。各专项回归的入口和用途见 [当前实现索引](Architecture/当前实现索引.md#验证入口)；截图、运行日志放在 `Build`。测试命令存在不等于本次已经执行，具体执行环境、结果和遗留项记在对应需求文档。
 

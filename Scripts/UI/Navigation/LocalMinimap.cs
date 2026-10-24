@@ -14,14 +14,16 @@ public partial class LocalMinimap : Control
     public float WorldUnitsPerPixel { get; private set; } = 3.2f;
     public Vector2 PlayerScreenPosition => Overview ? ToMap(Player.GlobalPosition) : Size / 2;
     private Font _font;
+    private Texture2D _mountainArtwork;
     private float MapRadius => Mathf.Min(Size.X,Size.Y)/2;
-    private Vector2 Center => Overview ? Region == "暗窟" ? new(576,352) : Region == "演武场" ? new(320,208) : new(480,320) : Player.GlobalPosition;
+    private Vector2 Center => Overview ? Region == "暗窟" ? new(576,352) : Region == "演武场" ? new(320,208) : SnowMountainLayout.WorldBounds.GetCenter() : Player.GlobalPosition;
     private Vector2 ToMap(Vector2 point) => Size / 2 + (point - Center) / WorldUnitsPerPixel;
     public override void _Ready()
     {
         ClipContents = true;
         MouseFilter = MouseFilterEnum.Ignore;
         _font = new SystemFont { FontNames = GameFontNames.CreateChineseFallbacks() };
+        if(World is CityMap) _mountainArtwork=GD.Load<Texture2D>(SnowMountainLayout.MountainTexture);
         if(Circular)
         {
             // 父节点只提供圆形 Alpha 遮罩，地图内容由子节点绘制，不显示白色遮罩本身。
@@ -34,9 +36,11 @@ public partial class LocalMinimap : Control
     {
         if (!IsInstanceValid(Player)) return;
         var settings = AdventureSession.Instance.Settings;
-        Vector2 worldSize=Region=="暗窟" ? new(1152,704) : Region=="演武场" ? new(660,300) : new(960,640);
+        float range=float.IsFinite(settings.MinimapRangeMultiplier) && settings.MinimapRangeMultiplier>0 ? settings.MinimapRangeMultiplier : 2;
+        Vector2 worldSize=Region=="暗窟" ? new(1152,704) : Region=="演武场" ? new(660,300) : SnowMountainLayout.WorldBounds.Size;
         float target = Overview ? Mathf.Max(worldSize.X/(Size.X-24),worldSize.Y/(Size.Y-40))
-            : Player.IsMounted ? settings.MinimapMountedWorldUnitsPerPixel : settings.MinimapWorldUnitsPerPixel;
+            : (Player.IsMounted ? settings.MinimapMountedWorldUnitsPerPixel : settings.MinimapWorldUnitsPerPixel)*range;
+        if(!float.IsFinite(target) || target<=0) target=3.2f*range;
         WorldUnitsPerPixel = Overview ? target : Mathf.Lerp(WorldUnitsPerPixel, target, 1 - Mathf.Exp(-5 * (float)delta));
         QueueRedraw();
         if(_surface!=null) { _surface.Size=Size; _surface.QueueRedraw(); }
@@ -69,6 +73,9 @@ public partial class LocalMinimap : Control
         else
         {
             MapRect(canvas,new Rect2(28,32,904,576), new Color("3a5147"));
+            if(_mountainArtwork!=null)
+                canvas.DrawTextureRect(_mountainArtwork,new Rect2(ToMap(SnowMountainLayout.MountainBounds.Position),SnowMountainLayout.MountainBounds.Size/WorldUnitsPerPixel),false,new Color(.72f,.80f,.80f));
+            canvas.DrawColoredPolygon(SnowMountainLayout.PathPolygon().Select(ToMap).ToArray(),new Color("7e8d70"));
             MapRect(canvas,new Rect2(28,240,904,80), new Color("baa57f"));
             foreach (int x in new[] {288,576}) MapRect(canvas,new Rect2(x,80,64,512), new Color("baa57f"));
             var map = World as CityMap;
@@ -77,13 +84,14 @@ public partial class LocalMinimap : Control
             if (map != null)
                 foreach (var body in map.GetChildren().OfType<StaticBody2D>())
                     foreach (var shape in body.GetChildren().OfType<CollisionShape2D>())
-                        if (shape.Shape is RectangleShape2D rectangle && body.CollisionLayer != 0)
+                        if (shape.Shape is RectangleShape2D rectangle && body.CollisionLayer != 0 && shape.GlobalPosition.X<960)
                             MapRect(canvas,new Rect2(shape.GlobalPosition - rectangle.Size / 2, rectangle.Size), new Color("203a34"));
             Marker(canvas,new(169,234), "驿", new Color("e9d0a0"));
             Marker(canvas,new(467,266), "军", new Color("e9d0a0"));
             Marker(canvas,new(748,242), "铁", new Color("e9d0a0"));
             Marker(canvas,new(710,542), "马", new Color("e9d0a0"));
             Marker(canvas,new(903,294), "东门", new Color("e9d0a0"));
+            Marker(canvas,SnowMountainLayout.Entrance,"雪山麓",new Color("e0eeee"));
         }
         Vector2 p = PlayerScreenPosition, forward = Player.FacingDirection.Normalized(), side = forward.Orthogonal();
         canvas.DrawCircle(p, 6, new Color("142925"));

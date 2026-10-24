@@ -16,8 +16,8 @@ public partial class OldRoadCave : Node2D
     public Dictionary<string,CaveFlame> Candles { get; } = new();
     public CaveFlame Torch { get; private set; }
     private AdventureSession Session => AdventureSession.Instance;
-    private Label _status, _hint, _notice;
-    private float _noticeTime;
+    private Label _status;
+    private MessageToast _notice;
     private bool _switching;
     private static bool _testsStarted;
     public override void _Ready()
@@ -50,7 +50,9 @@ public partial class OldRoadCave : Node2D
     }
     private void AddInteraction(string id,string title,Vector2 position)
     {
-        var target=new CityInteractable { ContentId=id,Title=title,Position=position,ShowLabel=false };
+        // 壁烛锚点在烛体下方，提示须越过火焰顶部，并留出整行文字的高度。
+        var target=new CityInteractable { ContentId=id,Title=title,Position=position,ShowLabel=true,PromptOffset=new(0,-62),
+            CanShowPrompt=()=>!GetTree().Paused && Dialogue?.IsOpen!=true && Navigation?.IsOpen!=true && !_switching && Player?.CanAct==true };
         Map.Actors.AddChild(target); Interactions.Add(target);
     }
     public override void _PhysicsProcess(double delta)
@@ -60,11 +62,25 @@ public partial class OldRoadCave : Node2D
         Player.SetMoveInput(blocked ? Vector2.Zero : Input.GetVector(InputActions.MoveLeft, InputActions.MoveRight, InputActions.MoveUp, InputActions.MoveDown));
         Camera.Position=Player.Position+new Vector2(0,-35);
         Torch.Burning=Session.TorchInUse && Session.Progress.HasTorch;
-        var nearest=FindNearest();
-        foreach(var item in Interactions) { item.Highlighted=item==nearest && !Dialogue.IsOpen; item.QueueRedraw(); }
-        _hint.Text=nearest==null ? $"I 行囊 / 使用火把 · {Session.Bindings.Label(InputActions.Interact)} 点火或调查" : Session.Bindings.Label(InputActions.Interact)+"  "+nearest.Title+"    ·    I 行囊";
+        var nearest=blocked || !Player.CanAct ? null : FindNearest();
+        foreach(var item in Interactions)
+        {
+            item.Highlighted=item==nearest;
+            item.PromptText=item==nearest ? InteractionPrompt(item) : "";
+            item.QueueRedraw();
+        }
         _status.Text=$"旧驿道 · 暗窟     壁烛 {Session.Progress.LitCaveCandles.Count} / {Candles.Count}     火把：{(Torch.Burning ? "使用中" : Session.Progress.HasTorch ? "未使用 · 按 I" : "未领取")}";
-        _noticeTime-=(float)delta; _notice.Visible=_noticeTime>0;
+    }
+    /// <summary>只提示当前目标能执行的动作；未举火时显示实际物品键，已燃壁烛不诱导重复点火。</summary>
+    private string InteractionPrompt(CityInteractable target)
+    {
+        string key=Session.Bindings.Label(InputActions.Interact);
+        if(target.ContentId=="exit") return key+" · 返回槐安";
+        if(target.ContentId=="supplies") return key+(Session.Progress.HasTorch ? " · 查看物资" : " · 领取火把");
+        if(Session.Progress.LitCaveCandles.Contains(target.ContentId)) return "壁烛已点燃";
+        if(!Session.Progress.HasTorch) return "需火把 · 洞口领取";
+        if(!Session.TorchInUse) return Session.Bindings.Label(InputActions.ItemSlots[0])+" · 举起火把";
+        return key+" · 点燃壁烛";
     }
     public CityInteractable FindNearest() => InteractionQuery.FindNearest(Player, Interactions);
     public override void _UnhandledInput(InputEvent input)
@@ -99,18 +115,15 @@ public partial class OldRoadCave : Node2D
         else Toast("这盏蜡烛已经点燃");
     }
     private void ShowSaveWarning() { if(Session.SaveWarning.Length>0) Toast(Session.SaveWarning,6); }
-    public void Toast(string text,float seconds=3) { _notice.Text=text; _noticeTime=seconds; _notice.Show(); }
+    public void Toast(string text,float seconds=3) => _notice.ShowMessage(text,seconds);
     private void BuildHud()
     {
         var layer=new CanvasLayer { Layer=2 }; AddChild(layer);
         var root=new Control { MouseFilter=Control.MouseFilterEnum.Ignore }; root.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect); layer.AddChild(root);
         root.Theme=UiStyles.ChineseTheme(12);
-        var top=new Panel { Position=new(10,48),Size=new(620,37),MouseFilter=Control.MouseFilterEnum.Ignore };
+        var top=new Panel { Position=new(10,250),Size=new(620,37),MouseFilter=Control.MouseFilterEnum.Ignore };
         top.AddThemeStyleboxOverride("panel",CityDialogue.Box(new Color("162d30e8"),new Color("8c865d"))); root.AddChild(top);
-        _status=new Label { Position=new(22,56),Size=new(598,24),Modulate=new Color("ead5a0") }; root.AddChild(_status);
-        _hint=new Label { Position=new(12,285),Size=new(616,18),HorizontalAlignment=HorizontalAlignment.Center }; root.AddChild(_hint);
-        _hint.AddThemeColorOverride("font_outline_color",new Color("14201b")); _hint.AddThemeConstantOverride("outline_size",3);
-        _notice=new Label { Position=new(168,260),Size=new(460,25),HorizontalAlignment=HorizontalAlignment.Center,Modulate=new Color("fff1c0") }; root.AddChild(_notice);
-        _notice.AddThemeColorOverride("font_shadow_color",new Color("162d30")); _notice.AddThemeConstantOverride("shadow_offset_y",1);
+        _status=new Label { Position=new(22,258),Size=new(598,24),Modulate=new Color("ead5a0") }; root.AddChild(_status);
+        _notice=new MessageToast { Name="Notice" }; root.AddChild(_notice);
     }
 }

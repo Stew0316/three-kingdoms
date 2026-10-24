@@ -7,7 +7,7 @@ public partial class AfterimageTrail2D : Node2D
     private Combatant _actor;
     private float _lastSpawn;
     private readonly List<Ghost> _ghosts=new();
-    private readonly CanvasItemMaterial _additive=new() { BlendMode=CanvasItemMaterial.BlendModeEnum.Add };
+    private readonly CanvasItemMaterial _additive=new() { BlendMode=CanvasItemMaterial.BlendModeEnum.Add,LightMode=CanvasItemMaterial.LightModeEnum.Unshaded };
     private readonly Dictionary<ShaderMaterial, ShaderMaterial> _clippedMaterials = new(); // 带采样裁剪的部件，残影必须保留同一遮罩。
 
     private sealed class Ghost
@@ -78,7 +78,7 @@ public partial class AfterimageTrail2D : Node2D
             return _additive;
         if (_clippedMaterials.TryGetValue(source, out var cached)) return cached;
         var material = (ShaderMaterial)source.Duplicate();
-        material.Shader = new Shader { Code = source.Shader.Code.Replace("render_mode unshaded;", "render_mode unshaded, blend_add;") };
+        material.Shader = new Shader { Code = source.Shader.Code.Replace("render_mode blend_mix;", "render_mode unshaded, blend_add;") };
         material.SetShaderParameter("cartoon_enabled", false); // 残影维持原有加色表现，只继承裁剪。
         _clippedMaterials[source] = material;
         return material;

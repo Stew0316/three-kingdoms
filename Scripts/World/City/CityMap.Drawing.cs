@@ -91,6 +91,16 @@ public partial class CityMap
         }
         foreach(float x in new[]{0f,932f})
         {
+            if(x==932)
+            {
+                DrawRect(new Rect2(x,28,28,214),new Color("7c816e"));
+                DrawRect(new Rect2(x+4,28,18,214),new Color("aaa181"));
+                DrawRect(new Rect2(x,320,28,288),new Color("7c816e"));
+                DrawRect(new Rect2(x+4,320,18,288),new Color("aaa181"));
+                for(int y=28;y<608;y+=21)
+                    if(y<238 || y>320) DrawLine(new(x+3,y),new(x+24,y),new Color("646e61"),1);
+                continue;
+            }
             DrawRect(new Rect2(x,28,28,580),new Color("7c816e"));
             DrawRect(new Rect2(x+4,28,18,580),new Color("aaa181"));
             DrawRect(new Rect2(x+3,28,5,580),new Color("687466"));
@@ -174,10 +184,10 @@ public partial class CityMap
         DrawRect(new Rect2(891,316,41,21),new Color("bab091"));
         DrawTileCap(new Rect2(880,206,58,13));
         DrawTileCap(new Rect2(880,310,58,13));
-        DrawRect(new Rect2(924,242,8,68),new Color("695b42"));
-        DrawLine(new(928,244),new(928,309),new Color("b09c72"),2);
-        DrawRect(new Rect2(915,242,9,69),new Color("a6a68d"));
-        for(int i=0;i<5;i++) DrawLine(new(916,246+i*13),new(924,246+i*13),new Color("8c9179"),1);
+        // 门扇靠上下门柱收拢，视觉通道与 242–320 的物理开口一致。
+        DrawRect(new Rect2(918,238,39,5),new Color("695b42"));
+        DrawRect(new Rect2(918,316,39,5),new Color("695b42"));
+        DrawString(_font,new(967,269),"雪山麓 →",HorizontalAlignment.Left,-1,11,new Color("d7dbce"));
         DrawRect(new Rect2(891,222,34,15),new Color("544d3b"));
         DrawString(_font,new(896,234),"东门",HorizontalAlignment.Left,-1,11,new Color("d9c9a0"));
         DrawString(_font,new(861,278),"演武场",HorizontalAlignment.Left,-1,11,new Color("665e48"));

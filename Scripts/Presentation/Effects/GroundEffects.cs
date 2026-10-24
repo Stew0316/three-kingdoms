@@ -10,6 +10,8 @@ public partial class GroundEffects : Node2D
         // 先于角色绘制、晚于地图绘制；不能用负 Z，否则光环和阴影也会被 Z=0 的地图盖住。
         ZIndex=0;
         ShowBehindParent=true;
+        // 范围预警、旋斩和粒子保持可辨；黑色接触阴影的混合结果不受乘色影响。
+        Material=new CanvasItemMaterial { LightMode=CanvasItemMaterial.LightModeEnum.Unshaded };
     }
     public override void _Process(double delta) => QueueRedraw();
     public override void _Draw()

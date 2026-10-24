@@ -23,6 +23,10 @@ ArenaZoom = 0.8
 MinimapWorldUnitsPerPixel = 3.2
 ; 骑乘小地图每像素对应世界像素，上下马时平滑切换。
 MinimapMountedWorldUnitsPerPixel = 4.2
+; 局部小地图视野倍率；2 将原有比例尺分母翻倍（如 1:100 → 1:200），不改变总览。
+MinimapRangeMultiplier = 2.0
+; 剧情纪年起点，公元160年1月；每完整昼夜周期推进一个月。
+CalendarStartYear = 160
 ; 每格真实游戏秒数：300 秒 = 5 分钟，12 格 = 60 分钟；暂停停止计时，最小 1 秒。
 DayNightSecondsPerSegment = 300.0
 ; 新会话初始格位 [0,12)：0 黎明、3 日中、6 黄昏、9 午夜。

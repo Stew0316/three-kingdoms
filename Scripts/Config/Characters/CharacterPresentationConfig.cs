@@ -15,8 +15,8 @@ public partial class CharacterPresentationConfig : Resource
     [Export] public float AfterimageLifetime { get; set; } = .32f;
     [Export] public float AuraRadius { get; set; } = 21;
     [Export] public int ParticleCount { get; set; } = 24;
-    [Export] public Color EmpowerColor { get; set; } = new("ff3d3d"); // R 槽自身强化期间的轮廓/辉光主色。
-    [Export] public bool EmpowerHumanAura { get; set; } // 红色人形气焰：通过拆件 Shader 保留人体轮廓。
+    [Export] public Color EmpowerColor { get; set; } = new("ff3d3d"); // 自身强化的全身气焰主色，吕布金黄、关羽赤红。
+    [Export] public bool EmpowerHumanAura { get; set; } // 在人物前后绘制持续上升的全身气焰，并辅以拆件边缘受光。
     [Export] public bool EmpowerWeaponGlow { get; set; } // 强化期间仅武器增加白色辉光。
     [Export] public bool EmpowerBlueTrail { get; set; } // 强化且移动时产生蓝色残影与粒子拖尾。
 }

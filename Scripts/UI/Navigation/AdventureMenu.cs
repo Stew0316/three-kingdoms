@@ -16,6 +16,7 @@ public partial class AdventureMenu : CanvasLayer
     public LocalMinimap Minimap { get; private set; }
     public WorldMapView WorldMap { get; private set; }
     public PlayerStatusBar StatusBar { get; private set; }
+    public QuestBookButton QuestBook { get; private set; } // 右侧任务入口，发光状态直接读取冒险进度。
     public CanvasModulate Daylight { get; private set; }
     private Control _overlay, _content;
     private VBoxContainer _nav;
@@ -23,6 +24,7 @@ public partial class AdventureMenu : CanvasLayer
     private bool _pausedBefore, _ownsPause;
     private string _waitingAction;
     private Label _bindingMessage;
+    private Label _calendar;
     private AdventureSession Session => AdventureSession.Instance;
     private static readonly Color Gold = new("e8d4a2"), Ink = new("152c2a");
     private static readonly string[] Pages = { "地图", "物品栏", "人物", "背包", "坐骑", "设置" };
@@ -32,14 +34,19 @@ public partial class AdventureMenu : CanvasLayer
         Layer = 15; ProcessMode = ProcessModeEnum.Always;
         var root = new Control { MouseFilter = Control.MouseFilterEnum.Ignore, Theme = UiStyles.ChineseTheme(12) };
         AddChild(root); root.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
-        Minimap = new LocalMinimap { Player=Player, World=World, Region=Region, Position=new(10,298), Size=new(58,58),Circular=true };
+        Minimap = new LocalMinimap { Player=Player, World=World, Region=Region, Position=new(10,286), Size=new(70,70),Circular=true };
         // 小地图与动作栏共用底部一行，圆形裁切不挡住左侧出生人物。
 
         root.AddChild(Minimap);
         StatusBar=new PlayerStatusBar { Player=Player,Position=new(0,298),Size=new(640,62),
             CanUse=()=>!IsOpen && !GetTree().Paused && Dialogue?.IsOpen!=true && CanOpen() };
         root.AddChild(StatusBar);
-        root.AddChild(new DayNightDial { Position=new(260,9),Size=new(120,46) });
+        root.AddChild(new DayNightDial { Name="DayNightDial",Position=new(284,1),Size=new(120,46),Scale=Vector2.One*.6f });
+        _calendar=Label(root,Session.Clock.CalendarText,new(260,30,120,16),10);
+        _calendar.Name="Calendar"; _calendar.HorizontalAlignment=HorizontalAlignment.Center;
+        QuestBook=new QuestBookButton { Name="QuestBook",Position=new(594,156),Size=new(38,48) };
+        QuestBook.Pressed+=()=>Open("任务");
+        root.AddChild(QuestBook);
         // 同一世界画布只允许一个环境乘色；暗窟已经拥有自己的 CanvasModulate。
         if(Region!="暗窟") { Daylight=new CanvasModulate { Color=Session.Clock.Ambient }; GetParent().AddChild(Daylight); }
         _overlay = new Control { Visible=false }; root.AddChild(_overlay);
@@ -145,10 +152,39 @@ public partial class AdventureMenu : CanvasLayer
         else if(page is "物品栏" or "背包") BuildInventory(page=="物品栏");
         else if(page=="设置") BuildSettings();
         else if(page=="退出确认") BuildQuit();
+        else if(page=="任务") BuildQuests();
     }
     public override void _Process(double delta)
     {
         if(Daylight!=null) Daylight.Color=Session.Clock.Ambient;
+        _calendar.Text=Session.Clock.CalendarText;
+        QuestBook.HasQuest=Session.Progress.Trial!=AdventureProgress.QuestStage.Rewarded;
+        QuestBook.Visible=!IsOpen && Dialogue?.IsOpen!=true;
+        QuestBook.Disabled=!CanOpen();
+    }
+    private void BuildQuests()
+    {
+        var progress=Session.Progress;
+        string state=progress.Trial switch
+        {
+            AdventureProgress.QuestStage.Available=>"可接取",
+            AdventureProgress.QuestStage.Accepted=>"进行中",
+            AdventureProgress.QuestStage.Completed=>"待交付",
+            _=>"已完成"
+        };
+        Label(_content,"演武试炼  ·  "+state,new(20,52,422,28),18);
+        string objective=progress.Trial switch
+        {
+            AdventureProgress.QuestStage.Available=>"前往槐安城军营，与教头韩正交谈，接下演武委托。",
+            AdventureProgress.QuestStage.Accepted=>"从槐安城东门进入演武场，击败魏延。完成后返回军营向韩正复命。",
+            AdventureProgress.QuestStage.Completed=>"魏延已被击败。返回槐安城军营，与韩正交谈并领取报酬。",
+            _=>"演武委托已完成，当前没有待办任务。可以继续探索槐安城、锻炼或前往旧驿道。"
+        };
+        var detail=Label(_content,objective,new(20,101,420,93),14);
+        detail.Name="QuestObjective"; detail.AutowrapMode=TextServer.AutowrapMode.WordSmart;
+        Label(_content,$"报酬：铜钱 {Session.Config.QuestCoins} · 《行军要诀》\n兵书研习后永久增加 {Session.Config.BookPower:P0} 伤害",new(20,208,420,50),12);
+        Button(_content,"查看天下图",new(20,277,150,27),()=>ShowPage("地图"));
+        Button(_content,"返回游戏",new(292,277,150,27),Close);
     }
     private void BuildSettings()
     {

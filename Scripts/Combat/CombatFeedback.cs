@@ -12,7 +12,12 @@ public partial class CombatFeedback : Node2D
     private string _notice;
     private Color _noticeColor;
     public void ShowNotice(string text, Color color) { _notice = text; _noticeColor = color; _remaining = .6f; }
-    public override void _Ready() => ZIndex = PresentationZIndexes.CombatFeedback;
+    public override void _Ready()
+    {
+        ZIndex = PresentationZIndexes.CombatFeedback;
+        // 命中火花与飘字是反馈层，不能在夜间失去辨识度。
+        Material=new CanvasItemMaterial { LightMode=CanvasItemMaterial.LightModeEnum.Unshaded };
+    }
     /// <summary>显示 damage 伤害值，并重置为 0.6 秒反馈。</summary>
     public void ShowDamage(int damage, bool critical = false, DamageKind kind = DamageKind.Direct)
     { _notice = null; _damage = damage; _critical = critical; _kind = kind; _remaining = .6f; }

@@ -22,6 +22,10 @@ public partial class GameSettings : Resource
     [Export] public float MinimapWorldUnitsPerPixel { get; set; } = 3.2f;
     // 骑乘时每个小地图像素对应的世界像素，随上下马平滑变化。
     [Export] public float MinimapMountedWorldUnitsPerPixel { get; set; } = 4.2f;
+    // 局部小地图视野倍率；2 表示比例尺由原 1:100 变为 1:200，覆盖两倍线性距离。总览不受影响。
+    [Export] public float MinimapRangeMultiplier { get; set; } = 2;
+    // 游戏纪年起点（公元年），是剧情设定，不作为吕布生年的史实断言。
+    [Export] public int CalendarStartYear { get; set; } = 160;
     // 昼夜每格的真实游戏秒数；300 秒即 5 分钟，12 格共 60 分钟。暂停不计时，最小 1 秒。
     [Export] public float DayNightSecondsPerSegment { get; set; } = 300;
     // 新会话从第几格开始，范围 [0,12)；0 黎明、3 日中、6 黄昏、9 午夜。

@@ -16,7 +16,8 @@ public partial class WeaponTrail : Node2D
     {
         _actor = GetParent<Combatant>();
         ZIndex = PresentationZIndexes.WeaponTrail;
-        Material = new CanvasItemMaterial { BlendMode = CanvasItemMaterial.BlendModeEnum.Add };
+        // 刀光属于技能自发光，不随人物本体一起被昼夜压暗。
+        Material = new CanvasItemMaterial { BlendMode = CanvasItemMaterial.BlendModeEnum.Add,LightMode=CanvasItemMaterial.LightModeEnum.Unshaded };
     }
     /// <summary>读取规则时钟判断是否绘制；delta 不参与独立计时，暂停时不会继续播放。</summary>
     public override void _Process(double delta)

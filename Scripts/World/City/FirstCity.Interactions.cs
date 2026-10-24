@@ -11,6 +11,7 @@ public partial class FirstCity
         Player.StopMoving();
         switch(target.ContentId)
         {
+            case "snow-mountain": Dialogue.Open("雪山麓 · 山脚入口","草色在此褪尽，风雪沿岩隙涌出。\n山体陡峭，前路被冰雪封住，只能在山脚驻足远望。"); break;
             case "captain": CaptainDialogue(); break;
             case "inn": Dialogue.Open("阿宁 · 槐安驿站","远行先歇脚。驿站可免费恢复全部生命。现在只开通槐安这一处驿站，待游历更多城池再通驿路。",
                 ("歇息 · 恢复全部生命",()=> { Player.Health.ResetHealth(); Commit(); Toast("驿站休息完毕 · 生命已恢复"); }),

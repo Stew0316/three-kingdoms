@@ -1,7 +1,7 @@
 using Godot;
 using System;
 
-/// <summary>居中紧凑底栏：竖剑生命、技能、铜饰、物品和竖葫芦，不绘制大底板。</summary>
+/// <summary>居中底栏：石质背板仅包裹技能、黄玉玺和物品，两侧量表独立。</summary>
 public partial class PlayerStatusBar : Control
 {
     // 中央组合横跨 148–492，整体中心保持在 640 逻辑像素画布的正中。
@@ -23,6 +23,15 @@ public partial class PlayerStatusBar : Control
         // 空白区域不接管鼠标，只有量表与按钮参与命中。
         MouseFilter=MouseFilterEnum.Ignore;
         Theme=UiStyles.ChineseTheme(10);
+        AddChild(new TextureRect { Name="StonePanel",Position=new(180,SlotY-10),Size=new(280,SlotSize+15),
+            Texture=TransparentArtwork.Load("res://Source/UI/Frames/StoneSkillPanelV1.png"),
+            ExpandMode=TextureRect.ExpandModeEnum.IgnoreSize,StretchMode=TextureRect.StretchModeEnum.Scale,
+            TextureFilter=TextureFilterEnum.Linear,MouseFilter=MouseFilterEnum.Ignore });
+        // 玉玺保持正向，垂直中心落在石板上沿（SlotY-10），上下各一半，不遮挡两侧技能槽。
+        AddChild(new TextureRect { Name="JadeSeal",Position=new(309,SlotY-10-13),Size=new(22,26),
+            Texture=TransparentArtwork.Load("res://Source/UI/Icons/Ornaments/YellowJadeSealV2.png"),
+            ExpandMode=TextureRect.ExpandModeEnum.IgnoreSize,StretchMode=TextureRect.StretchModeEnum.KeepAspectCentered,
+            TextureFilter=TextureFilterEnum.Linear,MouseFilter=MouseFilterEnum.Ignore });
         _torch=GD.Load<AdventureItemDefinition>("res://Resources/Config/Items/torch.tres");
         _health=new VerticalResourceGauge { Name="HealthSword",Position=new(148,4),Size=new(32,54) };
         AddChild(_health);
@@ -134,17 +143,4 @@ public partial class PlayerStatusBar : Control
         target.DrawLine(new(18,23),new(23,18),new Color("c6a978"),1,true);
     }
 
-    public override void _Draw()
-    {
-        // 方孔铜饰和短结绳分隔技能/物品两组，属于游戏化纹饰。
-        Vector2 center=new(320,35);
-        DrawArc(center,6.8f,0,Mathf.Tau,48,new Color("503e29"),4,true);
-        DrawArc(center,6.2f,0,Mathf.Tau,48,new Color("b6975f"),2.5f,true);
-        DrawArc(center,7.5f,Mathf.Pi,Mathf.Tau,24,new Color("dfbf7a"),.7f,true);
-        DrawRect(new Rect2(center-new Vector2(2.4f,2.4f),new(4.8f,4.8f)),new Color("b6975f"),false,.8f);
-        DrawLine(center+new Vector2(0,7),center+new Vector2(0,13),new Color("764038"),1.8f,true);
-        DrawCircle(center+new Vector2(0,11),1.5f,new Color("b08c51"),true,-1,true);
-        DrawLine(center+new Vector2(0,13),center+new Vector2(-2,19),new Color("8f463d"),1,true);
-        DrawLine(center+new Vector2(0,13),center+new Vector2(2,19),new Color("8f463d"),1,true);
-    }
 }

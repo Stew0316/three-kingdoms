@@ -1,153 +1,46 @@
 # 目录、内容包、存档与 DLC
 
-状态：提案  
-目标：区分代码、组件、正式内容和原始资产，并为存档兼容和后续内容包预留稳定边界。
+更新日期：2026-10-24。现有目录与本地存档已存在；下方通用注册、内容包、DLC 和完整迁移模型仍为提案。
 
-## 1. 顶层目录职责
+## 1. 顶层目录的唯一约定
 
-下方目录树是未来内容包提案，并非当前文件清单。当前一级职责见根 AGENTS，实际子目录见 [目录职责与公共代码组织](12-目录职责与公共代码组织.md)；不为满足提案预建空目录。
+当前一级职责以根 [AGENTS](../AGENTS.md) 为准，实际代码组织见 [12 号文档](12-目录职责与公共代码组织.md)，文档归属见 [文档边界](DocumentationRules.md)。不再把旧提案中的根级 Content、UI、Tests、Tools 当作建设目标；没有实际需要不预建空目录。
 
-保留项目当前一级目录，并建议后续按需要增加 `Content`、`Tests` 和 `Tools`。真正新增一级目录时，需要同步更新根目录 `AGENTS.md`。
+| 内容 | 现有位置 |
+| --- | --- |
+| 通用系统说明与规则 | `Architecture` |
+| 内容设计、制作过程与交付记录 | `Demand`；故事与对白另在 `Drama` |
+| C# 规则、流程与表现 | `Scripts` 按领域划分 |
+| Resource 类型 / 配置实例 | `Scripts/Config` / `Resources/Config` |
+| 着色器运行资源 | `Resources/Shaders` |
+| 组件 / 完整场景 | `Components` / `Scene` |
+| 原图、音频等源素材 | `Source` |
+| 当前测试 / 工具 | `Scripts/Tests` / `Scripts/Tools` |
+| 构建、截图与临时检查输出 | `Build` |
+| 真正跨游戏基础能力 | `addons` / `BaseSource` 子模块 |
 
-```text
-addons/        强通用、可跨项目复用的 Godot 插件
-BaseSource/    工作室 Logo、许可等跨游戏基础资源
-Architecture/ 长期架构设计与细化记录
-Content/       正式运行时 Definition 与内容包
-Scripts/       C# 系统和游戏代码
-Components/    可复用的 Godot 组件场景
-Scene/         完整流程、地图、遭遇和菜单场景
-Source/        本游戏美术、音频、Shader、风格样板
-UI/            UI 界面内容；实际建立时进一步约定代码与资源边界
-Tests/         规则、内容、集成和存档迁移测试
-Tools/         内容校验、沙盒、地图检查和构建工具
-Demand/        原始需求、设计想法、阶段计划和验收记录
-Build/         导出产物或本地构建结果
-```
+## 2. 后续内容包落点
 
-`addons` 不应成为所有工具代码的默认位置。只有真正跨项目、依赖边界清楚的能力才提取进去；本游戏专属的技能编辑或地图校验工具应先放在 `Tools` 或项目脚本中。
+若确实需要打包和独立启停，优先在 `Resources` 中增加有明确边界的内容包目录，或由 Manifest 引用现有分类资源。采用哪一种在内容规模出现后决定；本次不迁移 `.tres`、场景或源资产。
 
-## 2. 推荐目录细分
+内容包负责定义集合、依赖和授权边界，不要求把规则代码复制进每个包。跨包引用通过稳定 ID 和注册层管理，场景与素材遵循现有资源目录和 UID 规则。
 
-```text
-Content/
-├─ Core/
-│  ├─ PackManifest.tres
-│  ├─ Skills/
-│  ├─ Modifiers/
-│  ├─ Units/
-│  ├─ Items/
-│  ├─ Encounters/
-│  ├─ Maps/
-│  ├─ Quests/
-│  ├─ Dialogues/
-│  └─ Cues/
-├─ Chapter_Hulao/
-└─ DLC_*/
+## 3. 系统与内容的对应
 
-Scripts/
-├─ Core/
-│  ├─ Ids/
-│  ├─ Time/
-│  ├─ Events/
-│  └─ Random/
-├─ Application/
-├─ Content/
-├─ Actors/
-├─ Commands/
-├─ Abilities/
-├─ Modifiers/
-├─ Combat/
-├─ Projectiles/
-├─ AI/
-├─ Encounters/
-├─ World/
-├─ Interaction/
-├─ Narrative/
-├─ Progression/
-├─ Inventory/
-├─ Save/
-├─ Presentation/
-│  ├─ Vfx/
-│  ├─ Audio/
-│  └─ Camera/
-├─ UI/
-├─ Platform/
-└─ Debug/
-
-Components/
-├─ Actors/
-├─ Combat/
-├─ Abilities/
-├─ World/
-├─ Interaction/
-├─ UI/
-└─ Vfx/
-
-Scene/
-├─ Boot/
-├─ Menus/
-├─ World/
-├─ Encounters/
-├─ Sandboxes/
-└─ Cinematics/
-
-Source/
-├─ People/
-├─ City/
-├─ Terrain/
-├─ Vfx/
-├─ UI/
-├─ Audio/
-├─ Shaders/
-└─ StyleGuide/
-
-Tests/
-├─ Unit/
-├─ Combat/
-├─ ContentValidation/
-├─ Integration/
-└─ SaveMigration/
-
-Tools/
-├─ ContentValidator/
-├─ SkillSandbox/
-├─ MapValidator/
-└─ BuildPipeline/
-```
-
-## 3. 按技术层组织与按内容包组织
-
-两种组织方式不要互相冲突：
-
-- `Scripts/` 按系统职责组织，保存可复用规则代码。
-- `Content/` 按内容包和内容类型组织，保存正式游戏内容。
-
-例如龙卷风：
-
-```text
-Scripts/Abilities/Effects/SpawnAreaEffect.cs
-Scripts/Combat/AreaEffects/MovingAreaEffect.cs
-Content/Core/Skills/Tornado.tres
-Content/Core/Cues/TornadoCast.tres
-Components/Vfx/Tornado/TornadoLoop.tscn
-Source/Vfx/Tornado/*.png
-```
-
-通用移动区域属于系统；龙卷风的具体参数和表现属于内容。
+通用持续区域、伤害和状态处理属于 Scripts；某个技能的伤害、寿命、贴图和配置实例属于 Resources/Source；其设计与获取方式属于 Demand。架构可以说明字段和接口，不在此维护正式技能数值或章节清单。
 
 ## 4. 稳定 ID 与命名空间
 
 所有需要存档、引用、DLC 扩展或跨场景访问的内容必须有稳定 ID：
 
 ```text
-core:skill/tornado
+core:skill/example
 core:modifier/stunned
-core:unit/weiyan
-core:map/start_village
-core:encounter/weiyan_trial
-chapter_hulao:map/hulao_gate
-dlc_redcliff:skill/fire_ship
+core:unit/example
+core:map/example
+core:encounter/example
+chapter_pack:map/example
+dlc_pack:skill/example
 ```
 
 规则：
@@ -270,7 +163,7 @@ DLC 优先作为内容包提供：
 核心代码不应出现大量：
 
 ```text
-if (DlcRedCliffEnabled) { ... }
+if (ExampleDlcEnabled) { ... }
 ```
 
 应改为：
@@ -306,10 +199,10 @@ Godot 可以运行时加载 PCK/ZIP，用于补丁、DLC 和 Mod。需要注意�
 Definition 中保存文本 Key：
 
 ```text
-skill.tornado.name
-skill.tornado.description
-quest.weiyan_trial.title
-map.start_village.name
+skill.example.name
+skill.example.description
+quest.example.title
+map.example.name
 ```
 
 不在 Definition 中把简中名称作为唯一内容标识。技能描述中的数值优先使用占位符和格式化数据，减少强化后文本与实际数值不一致。

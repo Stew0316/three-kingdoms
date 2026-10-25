@@ -70,6 +70,17 @@ public partial class CharacterRig
             }
             if (b is >= 3 and <= 8 && Actor.Presentation.Model.ArmAtlasAnchors.Length == 12)
                 BindArmArtwork(b, sprite, region);
+            if (b is 9 or 11 && Actor.Presentation.Model.ThighAtlasAnchors.Length == 4)
+            {
+                var anchors = Actor.Presentation.Model.ThighAtlasAnchors;
+                int index = b == 9 ? 0 : 2;
+                Vector2 axis = anchors[index + 1] - anchors[index];
+                float rotation = Mathf.Pi / 2 - axis.Angle();
+                float scale = _thighLength / axis.Length();
+                sprite.Rotation = rotation;
+                sprite.Scale = Vector2.One * scale;
+                sprite.Position = -(anchors[index] - region.Position).Rotated(rotation) * scale;
+            }
             // 旧 v2 图集双靴相向时只翻近侧；原生同向的 v3 图集关闭该配置。
             sprite.FlipH = (b == 12 && Actor.Presentation.Model.AlignBootsForward)
                 || (b == 10 && Actor.Presentation.Model.FlipFarBootHorizontal);
@@ -77,6 +88,19 @@ public partial class CharacterRig
             sprite.Visible = b != 15 || Actor.Presentation.Model.CrestVisible;
             if (Actor.Presentation.Animation.ReferencePoseSet && Actor.Presentation.Model.ReferenceAccessories != null)
                 BindReferenceAccessory(b, sprite);
+            if (b == 15 && Actor.Presentation.Model.ProceduralCrests)
+            {
+                sprite.Texture = null; // 只保留业务关节占位；程序冠翎不持有或显示旧冠翎采样。
+                sprite.Visible = false;
+            }
+            if (b is 0 or 1 or 3 or 4 or 6 or 7 or 9 or 10 or 11 or 12)
+            {
+                var armor = BuildCartoonMaterial(Actor.Presentation.Model);
+                armor.SetShaderParameter("art_tint", Actor.Presentation.Model.ArmorTint);
+                sprite.Material = armor;
+            }
+            if (Actor.Presentation.Model.MovementCloth && (b == 13 || b == 15 && !Actor.Presentation.Model.ProceduralCrests))
+                BindMovementCloth(b, sprite);
             // 在最终武器纹理上限制采样，不重新计算包围盒，避免裁掉杂片后武器缩放或握点漂移。
             if (b == 14 && Actor.Presentation.Model.WeaponAtlasClipPolygon.Length is >= 3 and <= 16)
             {
@@ -100,6 +124,7 @@ public partial class CharacterRig
                     BuildReferenceFoot(boneIndex, part);
             }
         BuildOffhandWeapon();
+        BuildIndependentCrests();
         SyncParts();
     }
 
@@ -133,6 +158,7 @@ public partial class CharacterRig
             }
         if (Actor.Presentation.Animation.ReferencePoseSet) SyncReferenceFeet(inverse);
         SyncOffhandWeapon(inverse);
+        SyncIndependentCrests(inverse);
     }
 
     /// <summary>压缩写实贴图色阶并在透明边缘内侧加深轮廓，降低卡牌立绘感。</summary>

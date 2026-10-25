@@ -27,7 +27,7 @@ public partial class FirstCity
                 ($"枣红马 {Config.BrownHorseSpeed:0} / 青骢马 {Config.WhiteHorseSpeed:0} 像素每秒",()=>Toast($"进马厩靠近马匹，按 {Session.Bindings.Label(InputActions.Interact)} 选择坐骑"))); break;
             case "horse-brown": HorseDialogue(1); break;
             case "horse-white": HorseDialogue(2); break;
-            case "gate": Dialogue.Open("东门 · 演武场",Progress.Trial==AdventureProgress.QuestStage.Available ? "城外演武场默认魏延、关羽、刘备三将同场。建议先去军营接任务，击败魏延后即可回城交付。" : "进入四人演武场，与魏延、关羽、刘备切磋。击败魏延即可按“返回槐安”回城交任务，也可继续挑战其余两将；失败可回驿站恢复。",
+            case "gate": Dialogue.Open("东门 · 演武场",Progress.Trial==AdventureProgress.QuestStage.Available ? "城外演武场由魏延与你切磋。建议先去军营接任务，击败魏延后即可回城交付。" : "进入演武场，与魏延一对一切磋。击败魏延即可按“返回槐安”回城交任务；失败可回驿站恢复。",
                 ("出城 · 挑战魏延",EnterArena)); break;
             case "boulder":
                 Dialogue.Open("城门边的巨石",Progress.CanSmash ? "裂隙清晰可见，教头传授的崩击正好能破开这块巨石。" : "巨石纹丝不动。你还没有“崩击”能力，去军营找韩教头接下演武任务。",

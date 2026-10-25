@@ -14,8 +14,11 @@ public partial class Arena : Node2D
     // Enemy 保留为首位对手，兼容单角色姿态测试；遭遇逻辑统一读取集合。
     public List<Combatant> Fighters { get; } = new();
     public IEnumerable<Combatant> Enemies => Fighters.Where(actor => actor.IsEnemy);
-    [Export] public bool GroupPractice { get; set; } = true; // 正式演武场一名玩家与三名AI同场。
+    [Export] public bool GroupPractice { get; set; } // 默认双人切磋；群战仅供显式开发配置与回归使用。
     public bool IsGroupPractice => GroupPractice && !Hd2D && !IsSoloPractice;
+    // 正常切磋只开放吕布、魏延；完整目录仍供历史四武将和群战专项验证使用。
+    public int SelectableHeroCount => IsGroupPractice || OS.GetCmdlineUserArgs().Contains("--four-hero-test")
+        ? HeroCatalog.Ids.Length : 2;
     // 是否已经结算，用于防止死亡信号导致重复结算。
     public bool Finished { get; private set; }
     // 显示在结算面板的中文结果，未结束时为空。
@@ -30,11 +33,19 @@ public partial class Arena : Node2D
     public CombatResolver Resolver { get; private set; }
     public override void _EnterTree()
     {
-        // 专项姿态/旧双人规则测试隔离额外对手；四人实战由独立验收覆盖。
+        // 群战只能显式启用，避免额外角色干扰正常双人调试。
+        if (OS.GetCmdlineUserArgs().Contains("--arena-group-test")) GroupPractice = true;
+        // 专项姿态/双人规则测试隔离额外对手；群战由独立验收覆盖。
         string[] duelTests = { "--combat-test", "--module-test", "--weiyan-pose-test", "--four-hero-test", "--rig-visual-test" };
         if (OS.GetCmdlineUserArgs().Any(duelTests.Contains)) GroupPractice = false;
         var player = GetNode<Combatant>(SceneNodePaths.Player);
         var enemy = GetNode<Combatant>(SceneNodePaths.Enemy);
+        if (SelectableHeroCount == 2)
+        {
+            // 旧选择或重复选择不能将其他武将带回当前切磋；允许交换操控双方。
+            HeroCatalog.PlayerIndex = Mathf.Clamp(HeroCatalog.PlayerIndex, 0, 1);
+            HeroCatalog.EnemyIndex = 1 - HeroCatalog.PlayerIndex;
+        }
         if (IsGroupPractice && HeroCatalog.PlayerIndex == HeroCatalog.EnemyIndex)
             HeroCatalog.EnemyIndex = (HeroCatalog.PlayerIndex + 1) % HeroCatalog.Ids.Length;
         HeroCatalog.Configure(player, HeroCatalog.PlayerIndex);
@@ -97,7 +108,7 @@ public partial class Arena : Node2D
             foreach (var enemy in Enemies) { Resolver.Register(enemy); enemy.Resolver = Resolver; }
             Resolver.Settled += () =>
             {
-                // 城门入口同样四人同场；魏延任务按目标死亡推进，不要求额外击败关羽和刘备。
+                // 任务按魏延死亡推进；正常双人切磋同时结算胜利，开发群战仍按全体敌人判定。
                 if (Enemies.Any(enemy => enemy.Ui.CharacterId == "core:weiyan" && enemy.IsDead))
                     AdventureSession.Instance?.CompleteTrial(true);
                 if (Player.IsDead || Enemies.All(enemy => enemy.IsDead)) EndBattle(!Player.IsDead);

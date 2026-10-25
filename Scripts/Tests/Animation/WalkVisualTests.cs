@@ -26,6 +26,7 @@ public partial class WalkVisualTests : Node
             Check(_arena.Enemy.ProcessMode == ProcessModeEnum.Disabled && _arena.Enemy.CollisionLayer == 0
                 && _arena.Enemy.GetNode<Area2D>(NodeNames.Hurtbox).CollisionLayer == 0, "魏延处理、实体碰撞和受击关闭");
             await Frames(15);
+            Check(Player.Rig.ClothWeight == 0, "初始待机布料不鼓动");
             float standingHip = Player.Rig.Joints[0].Position.Y;
             Check(!Player.Rig.Parts[10].FlipH && Player.Rig.Parts[12].FlipH == Player.Presentation.Model.AlignBootsForward,
                 "小腿方向遵循实际素材配置，不强制镜像新素材");
@@ -44,6 +45,8 @@ public partial class WalkVisualTests : Node
                 float before = Player.WalkDistance;
                 Player.SetMoveInput(direction);
                 await Frames(15);
+                if (Player.Presentation.Model.MovementCloth)
+                    Check(Player.Rig.ClothWeight > .1f, $"方向 {direction} 真实移动驱动布料");
                 Check(Player.WalkDistance > before + 20, $"方向 {direction} 按实际位移推进步态");
                 await VerifyWalkingCycle(direction, farLegScale, nearLegScale);
             }
@@ -55,7 +58,9 @@ public partial class WalkVisualTests : Node
                 "停步收势后相位不再自行摆动");
             Check(Mathf.Abs(Player.Rig.Joints[0].Position.Y - standingHip) < .1f, "停步回到独立站立姿态");
             var stoppedLegs = LegTransforms();
+            float stoppedClothTime = Player.Rig.ClothTime;
             await Frames(8);
+            Check(Player.Rig.ClothWeight == 0 && Player.Rig.ClothTime == stoppedClothTime, "停步收稳后布料权重归零、波形停止");
             Check(SameTransforms(stoppedLegs, LegTransforms()), "停步后双腿与独立靴掌稳定，不继续摆动");
             Check(Player.TryAction(CombatAction.Basic), "站立可正常进入攻击姿态");
             await Frames(7);
@@ -81,6 +86,7 @@ public partial class WalkVisualTests : Node
             await Frames(35);
             float wallPhase = Player.Rig.WalkPhase;
             await Frames(20);
+            Check(Player.Rig.ClothWeight == 0, "持续顶墙布料停止鼓动");
             Check(Player.WalkVelocity.Length() < 1 && Player.Rig.WalkWeight < .01f
                 && Mathf.IsEqualApprox(wallPhase, Player.Rig.WalkPhase), "持续顶墙停止迈步");
             Player.Position = new Vector2(320, 235);
@@ -88,8 +94,10 @@ public partial class WalkVisualTests : Node
             await Frames(10);
             GetTree().Paused = true;
             float pausePhase = Player.Rig.WalkPhase;
+            float pauseClothTime = Player.Rig.ClothTime, pauseClothWeight = Player.Rig.ClothWeight;
             var pausedLegs = LegTransforms();
             await Frames(5);
+            Check(Player.Rig.ClothTime == pauseClothTime && Player.Rig.ClothWeight == pauseClothWeight, "暂停冻结布料相位和强度");
             Check(Mathf.IsEqualApprox(pausePhase, Player.Rig.WalkPhase)
                 && SameTransforms(pausedLegs, LegTransforms()), "暂停同时冻结步态相位、双腿和靴掌");
             GetTree().Paused = false;

@@ -63,7 +63,8 @@ public partial class RigVisualTests : Node
             foreach(var actor in Actors()) actor.Rig.ArtScale*=2;
             await Frames(10);
             await Capture("limbs-detail-fixed");
-            GD.Print($"RIG_VISUAL_TEST_PASS: {_checks} 项可见性和双手握点检查，截图在 Build/limbs-*-fixed.png。");
+            await VerifyClothPixels();
+            GD.Print($"RIG_VISUAL_TEST_PASS: {_checks} 项可见性、双手握点与布料像素检查，截图在 Build/limbs-*-fixed.png。");
             GetTree().Quit();
         }
         catch(Exception ex)
@@ -75,6 +76,80 @@ public partial class RigVisualTests : Node
     }
 
     private Combatant[] Actors() => new[]{_arena.Player,_arena.Enemy};
+
+    /// <summary>固定复制品骨架，仅材质跟随真实移动，确认波形确实改变像素且静止完全稳定。</summary>
+    private async Task VerifyClothPixels()
+    {
+        var actor = _arena.Player;
+        if (!actor.Presentation.Model.MovementCloth) return;
+        _arena.Enemy.ProcessMode = ProcessModeEnum.Disabled;
+        actor.Position = new Vector2(220, 235);
+        actor.Face(Vector2.Right);
+        actor.SetMoveInput(Vector2.Right);
+        await Frames(15);
+        var layers = new System.Collections.Generic.List<Node2D>();
+        foreach (var plume in actor.Rig.CrestParts) layers.Add(plume);
+        layers.Add(actor.Rig.Parts[13]); layers.Add(actor.Rig.Parts[1]);
+        if (actor.Presentation.Model.ProceduralCrests)
+        {
+            if (actor.Rig.CrestParts.Count != 2 || actor.Rig.CrestParts[0].Material == actor.Rig.CrestParts[1].Material
+                || actor.Rig.CrestParts[0].Texture != null || actor.Rig.CrestParts[1].Texture != null)
+                throw new InvalidOperationException("冠翎必须是两个独立材质、无图片的网格。");
+            _checks++;
+        }
+        foreach (var part in layers)
+        {
+            string bone = part.Name;
+            bool rigid = part == actor.Rig.Parts[1];
+            var viewport = new SubViewport { Size = new Vector2I(400, 400), TransparentBg = true,
+                Disable3D = true, RenderTargetUpdateMode = SubViewport.UpdateMode.Always };
+            AddChild(viewport);
+            var copy = RigArtworkCapture.CopyLayer(part);
+            if (part is Sprite2D texture)
+            {
+                copy.Position = new Vector2(60,60);
+                copy.Scale = new Vector2(260f / texture.Texture.GetWidth(), 260f / texture.Texture.GetHeight());
+            }
+            else
+            {
+                copy.Position = new Vector2(300,220);
+                copy.Scale = new Vector2(4,4);
+            }
+            viewport.AddChild(copy);
+            await ReadAndDisposeFrame();
+            using var before = viewport.GetTexture().GetImage();
+            await Frames(8);
+            await ReadAndDisposeFrame();
+            using var after = viewport.GetTexture().GetImage();
+            before.Convert(Godot.Image.Format.Rgba8); after.Convert(Godot.Image.Format.Rgba8);
+            byte[] a = before.GetData(), b = after.GetData();
+            int changed = 0;
+            for (int pixel = 0; pixel < a.Length; pixel += 4)
+                if (Math.Abs(a[pixel] - b[pixel]) + Math.Abs(a[pixel + 1] - b[pixel + 1])
+                    + Math.Abs(a[pixel + 2] - b[pixel + 2]) + Math.Abs(a[pixel + 3] - b[pixel + 3]) > 12) changed++;
+            GD.Print($"布料像素检查 {bone}：{changed} 个像素改变。");
+            if (rigid ? changed != 0 : changed < 100)
+                throw new InvalidOperationException($"布料像素不符合要求：{bone}，{changed}。");
+            _checks++;
+            before.SavePng($"res://Build/LvBuCloth{bone}Before.png");
+            after.SavePng($"res://Build/LvBuCloth{bone}After.png");
+            actor.SetMoveInput(Vector2.Zero);
+            await Frames(45);
+            await ReadAndDisposeFrame();
+            using var stillA = viewport.GetTexture().GetImage();
+            await Frames(10);
+            await ReadAndDisposeFrame();
+            using var stillB = viewport.GetTexture().GetImage();
+            if (!stillA.GetData().AsSpan().SequenceEqual(stillB.GetData()))
+                throw new InvalidOperationException($"静止材质仍在变形：{bone}。");
+            _checks++;
+            viewport.QueueFree();
+            actor.Position = new Vector2(220, 235);
+            actor.SetMoveInput(Vector2.Right);
+            await Frames(15);
+        }
+        actor.SetMoveInput(Vector2.Zero);
+    }
 
     /// <summary>冻结动画后对比隐藏单个部件前后的真实帧，捕获地图遮挡、握点重叠和空图问题。</summary>
     private async Task VerifyVisibleLimbs(string pose)

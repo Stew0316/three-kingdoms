@@ -67,6 +67,7 @@ public partial class CharacterRig : Node2D
     {
         if (Skeleton == null) return;
         if (_legacy != null) { _legacy.ShowBones=ShowBones; return; }
+        UpdateMovementCloth();
         if (_partByBone[14] != null) _partByBone[14].Visible = !Actor.IsMounted;
         if (_offhandWeapon != null) _offhandWeapon.Visible = !Actor.IsMounted;
         if (Actor.IsMounted) { ProcessRidingPose(); return; }

@@ -37,6 +37,8 @@ public partial class CharacterRig
 
     private ReferenceFrame _referenceFrame;
     private ReferenceFrame _referenceActionStart; // 从实际上一帧姿态起势，支持行走中出招。
+    private ReferenceFrame _referenceCounterStart; // 反击同样从实际姿态起势，不叠加低通滤波改变握点轨迹。
+    private float _referencePreviousCounter;
     private bool _referenceInitialized;
     private Combatant.State _referencePreviousState;
     private float _referencePreviousActionTime;
@@ -71,6 +73,9 @@ public partial class CharacterRig
         bool wasAction = _referencePreviousState is Combatant.State.Attack or Combatant.State.Dodge;
         if (action && (!wasAction || Actor.ActionTime < _referencePreviousActionTime))
             _referenceActionStart = _referenceFrame;
+        // 零增量的表现帧也要保存起势，不能先更新计时再漏掉首次反击快照。
+        if (Actor.CounterRemaining > 0 && (_referencePreviousCounter <= 0 || Actor.CounterRemaining > _referencePreviousCounter))
+            _referenceCounterStart = _referenceFrame;
 
         // 动作关键帧直接随前摇/生效/后摇采样，不再叠加低通延迟，避免打击判定已生效而身体仍未起势。
         if (action)
@@ -112,9 +117,10 @@ public partial class CharacterRig
             {
                 float phase = 1 - Actor.CounterRemaining / Actor.CounterDuration;
                 // 技能只发出反击事实，武将自己的 Counter 资源决定如何回击。
-                target = SampleReferenceTimeline(standing, standing, config.Counter, phase, .2f, .6f, .2f);
+                target = SampleReferenceTimeline(_referenceCounterStart, standing, config.Counter, phase, .2f, .6f, .2f);
             }
-            _referenceFrame = ReferenceFrame.Mix(_referenceFrame, target, 1 - Mathf.Exp(-22 * elapsed));
+            _referenceFrame = Actor.CounterRemaining > 0 ? target
+                : ReferenceFrame.Mix(_referenceFrame, target, 1 - Mathf.Exp(-22 * elapsed));
             if (Actor.CurrentState == Combatant.State.Move && _walkWeight >= .99f && Actor.CounterRemaining <= 0)
             {
                 // 足底不能再经过低通滞后，否则落地后仍会漂移；起停和受击仍沿用姿态过渡。
@@ -142,6 +148,7 @@ public partial class CharacterRig
         }
         _referencePreviousState = Actor.CurrentState;
         _referencePreviousActionTime = Actor.ActionTime;
+        _referencePreviousCounter = Actor.CounterRemaining;
         ApplyReferenceFrame(_referenceFrame);
     }
 

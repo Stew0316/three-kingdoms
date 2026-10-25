@@ -4,6 +4,6 @@ public static class HeroSelection
     // 我方当前武将的目录索引，默认吕布。
     public static int PlayerIndex { get; set; }
 
-    // 首位对手的目录索引，默认魏延；其余对手由演武场补齐。
+    // 对手的目录索引，默认魏延；正常切磋在吕布与魏延之间交换双方。
     public static int EnemyIndex { get; set; } = 1;
 }

@@ -7,5 +7,6 @@
 | [RPG 原始设计](RPG设计.md) | 原始世界、游历、技能与场景想法；不代表全部确定或实现 |
 | [早期基础设计](RPG-base.md) | 早期输入材料，保留溯源，不与当前系统设计并行维护 |
 | [技能交互设计案例](SkillInteractionExamples.md) | 本次讨论的具体人物和技能用途，作为待验证内容 |
+| [双人战斗调试建议](ArenaCombatTuning.md) | 现有配置分析与分轮试玩建议，数值和机制调整尚未执行 |
 
 `RPG设计.docx` 保留为原始文件；本次不重新转换或覆写。新的一般性技能规则写入 [技能设计与成长体系](../../Architecture/SkillDesign.md)，具体技能清单、解锁地点、人物配置和数值放这里或 `Demand/Content`。正式故事与对白写入 [Drama](../../Drama/README.md)。

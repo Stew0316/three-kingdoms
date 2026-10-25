@@ -20,10 +20,11 @@ public partial class CharacterModelConfig : Resource
     [Export] public Rect2 ReferenceCrestRegion { get; set; } // 配件图中的双翎区域。
     [Export] public Vector2 ReferenceCrestRoot { get; set; } // 双翎根部在采样区域内的像素坐标。
     [Export] public bool CalibratedLegProportions { get; set; } // 使用独立校准的髋点与固定腿长；只对选定角色启用。
-    [Export(PropertyHint.Range, "28,44,0.5")] public float PelvisHeight { get; set; } = 36; // 腰骨离角色脚点的高度，骨架单位。
+    [Export(PropertyHint.Range, "28,52,0.5")] public float PelvisHeight { get; set; } = 36; // 腰骨离角色脚点的高度，骨架单位。
     [Export(PropertyHint.Range, "3,7,0.25")] public float HipHalfWidth { get; set; } = 4.5f; // 左右髋关节离骨盆中线的距离，不等于脚距。
-    [Export(PropertyHint.Range, "12,22,0.5")] public float ThighLength { get; set; } = 17; // 固定髋到膝长度，动作中禁止拉伸。
-    [Export(PropertyHint.Range, "12,22,0.5")] public float LowerLegLength { get; set; } = 18; // 固定膝到靴底长度，动作中禁止压缩。
+    [Export(PropertyHint.Range, "12,30,0.5")] public float ThighLength { get; set; } = 17; // 固定髋到膝长度，动作中禁止拉伸。
+    [Export(PropertyHint.Range, "12,28,0.5")] public float LowerLegLength { get; set; } = 18; // 固定膝到靴底长度，动作中禁止压缩。
+    [Export(PropertyHint.Enum, "反向:-1,正向:1")] public int FarKneeBend { get; set; } = 1; // 后侧腿的固定屈膝支路，匹配拆件的膝面朝向；整体镜像不改变此值。
     [Export] public bool AlignBootsForward { get; set; } // 校正近侧小腿贴图：双脚同向，整个人物镜像时一起转向。
     [Export] public bool FlipFarBootHorizontal { get; set; } // 魏延 v2 远靴原图朝左，单独翻转远小腿和靴掌使其朝前。
     [Export(PropertyHint.Range, "0.025,0.06,0.001")] public float CharacterScale { get; set; } = .038f; // 旧世界尺度兼容值；正式角色改由 TargetScreenPixels 锁定屏幕显示尺寸。
@@ -37,10 +38,21 @@ public partial class CharacterModelConfig : Resource
     [Export] public Godot.Collections.Array<Vector2> JointPositions { get; set; } = new(); // 16个业务关节的父节点局部绑定位置。
     [Export] public Godot.Collections.Array<Rect2> PartRects { get; set; } = new(); // 16个拆件在各自关节坐标中的显示范围。
     [Export] public Vector2[] ArmAtlasAnchors { get; set; } = System.Array.Empty<Vector2>(); // 远上臂/前臂/手、近上臂/前臂/手各两点，原图中的肩肘、肘腕、腕掌轴线；共12点，空数组沿用矩形绑定。
+    [Export] public Vector2[] ThighAtlasAnchors { get; set; } = System.Array.Empty<Vector2>(); // 远、近大腿各两个髋膝锚点；对齐原图倾斜的腿甲，保持等比采样。
     [Export] public float PalmInset { get; set; } = 2.5f; // 握点向腕部回退的骨架距离；前臂到握点的骨链包含这一段手掌。
     [Export] public Godot.Collections.Array<int> DrawOrder { get; set; } = new(); // 从后到前绘制的业务关节编号。
     [Export] public bool CrestVisible { get; set; } = true; // 头图已自带完整盔缨时关闭重复冠饰。
     [Export] public Vector2 AccessoryWeaponSize { get; set; } = new(13, 86); // 独立配件武器显示尺寸。
     [Export] public Vector2 AccessoryWeaponOffset { get; set; } = new(-7.4f, -42); // 独立武器相对主握点偏移。
     [Export] public Vector2 AccessoryCrestSize { get; set; } = new(35, 30); // 独立冠饰显示尺寸。
+    [Export] public bool MovementCloth { get; set; } // 仅选定模型启用移动驱动的冠翎、披风 Shader；静止收稳后完全停止。
+    [Export] public Vector2 ClothAmplitudes { get; set; } = new(3, 4); // 冠翎、披风自由端位移上限，骨架单位；固定根部不变形。
+    [Export] public Vector2[] ClothCapeClipPolygon { get; set; } = System.Array.Empty<Vector2>(); // 可选披风原图凸采样区，排除邻格；只在布料材质启用时使用，3～16点。
+    [Export] public Color ArmorTint { get; set; } = Colors.White; // 衣甲专用材质色调，不染脸、手、冠翎或武器。
+    [Export] public float BootWidth { get; set; } = 10; // 独立靴掌宽度，与小腿美术宽度一并校准。
+    [Export] public bool ProceduralCrests { get; set; } // 使用代码生成的独立羽带网格，不采样冠翎图片。
+    [Export] public Godot.Collections.Array<Vector2> CrestCurves { get; set; } = new(); // 按冠翎等分，每条 3n+1 点：根部后每三点为一段贝塞尔控制点与末点，冠骨局部坐标。
+    [Export] public Godot.Collections.Array<Vector4> CrestProfiles { get; set; } = new(); // 每条的宽度、频率、摆幅、相位；各自独立。
+    [Export] public float FootHeight { get; set; } = 4; // 踝至靴底高度，必须小于小腿长度。
+    [Export] public float BootSplit { get; set; } = .8f; // 小腿图中的踝部纵向比例，以下为独立靴掌。
 }

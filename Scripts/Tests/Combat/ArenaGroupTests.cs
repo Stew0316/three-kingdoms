@@ -16,7 +16,7 @@ public partial class ArenaGroupTests : Node
         {
             _arena = (Arena)GetTree().CurrentScene;
             DisableControllers(); await Frames(4);
-            Check(_arena.IsGroupPractice && _arena.Fighters.Count == 4 && _arena.Enemies.Count() == 3, "正常演武场生成一名玩家与三名AI");
+            Check(_arena.IsGroupPractice && _arena.Fighters.Count == 4 && _arena.Enemies.Count() == 3, "显式群战测试生成一名玩家与三名AI");
             Check(_arena.Fighters.Select(actor => actor.Ui.CharacterId).Distinct().Count() == 4, "吕布、魏延、关羽、刘备各出现一次");
             Check(_arena.Fighters.All(actor => actor.Config.MaxHealth == (actor.Ui.CharacterId == "core:lubu" ? 1200 : 1000) && actor.Health.CurrentHealth == actor.Config.MaxHealth && actor.Health.MaxHealth == actor.Config.MaxHealth), "吕布1200、其余三人1000，初始生命和配置一致");
             Check(_arena.Enemies.All(actor => actor.Resolver == _arena.Resolver && actor.GetNode<WeiYanController>(NodeNames.Controller).Target == _arena.Player), "三名对手均接入伤害队列与AI目标");

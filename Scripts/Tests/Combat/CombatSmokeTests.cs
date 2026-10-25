@@ -1,5 +1,6 @@
 using Godot;
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 
 // 显式传 -- --combat-test 才运行；使用真实物理帧和场景，不修改正常游戏输入。
@@ -30,6 +31,7 @@ public partial class CombatSmokeTests : Node
             // 直接执行 HUD 的输入回调，让异常传播到测试；只调用 ReloadCurrentScene
             // 会绕过“重载后仍访问旧 HUD”的生命周期错误。
             await Reset();
+            await CheckDuelRoster();
             await RestartThroughHud("during battle");
             GetTree().Paused = true;
             await RestartThroughHud("while paused");
@@ -210,6 +212,35 @@ public partial class CombatSmokeTests : Node
         }
     }
 
+    /// <summary>通过实际选将控件交换双方，确认普通切磋不会重新加入其他武将。</summary>
+    private async Task CheckDuelRoster()
+    {
+        Check(!_arena.IsGroupPractice && _arena.Fighters.Count == 2
+            && Player.Ui.CharacterId == "core:lubu" && Enemy.Ui.CharacterId == "core:weiyan", "默认切磋只生成吕布与魏延");
+        var layout = _arena.GetNode<BattleHud>(NodeNames.Hud).GetNode<Control>(NodeNames.Layout);
+        layout.GetChildren().OfType<Button>().Single(button => button.Text == "选武将").EmitSignal(BaseButton.SignalName.Pressed);
+        var roster = layout.GetNode<Control>("武将选择");
+        var picks = roster.GetChildren().OfType<OptionButton>().ToArray();
+        Check(GetTree().Paused && picks.Length == 2 && picks.All(pick => pick.ItemCount == 2), "选将暂停战斗且双方仅可选择吕布、魏延");
+        picks[0].Select(1);
+        picks[0].EmitSignal(OptionButton.SignalName.ItemSelected, 1L);
+        Check(picks[1].Selected == 0, "选择魏延后对手自动切为吕布");
+        picks[1].Select(1);
+        picks[1].EmitSignal(OptionButton.SignalName.ItemSelected, 1L);
+        Check(picks[0].Selected == 0, "更换对手时同步调整玩家，避免同将重复");
+        picks[0].Select(1);
+        picks[0].EmitSignal(OptionButton.SignalName.ItemSelected, 1L);
+        roster.GetChildren().OfType<Button>().Single(button => button.Text == "开始对战").EmitSignal(BaseButton.SignalName.Pressed);
+        _arena = await WaitForArenaReady();
+        Check(!GetTree().Paused && _arena.Fighters.Count == 2
+            && Player.Ui.CharacterId == "core:weiyan" && Enemy.Ui.CharacterId == "core:lubu", "实际重建为魏延对吕布，未生成额外角色");
+        await Reset();
+        Check(Player.Ui.CharacterId == "core:weiyan" && Enemy.Ui.CharacterId == "core:lubu", "重开保留交换后的双人选择");
+        HeroCatalog.PlayerIndex = 0; HeroCatalog.EnemyIndex = 3;
+        await Reset();
+        Check(Player.Ui.CharacterId == "core:lubu" && Enemy.Ui.CharacterId == "core:weiyan", "旧对手选择不能将刘备带回双人切磋");
+    }
+
     /// <summary>重载并等待节点就绪，关闭双方控制器，隔离人为设置的测试条件。</summary>
     private async Task Reset()
     {
@@ -249,7 +280,7 @@ public partial class CombatSmokeTests : Node
             await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
             if (GetTree().CurrentScene is Arena arena && arena.Player != null && arena.Enemy != null)
             {
-                // 旧伤害边界用小血量夹具以快速验证致死与十轮重载，正式5000生命由四人场测试验收。
+                // 伤害边界用小血量夹具以快速验证致死与十轮重载，正式生命配置由内容专项验收。
                 arena.Player.Health.Configure(120); arena.Enemy.Health.Configure(100);
                 arena.Player.Health.ResetHealth(); arena.Enemy.Health.ResetHealth();
                 return arena;

@@ -77,14 +77,14 @@ public partial class FirstCityTests : Node
             City.Dialogue.Close(); Check(!Session.Progress.ClaimCache(),"隐藏奖励不能重复领取"); await Capture("05-hidden-path");
             await Visit("gate",new(866,294)); Choose("出城"); await Frames(7);
             var arena=(Arena)GetTree().CurrentScene; DisableAi(arena);
-            Check(arena.IsGroupPractice && arena.Fighters.Count==4 && arena.Fighters.Select(actor=>actor.Ui.CharacterId).Distinct().Count()==4,"从城门默认进入四人演武场，关羽和刘备实际在场");
+            Check(!arena.IsGroupPractice && arena.Fighters.Count==2 && arena.Player.Ui.CharacterId=="core:lubu" && arena.Enemy.Ui.CharacterId=="core:weiyan","从城门进入双人演武场，仅有吕布与魏延");
             Check(arena.Player.Health.MaxHealth==1390 && arena.Enemy.Health.MaxHealth==1000,"训练成长仅作用于冒险玩家");
             arena.Resolver.PassivesEnabled=false; int hp=arena.Enemy.Health.CurrentHealth;
             arena.Enemy.ReceiveDamage(new DamageInfo(arena.Player,100,Vector2.Zero,DamageKind.Attack));
             Check(hp-arena.Enemy.Health.CurrentHealth==122,"军营与锻造加成进入真实伤害结算：100→122");
             arena.Enemy.ReceiveDamage(new DamageInfo(arena.Player,99999,Vector2.Zero,DamageKind.Attack));
-            Check(!arena.Finished && Session.Progress.Trial==AdventureProgress.QuestStage.Completed,"击败魏延完成任务，关羽和刘备尚存时演武继续且不自动领奖");
-            Check(arena.Enemies.Where(actor=>actor!=arena.Enemy).All(actor=>!actor.IsDead && actor.Health.MaxHealth==1000),"关羽与刘备保持1000生命上限且继续在场");
+            Check(arena.Finished && arena.Result==BattleTexts.Victory && Session.Progress.Trial==AdventureProgress.QuestStage.Completed,"击败魏延即赢得切磋并完成任务，不自动领奖");
+            Check(arena.Fighters.All(actor=>actor.BattleFinished),"双人结算后双方停止战斗");
             ReturnButton(arena); await Frames(8);
             Check(City.Map.Broken && Session.Progress.CacheClaimed && Session.Progress.TrainingCount==3,"往返切图保留碎石、奖励与成长");
             await Visit("captain",new(466,302)); Choose("交付任务");

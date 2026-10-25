@@ -222,7 +222,7 @@ public partial class BattleHud : CanvasLayer
         OptionButton Pick(int x, int selected)
         {
             var select = new OptionButton { Position = new Vector2(x, 152), Size = new Vector2(190, 30) };
-            foreach (string name in HeroCatalog.Names) select.AddItem(name);
+            foreach (string name in HeroCatalog.Names.Take(_arena.SelectableHeroCount)) select.AddItem(name);
             select.Select(selected); _roster.AddChild(select); return select;
         }
         var player = Pick(114, HeroCatalog.PlayerIndex); var enemy = Pick(336, HeroCatalog.EnemyIndex);
@@ -234,11 +234,23 @@ public partial class BattleHud : CanvasLayer
             detail.Text = $"主动：{loadout.Dash.DisplayName} / {loadout.Sweep.DisplayName} / {loadout.Skill3?.DisplayName ?? "无"}\n被动：{loadout.Passives[0].DisplayName}（普攻与空格闪避为基础动作）";
             detail.TooltipText = loadout.Dash.Description + "\n" + loadout.Sweep.Description + "\n" + (loadout.Skill3?.Description ?? "") + "\n" + loadout.Passives[0].Description;
         }
-        player.ItemSelected += _ => { if (_arena.IsGroupPractice && enemy.Selected == player.Selected) enemy.Select((player.Selected + 1) % HeroCatalog.Ids.Length); Describe(); };
-        enemy.ItemSelected += _ => { if (_arena.IsGroupPractice && enemy.Selected == player.Selected) enemy.Select((player.Selected + 1) % HeroCatalog.Ids.Length); };
+        player.ItemSelected += _ =>
+        {
+            if ((_arena.IsGroupPractice || _arena.SelectableHeroCount == 2) && enemy.Selected == player.Selected)
+                enemy.Select((player.Selected + 1) % _arena.SelectableHeroCount);
+            Describe();
+        };
+        enemy.ItemSelected += _ =>
+        {
+            if (_arena.SelectableHeroCount == 2) { player.Select(1 - enemy.Selected); Describe(); }
+            else if (_arena.IsGroupPractice && enemy.Selected == player.Selected)
+                enemy.Select((player.Selected + 1) % _arena.SelectableHeroCount);
+        };
         Describe();
         if (_arena.IsGroupPractice)
             AddLabel(_roster, "其余两将自动加入 · 吕布1200，其余1000生命", new Rect2(110, 230, 420, 17), 10, new Color(BattleUiColors.OverlayText), HorizontalAlignment.Center);
+        else if (_arena.SelectableHeroCount == 2)
+            AddLabel(_roster, "吕布与魏延切磋 · 可交换操控双方", new Rect2(110, 230, 420, 17), 10, new Color(BattleUiColors.OverlayText), HorizontalAlignment.Center);
         var start = AddButton(_roster, "开始对战", new Rect2(336, 251, 130, 30));
         start.Pressed += () => { HeroCatalog.PlayerIndex = player.Selected; HeroCatalog.EnemyIndex = enemy.Selected; Restart(); };
         var cancel = AddButton(_roster, "返回", new Rect2(174, 251, 130, 30));

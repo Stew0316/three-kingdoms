@@ -33,7 +33,7 @@ public partial class CharacterRig
     }
     private readonly Sprite2D[] _referenceFeet = new Sprite2D[2]; // 独立靴掌图层，业务骨链仍保持 16 关节。
     private readonly Transform2D[] _referenceFootOffsets = new Transform2D[2];
-    private const float ReferenceFootHeight = 4; // 小腿末端的靴掌高度；其上方为固定胫骨段。
+    private float ReferenceFootHeight => Actor.Presentation.Model.FootHeight; // 小腿末端的靴掌高度；其上方为固定胫骨段。
     private const float ReferenceSupport = .54f; // 每只脚承重的周期占比，其余时间向前摆动。
     public float ReferenceSupportFraction => ReferenceSupport; // 供步态验收区分承重和摆动阶段。
 
@@ -62,7 +62,7 @@ public partial class CharacterRig
         var original = (AtlasTexture)shin.Texture;
         Rect2 region = original.Region;
         // 脚踝约在原小腿包围盒的 80% 处，与原绑定的膝下长度相对应。
-        float split = Mathf.Round(region.Size.Y * .8f);
+        float split = Mathf.Round(region.Size.Y * Actor.Presentation.Model.BootSplit);
         var foot = new Sprite2D
         {
             Name = bone == 10 ? "远靴掌图层" : "近靴掌图层", Centered = false,
@@ -70,7 +70,7 @@ public partial class CharacterRig
                 Region = new Rect2(region.Position + new Vector2(0, split), new Vector2(region.Size.X, region.Size.Y - split)) },
             TextureFilter = TextureFilterEnum.Linear, Material = shin.Material, FlipH = shin.FlipH,
             Position = new Vector2(shin.Position.X, 0),
-            Scale = new Vector2(10 / region.Size.X, ReferenceFootHeight / (region.Size.Y - split))
+            Scale = new Vector2(Actor.Presentation.Model.BootWidth / region.Size.X, ReferenceFootHeight / (region.Size.Y - split))
         };
         shin.Texture = new AtlasTexture { Atlas = original.Atlas,
             Region = new Rect2(region.Position, new Vector2(region.Size.X, split)) };

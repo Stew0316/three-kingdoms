@@ -29,9 +29,10 @@ public partial class CharacterRig
     }
 
     /// <summary>围绕后跟或前掌滚动时反求踝点，接触边保持在足底目标高度。</summary>
-    private static Vector2 ReferenceAnkle(Vector2 sole, float roll)
+    private Vector2 ReferenceAnkle(Vector2 sole, float roll)
     {
-        Vector2 pivot = new(roll < 0 ? -4.5f : 5.5f, ReferenceFootHeight);
+        float heel = _referenceFootOffsets[0].Origin.X;
+        Vector2 pivot = new(roll < 0 ? heel : heel + Actor.Presentation.Model.BootWidth, ReferenceFootHeight);
         return sole + new Vector2(pivot.X, 0) - pivot.Rotated(roll);
     }
 

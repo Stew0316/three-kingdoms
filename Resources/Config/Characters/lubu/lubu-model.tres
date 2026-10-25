@@ -1,21 +1,22 @@
-[gd_resource type="Resource" script_class="CharacterModelConfig" load_steps=5 format=3]
+[gd_resource type="Resource" script_class="CharacterModelConfig" load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://Scripts/Config/Characters/CharacterModelConfig.cs" id="1"]
-[ext_resource type="Texture2D" path="res://Source/People/LvBu/lubu-parts-v3.png" id="2"]
-[ext_resource type="Texture2D" path="res://Source/People/LvBu/lubu-reference-accessories-v4.png" id="6"]
-[ext_resource type="Texture2D" path="res://Source/People/LvBu/lubu-head-painted-v1.png" id="head"]
+[ext_resource type="Texture2D" path="res://Source/People/LvBu/LvBuReferencePartsV4.png" id="2"]
+
+
+[ext_resource type="Texture2D" path="res://Source/People/LvBu/LvBuCompactPartsV2.png" id="weapon"]
 
 [resource]
 script = ExtResource("1")
 PartsAtlas = ExtResource("2")
-HeadTexture = ExtResource("head")
-HeadRegion = Rect2(45, 16, 1097, 1211)
-ReferenceAccessories = ExtResource("6")
-ReferenceWeaponRegion = Rect2(300, 0, 174, 887)
-ReferenceCrestRegion = Rect2(635, 150, 1025, 725)
-ReferenceCrestRoot = Vector2(965, 486)
-AtlasRegions = Array[Rect2]([Rect2(0, 0, 313, 324), Rect2(313, 0, 314, 231), Rect2(627, 0, 313, 320), Rect2(940, 0, 314, 324), Rect2(0, 325, 313, 185), Rect2(313, 325, 314, 258), Rect2(627, 325, 313, 185), Rect2(940, 325, 314, 258), Rect2(0, 588, 313, 287), Rect2(313, 588, 314, 287), Rect2(627, 588, 313, 287), Rect2(940, 588, 314, 287), Rect2(108, 1010, 135, 135), Rect2(377, 1010, 140, 135), Rect2(627, 865, 313, 389), Rect2(940, 878, 314, 376)])
+ReferenceAccessories = ExtResource("weapon")
+ReferenceWeaponRegion = Rect2(710, 853, 115, 394)
+ReferenceCrestRegion = Rect2(842, 885, 400, 362)
+ReferenceCrestRoot = Vector2(335, 260)
+AccessoryWeaponOffset = Vector2(-5.6, -54)
+AtlasRegions = Array[Rect2]([Rect2(58, 33, 247, 284), Rect2(368, 70, 250, 220), Rect2(628, 73, 314, 252), Rect2(947, 43, 285, 282), Rect2(51, 327, 239, 289), Rect2(397, 352, 159, 184), Rect2(695, 328, 234, 291), Rect2(1028, 350, 145, 191), Rect2(58, 625, 224, 266), Rect2(379, 624, 204, 264), Rect2(684, 625, 221, 262), Rect2(1009, 624, 209, 264), Rect2(84, 1020, 183, 126), Rect2(419, 1080, 139, 108), Rect2(710, 853, 115, 394), Rect2(842, 885, 400, 362)])
 CharacterScale = 0.038
+TargetScreenPixels = 150.0
 DepthScale = 0.92
 CartoonFilter = false
 CartoonColorSteps = 7.0
@@ -24,12 +25,29 @@ CartoonOutlineColor = Color(0.1, 0.075, 0.06, 0.92)
 AlignBootsForward = false
 FlipCrestVertical = true
 CalibratedLegProportions = true
-PelvisHeight = 36.0
-HipHalfWidth = 4.5
-ThighLength = 17.0
-LowerLegLength = 18.0
-JointPositions = Array[Vector2]([Vector2(0, -36), Vector2(0, -11), Vector2(3, -12), Vector2(-8, -2), Vector2(0, 12), Vector2(0, 12), Vector2(7, -3), Vector2(0, 12), Vector2(0, 12), Vector2(-4.5, 2), Vector2(0, 17), Vector2(4.5, 2), Vector2(0, 17), Vector2(-5, -9), Vector2(0, 0), Vector2(-1, -10)])
-PartRects = Array[Rect2]([Rect2(-10, -3, 20, 17), Rect2(-10, -12, 20, 25), Rect2(-5.5, -10, 11, 14), Rect2(-5, -3, 10, 16), Rect2(-3.5, -2, 7, 15), Rect2(-2.5, -2, 5, 6), Rect2(-5, -3, 10, 16), Rect2(-3.5, -2, 7, 15), Rect2(-2.5, -2, 5, 6), Rect2(-4.5, -2, 9, 20), Rect2(-4.5, -2, 10, 20), Rect2(-4.5, -2, 9, 20), Rect2(-4.5, -2, 10, 20), Rect2(-19, -2, 28, 49), Rect2(-5, -42, 10, 86), Rect2(-7, -27, 19, 30)])
-DrawOrder = Array[int]([13, 9, 10, 11, 12, 0, 1, 3, 4, 2, 15, 6, 7, 14, 5, 8])
-ArmAtlasAnchors = PackedVector2Array(164, 363, 144, 492, 456, 363, 493, 548, 151, 1043, 183, 1097, 782, 363, 804, 491, 1100, 363, 1073, 548, 471, 1043, 440, 1097)
-PalmInset = 2.5
+PelvisHeight = 51.0
+HipHalfWidth = 7.0
+ThighLength = 26.0
+LowerLegLength = 28.0
+FarKneeBend = -1
+JointPositions = Array[Vector2]([Vector2(0, -51), Vector2(0, -17), Vector2(4, -13), Vector2(-14, -2), Vector2(0, 16), Vector2(0, 16), Vector2(14, -3), Vector2(0, 16), Vector2(0, 16), Vector2(-7, 2), Vector2(0, 26), Vector2(7, 2), Vector2(0, 26), Vector2(-6, -13), Vector2(0, 0), Vector2(5, -29)])
+PartRects = Array[Rect2]([Rect2(-20, -4, 40, 24), Rect2(-18, -16, 36, 32), Rect2(-16, -32, 32, 36), Rect2(-9, -3, 18, 19), Rect2(-6, -2, 12, 18), Rect2(-4, -2, 8, 10), Rect2(-9, -3, 18, 19), Rect2(-6, -2, 12, 18), Rect2(-4, -2, 8, 10), Rect2(-12, -3, 24, 30), Rect2(-11, -2, 23, 30), Rect2(-12, -3, 24, 30), Rect2(-11, -2, 23, 30), Rect2(-38, -4, 50, 65), Rect2(-5, -54, 19, 110), Rect2(-7, -27, 19, 30)])
+DrawOrder = Array[int]([13, 10, 9, 12, 11, 0, 1, 3, 4, 2, 15, 6, 7, 14, 5, 8])
+ArmAtlasAnchors = PackedVector2Array(178, 413, 121, 583, 461, 378, 493, 531, 142, 1043, 194, 1094, 794, 413, 848, 585, 1101, 378, 1116, 532, 480, 1092, 488, 1144)
+PalmInset = 4.5
+AccessoryCrestSize = Vector2(54, 46)
+AccessoryWeaponSize = Vector2(19, 110)
+MovementCloth = true
+ClothAmplitudes = Vector2(8, 6)
+ClothCapeClipPolygon = PackedVector2Array()
+ArmorTint = Color(0.9, 0.9, 0.92, 1)
+
+BootWidth = 23.0
+
+FootHeight = 7.0
+BootSplit = 0.74
+ProceduralCrests = true
+CrestCurves = Array[Vector2]([Vector2(0, 0), Vector2(-7.2, -18), Vector2(-24, -27.6), Vector2(-35.4, -16.8), Vector2(-46.8, -6), Vector2(-22.2, 3), Vector2(-38.4, 11.4), Vector2(-49.2, 16.8), Vector2(-48, 23.4), Vector2(-40.8, 24.6), Vector2(0.6, 0), Vector2(8.4, -19.8), Vector2(-9, -27), Vector2(-15, -16.2), Vector2(-21, -5.4), Vector2(-10.8, 3), Vector2(-22.2, 13.2), Vector2(-30, 20.4), Vector2(-28.2, 25.2), Vector2(-22.8, 25.8)])
+CrestProfiles = Array[Vector4]([Vector4(14.7, 0.75, 5.0, 0.4), Vector4(11.2, 1.13, 6.3, 3.1)])
+
+ThighAtlasAnchors = PackedVector2Array(186, 651, 128, 861, 774, 652, 818, 862)

@@ -5,13 +5,15 @@
 [resource]
 script = ExtResource("1")
 PelvisOffset = Vector2(0, 3)
-ChestDegrees = 3.0
-HeadDegrees = -3.0
-FarHand = Vector2(7, -34)
-FreeHand = Vector2(12, -30)
-FarFoot = Vector2(-13, 0)
-NearFoot = Vector2(15, -1)
-WeaponDegrees = 62.0
+ChestDegrees = 3
+HeadDegrees = -3
+FarHand = Vector2(6, -41)
+FreeHand = Vector2(20, -32)
+FarFoot = Vector2(-20, 0)
+NearFoot = Vector2(22, 0)
+WeaponDegrees = 65
 BladeDistance = 76.0
-GripSeparation = 24.0
-TwoHandWeight = 1.0
+GripSeparation = 27
+TwoHandWeight = 1
+
+PelvisDegrees = 0

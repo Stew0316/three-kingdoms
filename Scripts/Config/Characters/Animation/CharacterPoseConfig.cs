@@ -1,6 +1,6 @@
 using Godot;
 
-/// <summary>统一角色局部坐标中的关键姿态；脚点为原点，正 X 为人物前方，角度单位为度。</summary>
+/// <summary>角色局部投影坐标中的关键姿态；脚点为原点、正X向画面右，侧向素材默认朝右，角度单位为度。</summary>
 [GlobalClass]
 public partial class CharacterPoseConfig : Resource
 {
@@ -15,6 +15,8 @@ public partial class CharacterPoseConfig : Resource
     [Export] public Vector2 NearFoot { get; set; } // 前侧脚底目标。
     [Export] public float WeaponDegrees { get; set; } // 戟头从朝上起旋转的角度；90 度朝前、180 度朝下。
     [Export] public float BladeDistance { get; set; } = 42; // 主握点到戟尖距离，控制手在长柄上的位置。
+    [Export(PropertyHint.Range, "0.2,1,0.05")] public float WeaponProjection { get; set; } = 1; // 长兵器朝画面纵深挥出时的投影比例；同时作用于柄、刀尖和副握点。
+    [Export] public float HandDepth { get; set; } // 正背面主持械手相对肩线的纵深；负值远离镜头，二维关键点仍是屏幕投影位置。
     [Export] public float GripSeparation { get; set; } = 30; // 双手沿戟杆的间距。
     [Export(PropertyHint.Range, "0,1,0.05")] public float TwoHandWeight { get; set; } // 0 为副手自由，1 为副手握住第二握点。
 }

@@ -6,6 +6,20 @@ using System.Threading.Tasks;
 /// <summary>复制真实绘制层供视觉验收，包含图片拆件与程序冠翎网格，不重新拼造角色。</summary>
 internal static class RigArtworkCapture
 {
+    /// <summary>同步换图与变形网格，不只复制变换；否则预览会把背面动作画成正脸或冻结披风。</summary>
+    public static void SyncLayer(Node2D source, Node2D copy, Transform2D transform)
+    {
+        copy.Visible=source.Visible; copy.Transform=transform; copy.Modulate=source.Modulate;
+        if(source is Sprite2D original && copy is Sprite2D sprite)
+        {
+            sprite.Texture=original.Texture; sprite.FlipH=original.FlipH; sprite.FlipV=original.FlipV; sprite.Material=original.Material;
+        }
+        if(source is MeshInstance2D originalMesh && copy is MeshInstance2D mesh)
+        {
+            mesh.Mesh=originalMesh.Mesh; mesh.Texture=originalMesh.Texture; mesh.Material=originalMesh.Material;
+        }
+        copy.GetParent().MoveChild(copy,copy.GetParent().GetChildCount()-1);
+    }
     public static Node2D CopyLayer(Node2D source)
     {
         return source switch
@@ -42,8 +56,7 @@ internal static class RigArtworkCapture
             await host.ToSignal(host.GetTree(), SceneTree.SignalName.ProcessFrame);
             foreach (var (source, copy) in layers)
             {
-                copy.Visible = source.Visible;
-                copy.Transform = actor.Rig.Skeleton.GlobalTransform.AffineInverse() * source.GlobalTransform;
+                SyncLayer(source,copy,actor.Rig.Skeleton.GlobalTransform.AffineInverse()*source.GlobalTransform);
             }
             await host.ToSignal(RenderingServer.Singleton, RenderingServer.SignalName.FramePostDraw);
             if (frame % 2 == 0)

@@ -46,8 +46,8 @@ public partial class Hitbox : Area2D
             // 用受击区域的中心裁定扇形边界，预警与判定共享同一半径和角度。
             if (offset.Length() > spec.Range || (offset.LengthSquared() > .01f
                 && direction.Dot(offset.Normalized()) < Mathf.Cos(spec.HalfAngle))) continue;
-            int pulse = Mathf.Min(Mathf.Max(1, spec.HitCount) - 1,
-                Mathf.FloorToInt((_owner.ActionTime - spec.Prepare) / Mathf.Max(.01f, spec.HitInterval)));
+            int pulse = spec.HitPulseAt(_owner.ActionTime);
+            if(pulse<0) continue;
             ulong id = target.GetInstanceId();
             if (_hitTargets.TryGetValue(id, out int previous) && previous >= pulse) continue;
             _hitTargets[id] = pulse;

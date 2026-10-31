@@ -1,0 +1,94 @@
+[gd_resource type="Resource" script_class="CharacterModelConfig" load_steps=9 format=3]
+
+[ext_resource type="Script" path="res://Scripts/Config/Characters/CharacterModelConfig.cs" id="model"]
+[ext_resource type="Texture2D" path="res://Source/People/LvBu/LvBuRightPartsV1.png" id="parts"]
+[ext_resource type="Texture2D" path="res://Source/People/LvBu/LvBuRightMotionPartsV1.png" id="motion"]
+[ext_resource type="Script" path="res://Scripts/Config/Characters/CharacterArtworkAttachmentConfig.cs" id="attachment"]
+
+[sub_resource type="Resource" id="Crown"]
+script = ExtResource("attachment")
+LayerName = "黑金冠座"
+BoneIndex = 2
+BeforeBone = 6
+Region = Rect2(351, 136, 137, 102)
+DisplayRect = Rect2(-7, -39, 24, 18)
+
+[sub_resource type="Resource" id="RearPlume"]
+script = ExtResource("attachment")
+LayerName = "后冠翎"
+BoneIndex = 15
+BeforeBone = 2
+Region = Rect2(496, 47, 183, 221)
+ExcludeRegion = Rect2(610, 185, 70, 70)
+DisplayRect = Rect2(-46.7495, -30.1693, 48, 70)
+RotationDegrees = -8.0
+ClothAmplitude = 2.8
+ClothRoot = Vector2(174, 126)
+ClothRate = 0.87
+ClothPhase = 2.9
+ClothArc = Vector4(610, 174, 77, 91)
+ClothArcWidthScale = 0.7
+
+[sub_resource type="Resource" id="FrontPlume"]
+script = ExtResource("attachment")
+LayerName = "前冠翎"
+BoneIndex = 15
+BeforeBone = 15
+Region = Rect2(496, 47, 183, 221)
+DisplayRect = Rect2(-56, -40, 60, 76.3)
+ClothAmplitude = 3.5
+ClothRoot = Vector2(174, 126)
+ClothFlex = 1.0
+ClothArc = Vector4(610, 174, 77, 91)
+ClothArcWidthScale = 0.7
+
+[sub_resource type="Resource" id="NearPauldron"]
+script = ExtResource("attachment")
+LayerName = "近侧肩甲"
+BoneIndex = 6
+BeforeBone = 7
+Region = Rect2(976, 366, 137, 124)
+DisplayRect = Rect2(-10, -7, 23, 20.8)
+
+[resource]
+script = ExtResource("model")
+PartsAtlas = ExtResource("parts")
+AtlasTextureOverrides = Array[Texture2D]([null, ExtResource("motion"), null, null, null, null, null, null, ExtResource("motion"), null, ExtResource("motion"), null, null, null, null, null])
+AtlasRegions = Array[Rect2]([Rect2(32, 82, 187, 194), Rect2(641, 312, 111, 148), Rect2(1251, 338, 262, 159), Rect2(1100, 71, 382, 213), Rect2(431, 333, 137, 160), Rect2(578, 352, 103, 107), Rect2(38, 331, 133, 165), Rect2(177, 350, 107, 134), Rect2(302, 800, 99, 106), Rect2(574, 554, 111, 137), Rect2(450, 795, 89, 108), Rect2(190, 559, 104, 132), Rect2(698, 409, 80, 87), Rect2(289, 416, 95, 79), Rect2(73, 759, 1116, 132), Rect2(493, 36, 188, 239)])
+CharacterScale = 0.038
+TargetScreenPixels = 160.0
+DepthScale = 0.96
+CartoonFilter = false
+ArmorTint = Color(1, 1, 1, 1)
+CalibratedLegProportions = true
+PelvisHeight = 44.0
+HipHalfWidth = 4.0
+ThighLength = 21.0
+LowerLegLength = 24.0
+FarKneeBend = 1
+AlignBootsForward = false
+JointPositions = Array[Vector2]([Vector2(0, -44), Vector2(-2, -17), Vector2(3, -13), Vector2(8, -6), Vector2(0, 20), Vector2(0, 20), Vector2(-8, -5), Vector2(0, 20), Vector2(0, 20), Vector2(4, 0), Vector2(0, 21), Vector2(-4, 2), Vector2(0, 21), Vector2(-5, -12), Vector2(0, 0), Vector2(10, -34)])
+PartRects = Array[Rect2]([Rect2(-18, -5, 36, 22), Rect2(-12, -16, 27, 36), Rect2(-18, -33, 36, 37.4), Rect2(-7, -4, 14, 23), Rect2(-5, -2, 10, 18), Rect2(-5, -3, 10, 9), Rect2(-7, -4, 14, 23), Rect2(-5, -2, 10, 18), Rect2(-5, -3, 10, 9), Rect2(-9, -3, 18, 26), Rect2(-7, -2, 15, 26), Rect2(-9, -3, 18, 26), Rect2(-7, -2, 15, 26), Rect2(-52, -4, 58, 34), Rect2(-7, -80, 14, 120), Rect2(-56, -40, 60, 76.3)])
+DrawOrder = Array[int]([13, 10, 9, 3, 4, 12, 11, 0, 1, 15, 2, 6, 7, 14, 5, 8])
+ArmAtlasAnchors = PackedVector2Array(473, 369, 518, 462, 612, 381, 653, 442, 724, 439, 747, 474, 116, 369, 76, 461, 210, 383, 254, 452, 320, 441, 337, 472)
+ThighAtlasAnchors = PackedVector2Array(340, 821, 366, 882, 492, 820, 488, 882)
+PalmInset = 5.5
+BootWidth = 15.0
+FootHeight = 7.0
+BootSplit = 0.75
+AccessoryWeaponSize = Vector2(16, 120)
+WeaponAxisAnchors = PackedVector2Array(85, 819, 1171, 819)
+CrestVisible = false
+CrestRect = Rect2(-56, -40, 60, 76.3)
+ReferenceCrestRoot = Vector2(174, 126)
+MovementCloth = true
+ClothAmplitudes = Vector2(0, 2.5)
+Attachments = Array[ExtResource("attachment")]([SubResource("FrontPlume"), SubResource("RearPlume"), SubResource("Crown"), SubResource("NearPauldron")])
+
+WeaponAtlasExclusion = Rect2(538, 838, 153, 60)
+RaisedWeaponBehindHead = true
+ShinAtlasAnchors = PackedVector2Array(627, 584, 630, 682, 240, 584, 236, 682)
+FootAtlasRegions = Array[Rect2]([Rect2(693, 639, 99, 79), Rect2(305, 639, 86, 80)])
+FootAnkleAnchors = PackedVector2Array(722, 675, 328, 675)
+
+CapeRestDegrees = -34.0

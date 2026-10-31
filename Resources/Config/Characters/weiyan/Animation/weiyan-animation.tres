@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="CharacterAnimationConfig" load_steps=9 format=3]
+[gd_resource type="Resource" script_class="CharacterAnimationConfig" load_steps=10 format=3]
 
 [ext_resource type="Script" path="res://Scripts/Config/Characters/Animation/CharacterAnimationConfig.cs" id="1"]
 [ext_resource type="Resource" path="res://Resources/Config/Characters/weiyan/Animation/weiyan-standing-pose.tres" id="3"]
@@ -10,26 +10,44 @@
 
 [ext_resource type="Resource" path="res://Resources/Config/Characters/weiyan/Animation/weiyan-dodge-pose.tres" id="dodge"]
 
+
+
+
+
+
+[ext_resource type="Resource" path="res://Resources/Config/Characters/weiyan/Animation/WeiYanSaberDanceAnimation.tres" id="combo"]
+
 [resource]
 script = ExtResource("1")
 ReferencePoseSet = true
 StandingPose = ExtResource("3")
 MovingPose = ExtResource("4")
 MartialWalk = true
-WalkCycleDistance = 56.0
-WalkStride = 11.0
-WalkFootLift = 3.0
-WalkSupportKneeDegrees = 27.0
+WalkCycleDistance = 54.0
+WalkStride = 9.0
+WalkFootLift = 2.5
+WalkSupportKneeDegrees = 18.0
+WalkHeelRollDegrees = 5.0
+WalkToeRollDegrees = 8.0
 Basic = ExtResource("basic")
 Dash = ExtResource("dash")
 Sweep = ExtResource("sweep")
 Counter = ExtResource("counter")
 DodgePose = ExtResource("dodge")
-DodgeEnterSeconds = 0.045
+DodgeEnterSeconds = 0.07
 HurtPelvisShift = Vector2(1.5, 2)
-HurtChestDegrees = 9.167325
-HurtFreeHand = Vector2(12, -43)
-HurtWeaponDegrees = 65.0
+HurtChestDegrees = 7.0
+HurtFreeHand = Vector2(22, -35)
+HurtWeaponDegrees = -10.0
 FarElbowBend = -1
-NearElbowBend = -1
+NearElbowBend = 1
 HandWeaponRotationWeight = 0.0
+
+SupportHandAttachStart = 0.25
+
+
+
+
+
+
+Combo = ExtResource("combo")

@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dddmmv0fqrkp5"
-path="res://.godot/imported/lubu-prototype.png-44ae8778a6f8ea348582e89bcd196cca.ctex"
+uid="uid://d2n7x0oymqju1"
+path="res://.godot/imported/LvBuBackFacingV2.png-7b1bb875ed8a925d4340fae503c14ebe.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Source/People/LvBu/lubu-prototype.png"
-dest_files=["res://.godot/imported/lubu-prototype.png-44ae8778a6f8ea348582e89bcd196cca.ctex"]
+source_file="res://Source/People/Portraits/LvBu/LvBuBackFacingV2.png"
+dest_files=["res://.godot/imported/LvBuBackFacingV2.png-7b1bb875ed8a925d4340fae503c14ebe.ctex"]
 
 [params]
 

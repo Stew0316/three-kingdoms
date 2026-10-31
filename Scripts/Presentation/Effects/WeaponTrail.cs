@@ -25,6 +25,7 @@ public partial class WeaponTrail : Node2D
         // 从伤害生效起计算的秒数；负值表示仍在前摇，额外 0.15 秒仅显示残光。
         float time = _actor.ActionTime - _actor.Spec.Prepare;
         IsEmitting = EffectsEnabled && !_actor.BattleFinished && _actor.CurrentState == Combatant.State.Attack
+            && _actor.CurrentMotion != CombatMotion.Empower
             && time >= 0 && time < _actor.Spec.Active + .15f;
         if (_actor.Presentation.Animation.ReferencePoseSet)
         {

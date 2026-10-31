@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://mqlbcxb78cm0"
-path="res://.godot/imported/lvbu-pixel.jpg-b552034c4fba030b1e3af99b88075ae3.ctex"
+uid="uid://c6rniiqd16oj3"
+path="res://.godot/imported/LvBuBackPartsV1.png-818016e2e32e429d07db4ea3794f8d5d.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Source/lvbu-pixel.jpg"
-dest_files=["res://.godot/imported/lvbu-pixel.jpg-b552034c4fba030b1e3af99b88075ae3.ctex"]
+source_file="res://Source/People/LvBu/LvBuBackPartsV1.png"
+dest_files=["res://.godot/imported/LvBuBackPartsV1.png-818016e2e32e429d07db4ea3794f8d5d.ctex"]
 
 [params]
 

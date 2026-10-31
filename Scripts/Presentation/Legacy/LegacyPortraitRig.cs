@@ -166,13 +166,14 @@ public partial class LegacyPortraitRig : Node2D
             Combatant.State.Hurt => CharacterAnimations.Hurt,
             Combatant.State.Dead => CharacterAnimations.Dead,
             Combatant.State.Dodge => CharacterAnimations.Dash,
+            Combatant.State.Attack when _actor.CurrentMotion == CombatMotion.Empower => CharacterAnimations.Idle,
             Combatant.State.Attack => _actor.CurrentMotion == CombatMotion.Dash ? CharacterAnimations.Dash : CharacterAnimations.Attack,
             _ => CharacterAnimations.Idle
         };
         if (_clip != next) { _clip = next; Animator.Play(next); }
         // 归一化采样位置；行走周期为 0.52 秒，其余循环姿态当前使用 1.8 秒。
         float phase = (_actor.VisualTime / (_clip == CharacterAnimations.Move ? .52f : 1.8f)) % 1;
-        if (_actor.CurrentState is Combatant.State.Attack or Combatant.State.Dodge)
+        if (_actor.CurrentState is Combatant.State.Attack or Combatant.State.Dodge && _actor.CurrentMotion != CombatMotion.Empower)
         {
             // 将三段规则时间映射到相应关键帧，魏延较长的蓄力不会提前挥完。
             float time = _actor.ActionTime;

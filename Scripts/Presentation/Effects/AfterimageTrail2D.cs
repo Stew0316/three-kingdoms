@@ -8,7 +8,7 @@ public partial class AfterimageTrail2D : Node2D
     private float _lastSpawn;
     private readonly List<Ghost> _ghosts=new();
     private readonly CanvasItemMaterial _additive=new() { BlendMode=CanvasItemMaterial.BlendModeEnum.Add,LightMode=CanvasItemMaterial.LightModeEnum.Unshaded };
-    private readonly Dictionary<ShaderMaterial, ShaderMaterial> _clippedMaterials = new(); // 带采样裁剪的部件，残影必须保留同一遮罩。
+    private readonly Dictionary<ShaderMaterial, ShaderMaterial> _sampledMaterials = new(); // 残影继承武器的采样裁剪与刀头/杆身比例，避免恢复成原图形状。
 
     private sealed class Ghost
     {
@@ -74,13 +74,16 @@ public partial class AfterimageTrail2D : Node2D
 
     private Material GhostMaterial(Sprite2D part)
     {
-        if (part.Material is not ShaderMaterial source || source.GetShaderParameter("clip_count").AsInt32() < 3)
+        if (part.Material is not ShaderMaterial source
+            || (source.GetShaderParameter("clip_count").AsInt32() < 3 && !source.GetShaderParameter("shaft_stretch_enabled").AsBool()))
             return _additive;
-        if (_clippedMaterials.TryGetValue(source, out var cached)) return cached;
+        if (_sampledMaterials.TryGetValue(source, out var cached)) return cached;
         var material = (ShaderMaterial)source.Duplicate();
         material.Shader = new Shader { Code = source.Shader.Code.Replace("render_mode blend_mix;", "render_mode unshaded, blend_add;") };
-        material.SetShaderParameter("cartoon_enabled", false); // 残影维持原有加色表现，只继承裁剪。
-        _clippedMaterials[source] = material;
+        material.SetShaderParameter("cartoon_enabled", false); // 保留采样形状；颜色由残影本身的加色和淡出控制。
+        material.SetShaderParameter("empower_strength", 0f);
+        material.SetShaderParameter("weapon_glow", 0f);
+        _sampledMaterials[source] = material;
         return material;
     }
 }

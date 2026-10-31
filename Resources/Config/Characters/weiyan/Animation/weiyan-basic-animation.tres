@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="CharacterActionAnimationConfig" load_steps=7 format=3]
+[gd_resource type="Resource" script_class="CharacterActionAnimationConfig" load_steps=8 format=3]
 
 [ext_resource type="Script" path="res://Scripts/Config/Characters/Animation/CharacterActionAnimationConfig.cs" id="1"]
 [ext_resource type="Resource" path="res://Resources/Config/Characters/weiyan/Animation/weiyan-windup-pose.tres" id="2"]
@@ -7,6 +7,13 @@
 [ext_resource type="Resource" path="res://Resources/Config/Characters/weiyan/Animation/weiyan-strike-follow-pose.tres" id="5"]
 
 [ext_resource type="Resource" path="res://Resources/Config/Characters/weiyan/Animation/weiyan-raise-pose.tres" id="via"]
+
+
+
+
+
+
+[ext_resource type="Resource" path="res://Resources/Config/Characters/weiyan/Animation/WeiYanSaberDanceClip.tres" id="clip"]
 
 [resource]
 script = ExtResource("1")
@@ -21,3 +28,14 @@ FollowAt = 1.0
 RecoveryHold = 0.0
 PrepareVia = ExtResource("via")
 PrepareViaAt = 0.45
+
+
+
+
+
+
+SpatialClip = ExtResource("clip")
+ClipStart = 0.80
+ClipPrepareEnd = 1.30
+ClipActiveEnd = 1.45
+ClipEnd = 1.90

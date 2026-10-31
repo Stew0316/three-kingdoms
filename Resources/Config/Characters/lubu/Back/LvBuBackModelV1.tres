@@ -1,0 +1,85 @@
+[gd_resource type="Resource" script_class="CharacterModelConfig" load_steps=8 format=3]
+
+[ext_resource type="Script" path="res://Scripts/Config/Characters/CharacterModelConfig.cs" id="model"]
+[ext_resource type="Texture2D" path="res://Source/People/LvBu/LvBuBackLegsWeaponV2.png" id="legs"]
+[ext_resource type="Texture2D" path="res://Source/People/LvBu/LvBuBackPartsV2.png" id="parts"]
+[ext_resource type="Script" path="res://Scripts/Config/Characters/CharacterArtworkAttachmentConfig.cs" id="attachment"]
+
+[sub_resource type="Resource" id="Crown"]
+script = ExtResource("attachment")
+LayerName = "背面冠座"
+BoneIndex = 2
+BeforeBone = 15
+Texture = ExtResource("parts")
+Region = Rect2(282, 222, 164, 122)
+DisplayRect = Rect2(-11, -39, 22, 16.5)
+
+[sub_resource type="Resource" id="LeftPlume"]
+script = ExtResource("attachment")
+LayerName = "背面左冠翎"
+BoneIndex = 15
+BeforeBone = 15
+Texture = ExtResource("parts")
+Region = Rect2(454, 10, 226, 366)
+DisplayRect = Rect2(-31.6, -32.76, 31.64, 76.86)
+RotationDegrees = 0
+ClothAmplitude = 3
+ClothRoot = Vector2(190, 156)
+ClothRate = 1.03
+ClothPhase = 0.4
+AmbientWind = Vector2(-0.12, 0.32)
+ClothVerticalScale = Vector2(0.5, 1.5)
+
+[sub_resource type="Resource" id="RightPlume"]
+script = ExtResource("attachment")
+LayerName = "背面右冠翎"
+BoneIndex = 15
+BeforeBone = 15
+Texture = ExtResource("parts")
+Region = Rect2(752, 10, 396, 398)
+ExcludeRegion = Rect2(1136, 0, 312, 306)
+DisplayRect = Rect2(1.58, -29.26, 35.64, 75.62)
+RotationDegrees = 0
+ClothAmplitude = 2.6
+ClothRoot = Vector2(38, 154)
+ClothRate = 0.82
+ClothPhase = 2.6
+AmbientWind = Vector2(-0.12, 0.32)
+ClothVerticalScale = Vector2(0.5, 1.5)
+
+[resource]
+script = ExtResource("model")
+PartsAtlas = ExtResource("legs")
+AtlasTextureOverrides = Array[Texture2D]([ExtResource("parts"), ExtResource("parts"), ExtResource("parts"), ExtResource("parts"), ExtResource("parts"), ExtResource("parts"), ExtResource("parts"), ExtResource("parts"), null, null, null, null, ExtResource("parts"), ExtResource("parts"), null, ExtResource("parts")])
+AtlasRegions = Array[Rect2]([Rect2(64, 122, 196, 214), Rect2(38, 392, 226, 232), Rect2(274, 444, 256, 184), Rect2(1136, 104, 308, 306), Rect2(92, 622, 150, 202), Rect2(300, 662, 158, 136), Rect2(802, 632, 152, 190), Rect2(1008, 672, 170, 130), Rect2(34, 210, 260, 360), Rect2(326, 284, 170, 246), Rect2(768, 206, 262, 364), Rect2(1082, 280, 172, 250), Rect2(520, 684, 142, 106), Rect2(1216, 664, 126, 164), Rect2(26, 688, 1484, 196), Rect2(454, 10, 226, 366)])
+CharacterScale = 0.038
+TargetScreenPixels = 160.0
+DepthScale = 0.96
+CartoonFilter = false
+CalibratedLegProportions = true
+DepthFacing = -1
+GroundDepthProjection = 0.8
+PelvisHeight = 44
+HipHalfWidth = 10
+ThighLength = 21
+LowerLegLength = 24
+JointPositions = Array[Vector2]([Vector2(0, -44), Vector2(0, -17), Vector2(0, -13), Vector2(-17, -8), Vector2(0, 20), Vector2(0, 20), Vector2(17, -8), Vector2(0, 20), Vector2(0, 20), Vector2(-10, 0), Vector2(0, 21), Vector2(10, 0), Vector2(0, 21), Vector2(0, -9), Vector2(0, 0), Vector2(0, -34)])
+PartRects = Array[Rect2]([Rect2(-20, -6, 40, 29.5), Rect2(-17, -13, 34, 37), Rect2(-17, -33, 34, 38), Rect2(-7, -4, 14, 23), Rect2(-5, -2, 10, 18), Rect2(-5, -3, 10, 9), Rect2(-7, -4, 14, 23), Rect2(-5, -2, 10, 18), Rect2(-5, -3, 10, 9), Rect2(-9, -3, 18, 26), Rect2(-7, -2, 15, 26), Rect2(-9, -3, 18, 26), Rect2(-7, -2, 15, 26), Rect2(-11.2, -2, 49, 44.75), Rect2(-7, -80, 14, 120), Rect2(-8.883, -5.022, 15.0675, 60)])
+DrawOrder = Array[int]([14, 10, 9, 12, 11, 4, 7, 5, 0, 1, 3, 6, 8, 13, 2, 15])
+ArmAtlasAnchors = PackedVector2Array(172, 670, 136, 783, 336, 710, 426, 751, 630, 738, 568, 740, 869, 671, 907, 783, 1050, 716, 1145, 754, 1265, 720, 1293, 786)
+ThighAtlasAnchors = PackedVector2Array(163, 285, 173, 510, 895, 283, 890, 511)
+PalmInset = 5.5
+FootHeight = 8.5
+BootWidth = 15
+ShinAtlasAnchors = PackedVector2Array(404, 347, 404, 515, 1168, 345, 1168, 515)
+FootAtlasRegions = Array[Rect2]([Rect2(556, 426, 170, 194), Rect2(1332, 426, 168, 194)])
+FootAnkleAnchors = PackedVector2Array(640, 532, 1424, 532)
+AccessoryWeaponSize = Vector2(16, 120)
+WeaponAxisAnchors = PackedVector2Array(34, 796, 1490, 796)
+CrestVisible = false
+CrestRect = Rect2(-8.883, -5.022, 15.0675, 60)
+ReferenceCrestRoot = Vector2(183, 93)
+MovementCloth = true
+ClothAmplitudes = Vector2(0, 2)
+CapeRestDegrees = 0
+Attachments = Array[ExtResource("attachment")]([SubResource("Crown"), SubResource("RightPlume"), SubResource("LeftPlume")])

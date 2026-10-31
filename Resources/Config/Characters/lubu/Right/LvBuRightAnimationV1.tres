@@ -1,0 +1,315 @@
+[gd_resource type="Resource" script_class="CharacterAnimationConfig" load_steps=24 format=3]
+
+[ext_resource type="Script" path="res://Scripts/Config/Characters/Animation/CharacterAnimationConfig.cs" id="animation"]
+[ext_resource type="Script" path="res://Scripts/Config/Characters/Animation/CharacterPoseConfig.cs" id="pose"]
+[ext_resource type="Script" path="res://Scripts/Config/Characters/Animation/CharacterActionAnimationConfig.cs" id="action"]
+
+[sub_resource type="Resource" id="Stand"]
+script = ExtResource("pose")
+BladeDistance = 80
+GripSeparation = 16
+FreeHand = Vector2(-12, -29)
+FarHand = Vector2(16, -42)
+FarFoot = Vector2(8, -2)
+NearFoot = Vector2(-10, 0)
+WeaponDegrees = 12
+
+[sub_resource type="Resource" id="Move"]
+script = ExtResource("pose")
+BladeDistance = 80
+GripSeparation = 16
+FreeHand = Vector2(-13, -29)
+PelvisOffset = Vector2(0, 1)
+ChestDegrees = 3
+HeadDegrees = -3
+FarHand = Vector2(18, -43)
+FarFoot = Vector2(4, -2)
+NearFoot = Vector2(-4, 0)
+WeaponDegrees = 19
+
+[sub_resource type="Resource" id="Raise"]
+script = ExtResource("pose")
+BladeDistance = 80
+GripSeparation = 16
+FreeHand = Vector2(1, -48)
+PelvisOffset = Vector2(-1, 2)
+ChestDegrees = -3
+HeadDegrees = 3
+FarHand = Vector2(27, -80)
+FarFoot = Vector2(9, -2)
+NearFoot = Vector2(-11, 0)
+WeaponDegrees = -10
+TwoHandWeight = 0.3
+
+[sub_resource type="Resource" id="Windup"]
+script = ExtResource("pose")
+BladeDistance = 80
+GripSeparation = 16
+FreeHand = Vector2(-12, -34)
+PelvisOffset = Vector2(-2, 3)
+PelvisDegrees = -3
+ChestDegrees = -5
+HeadDegrees = 6
+FarHand = Vector2(-14, -79)
+FarFoot = Vector2(10, -2)
+NearFoot = Vector2(-12, 0)
+WeaponDegrees = -108
+TwoHandWeight = 1
+
+[sub_resource type="Resource" id="High"]
+script = ExtResource("pose")
+BladeDistance = 80
+GripSeparation = 14
+FreeHand = Vector2(-12, -34)
+PelvisOffset = Vector2(0, 1)
+PelvisDegrees = 0
+ChestDegrees = -2
+HeadDegrees = 2
+FarHand = Vector2(27, -84)
+FarFoot = Vector2(10, -2)
+NearFoot = Vector2(-12, 0)
+WeaponDegrees = -65
+TwoHandWeight = 1
+
+[sub_resource type="Resource" id="Contact"]
+script = ExtResource("pose")
+BladeDistance = 80
+GripSeparation = 10
+FreeHand = Vector2(-12, -34)
+PelvisOffset = Vector2(8, 4)
+PelvisDegrees = 10
+ChestDegrees = 8
+HeadDegrees = -14
+FarHand = Vector2(29, -48)
+FarFoot = Vector2(12, -2)
+NearFoot = Vector2(-13, 0)
+WeaponDegrees = 83
+TwoHandWeight = 1
+
+[sub_resource type="Resource" id="Follow"]
+script = ExtResource("pose")
+BladeDistance = 80
+GripSeparation = 10
+FreeHand = Vector2(-12, -34)
+PelvisOffset = Vector2(8, 5)
+PelvisDegrees = 8
+ChestDegrees = 8
+HeadDegrees = -12
+FarHand = Vector2(20, -42)
+FarFoot = Vector2(12, -2)
+NearFoot = Vector2(-13, 0)
+WeaponDegrees = 115
+TwoHandWeight = 1
+
+[sub_resource type="Resource" id="SweepWindup"]
+script = ExtResource("pose")
+BladeDistance = 80
+GripSeparation = 16
+FreeHand = Vector2(-12, -34)
+PelvisOffset = Vector2(-3, 3)
+PelvisDegrees = -4
+ChestDegrees = -4
+HeadDegrees = 5
+FarHand = Vector2(-14, -79)
+FarFoot = Vector2(12, -2)
+NearFoot = Vector2(-13, 0)
+WeaponDegrees = -115
+TwoHandWeight = 1
+
+[sub_resource type="Resource" id="SweepHigh"]
+script = ExtResource("pose")
+BladeDistance = 80
+GripSeparation = 14
+FreeHand = Vector2(-12, -34)
+PelvisOffset = Vector2(1, 2)
+PelvisDegrees = 3
+ChestDegrees = 2
+HeadDegrees = -3
+FarHand = Vector2(27, -84)
+FarFoot = Vector2(12, -2)
+NearFoot = Vector2(-14, 0)
+WeaponDegrees = -65
+TwoHandWeight = 1
+
+[sub_resource type="Resource" id="SweepContact"]
+script = ExtResource("pose")
+BladeDistance = 80
+GripSeparation = 10
+FreeHand = Vector2(-12, -34)
+PelvisOffset = Vector2(8, 5)
+PelvisDegrees = 10
+ChestDegrees = 8
+HeadDegrees = -14
+FarHand = Vector2(29, -48)
+FarFoot = Vector2(14, -2)
+NearFoot = Vector2(-14, 0)
+WeaponDegrees = 93
+TwoHandWeight = 1
+
+[sub_resource type="Resource" id="SweepFollow"]
+script = ExtResource("pose")
+BladeDistance = 80
+GripSeparation = 10
+FreeHand = Vector2(-12, -34)
+PelvisOffset = Vector2(8, 6)
+PelvisDegrees = 8
+ChestDegrees = 8
+HeadDegrees = -12
+FarHand = Vector2(20, -42)
+FarFoot = Vector2(14, -2)
+NearFoot = Vector2(-14, 0)
+WeaponDegrees = 125
+TwoHandWeight = 1
+
+[sub_resource type="Resource" id="DashWindup"]
+script = ExtResource("pose")
+BladeDistance = 80
+GripSeparation = 22
+FreeHand = Vector2(-12, -34)
+PelvisOffset = Vector2(-3, 4)
+PelvisDegrees = -3
+ChestDegrees = 4
+HeadDegrees = -1
+FarHand = Vector2(-4, -47)
+FarFoot = Vector2(11, -2)
+NearFoot = Vector2(-13, 0)
+WeaponDegrees = 67
+TwoHandWeight = 1
+
+[sub_resource type="Resource" id="DashHigh"]
+script = ExtResource("pose")
+BladeDistance = 80
+GripSeparation = 18
+FreeHand = Vector2(-12, -34)
+PelvisOffset = Vector2(3, 4)
+PelvisDegrees = 5
+ChestDegrees = 7
+HeadDegrees = -10
+FarHand = Vector2(7, -48)
+FarFoot = Vector2(14, -2)
+NearFoot = Vector2(-15, 0)
+WeaponDegrees = 75
+TwoHandWeight = 1
+
+[sub_resource type="Resource" id="DashContact"]
+script = ExtResource("pose")
+BladeDistance = 80
+GripSeparation = 14
+FreeHand = Vector2(-12, -34)
+PelvisOffset = Vector2(6, 4)
+PelvisDegrees = 8
+ChestDegrees = 7
+HeadDegrees = -12
+FarHand = Vector2(16, -48)
+FarFoot = Vector2(16, -2)
+NearFoot = Vector2(-15, 0)
+WeaponDegrees = 82
+TwoHandWeight = 1
+
+[sub_resource type="Resource" id="DashFollow"]
+script = ExtResource("pose")
+BladeDistance = 80
+GripSeparation = 16
+FreeHand = Vector2(-12, -34)
+PelvisOffset = Vector2(4, 4)
+PelvisDegrees = 4
+ChestDegrees = 4
+HeadDegrees = -5
+FarHand = Vector2(12, -45)
+FarFoot = Vector2(13, -2)
+NearFoot = Vector2(-13, 0)
+WeaponDegrees = 94
+TwoHandWeight = 1
+
+[sub_resource type="Resource" id="Dodge"]
+script = ExtResource("pose")
+BladeDistance = 80
+GripSeparation = 16
+FreeHand = Vector2(-6, -37)
+PelvisOffset = Vector2(0, 6)
+PelvisDegrees = 5
+ChestDegrees = 7
+HeadDegrees = -9
+FarHand = Vector2(12, -43)
+FarFoot = Vector2(12, -1)
+NearFoot = Vector2(-12, 0)
+WeaponDegrees = 32
+
+[sub_resource type="Resource" id="Basic"]
+script = ExtResource("action")
+Windup = SubResource("Windup")
+High = SubResource("High")
+Contact = SubResource("Contact")
+Follow = SubResource("Follow")
+PrepareVia = SubResource("Raise")
+PrepareViaAt = 0.48
+WindupReach = 0.88
+HighAt = 0.24
+ContactAt = 0.68
+FollowAt = 0.98
+RecoveryHold = 0.1
+
+[sub_resource type="Resource" id="Sweep"]
+script = ExtResource("action")
+Windup = SubResource("SweepWindup")
+High = SubResource("SweepHigh")
+Contact = SubResource("SweepContact")
+Follow = SubResource("SweepFollow")
+PrepareVia = SubResource("Raise")
+PrepareViaAt = 0.48
+WindupReach = 0.88
+HighAt = 0.24
+ContactAt = 0.68
+FollowAt = 0.98
+RecoveryHold = 0.1
+
+[sub_resource type="Resource" id="Dash"]
+script = ExtResource("action")
+Windup = SubResource("DashWindup")
+High = SubResource("DashHigh")
+Contact = SubResource("DashContact")
+Follow = SubResource("DashFollow")
+WindupReach = 0.88
+HighAt = 0.24
+ContactAt = 0.68
+FollowAt = 0.98
+RecoveryHold = 0.1
+
+[sub_resource type="Resource" id="Counter"]
+script = ExtResource("action")
+Windup = SubResource("Raise")
+High = SubResource("High")
+Contact = SubResource("Contact")
+Follow = SubResource("Follow")
+WindupReach = 0.88
+HighAt = 0.24
+ContactAt = 0.68
+FollowAt = 0.98
+RecoveryHold = 0.1
+
+[resource]
+script = ExtResource("animation")
+ReferencePoseSet = true
+StandingPose = SubResource("Stand")
+MovingPose = SubResource("Move")
+DodgePose = SubResource("Dodge")
+Basic = SubResource("Basic")
+Sweep = SubResource("Sweep")
+Dash = SubResource("Dash")
+Counter = SubResource("Counter")
+MartialWalk = true
+MatchWalkDistanceToFeet = true
+WalkCycleDistance = 70.0
+WalkStride = 12.0
+WalkFootLift = 4.0
+WalkSupportKneeDegrees = 22.0
+WalkHeelRollDegrees = 5.0
+WalkToeRollDegrees = 8.0
+FarElbowBend = -1
+NearElbowBend = -1
+HandWeaponRotationWeight = 0.0
+SupportHandAttachStart = 0.25
+HurtPelvisShift = Vector2(1.5, 2)
+HurtChestDegrees = 6.0
+HurtFreeHand = Vector2(-5, -43)
+HurtWeaponDegrees = 20.0

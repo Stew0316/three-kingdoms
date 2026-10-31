@@ -4,6 +4,11 @@ using Godot;
 [GlobalClass]
 public partial class CharacterActionAnimationConfig : Resource
 {
+    [Export] public CharacterSpatialMotionConfig SpatialClip { get; set; } // 可选完整转身动作；未配置时沿用平面姿态。
+    [Export] public float ClipStart { get; set; } // 引用片段的开始秒数。
+    [Export] public float ClipPrepareEnd { get; set; } // 规则前摇结束对应的原速采样点。
+    [Export] public float ClipActiveEnd { get; set; } // 规则生效段结束对应的原速采样点。
+    [Export] public float ClipEnd { get; set; } // 引用片段的结束秒数；0使用完整片段长度。
     [Export] public CharacterPoseConfig PrepareVia { get; set; } // 可选前摇途经姿态：先向前提手再收刀，避免直线插值把握点压进肩关节。
     [Export(PropertyHint.Range, "0.1,0.9,0.05")] public float PrepareViaAt { get; set; } = .45f; // 途经姿态占完整蓄势过程的比例，不改变技能前摇时长。
     [Export] public CharacterPoseConfig Windup { get; set; } // 收势准备。

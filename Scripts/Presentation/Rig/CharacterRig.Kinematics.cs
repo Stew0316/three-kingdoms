@@ -12,14 +12,18 @@ public partial class CharacterRig
         _bones[1].Rotation = frame.Chest;
         _bones[2].Rotation = frame.Head;
         // 解算到独立靴掌的踝点，承重时全掌接地，落地/蹬离时绕跟或趾滚动。
-        SolveReferenceChain(9, 10, ReferenceAnkle(frame.FarFoot, frame.FarFootRoll), _thighLength, _lowerLegLength - ReferenceFootHeight,
-            Actor.Presentation.Model.FarKneeBend < 0 ? -1 : 1);
-        SolveReferenceChain(11, 12, ReferenceAnkle(frame.NearFoot, frame.NearFootRoll), _thighLength, _lowerLegLength - ReferenceFootHeight, 1);
+        if (Actor.Presentation.Model.DepthFacing != 0) ApplyDepthLegs(frame);
+        else
+        {
+            SolveReferenceChain(9, 10, ReferenceAnkle(frame.FarFoot, frame.FarFootRoll, 0), _thighLength, _lowerLegLength - ReferenceFootHeight,
+                Actor.Presentation.Model.FarKneeBend < 0 ? -1 : 1);
+            SolveReferenceChain(11, 12, ReferenceAnkle(frame.NearFoot, frame.NearFootRoll, 1), _thighLength, _lowerLegLength - ReferenceFootHeight, 1);
+        }
 
         _bones[14].Position = frame.FarHand;
         _bones[14].Rotation = frame.Weapon;
         Vector2 blade = Vector2.Up.Rotated(frame.Weapon);
-        Vector2 secondGrip = frame.FarHand + blade * frame.Separation;
+        Vector2 secondGrip = frame.FarHand + blade * frame.Separation * frame.WeaponProjection;
         float gripWeight = Actor.Presentation.Model.DualWeapons ? 0 : SupportHandWeight(frame.Grip);
         // 接柄时手掌绕肩前方抬起；直线插值会让上下两侧的握点连线穿过肩部，造成肘部折叠。
         Vector2 shoulder = Skeleton.ToLocal(_bones[6].GlobalPosition);
@@ -27,18 +31,23 @@ public partial class CharacterRig
         Vector2 nearHand = shoulder + Vector2.Right.Rotated(Mathf.LerpAngle(freeOffset.Angle(), gripOffset.Angle(), gripWeight))
             * Mathf.Lerp(freeOffset.Length(), gripOffset.Length(), gripWeight);
         var animation = Actor.Presentation.Animation;
-        SolveReferenceChain(3, 4, frame.FarHand, _bones[4].Position.Length(), _bones[5].Position.Length(), animation.FarElbowBend < 0 ? -1 : 1);
-        SolveReferenceChain(6, 7, nearHand, _bones[7].Position.Length(), _bones[8].Position.Length(), animation.NearElbowBend < 0 ? -1 : 1);
+        if (Actor.Presentation.Model.DepthFacing != 0) ApplyDepthArms(frame);
+        else
+        {
+            SolveReferenceChain(3, 4, frame.FarHand, _bones[4].Position.Length(), _bones[5].Position.Length(), animation.FarElbowBend < 0 ? -1 : 1);
+            SolveReferenceChain(6, 7, nearHand, _bones[7].Position.Length(), _bones[8].Position.Length(), animation.NearElbowBend < 0 ? -1 : 1);
+        }
         // 中立腕让掌骨顺前臂，握点不动；武将可独立选择手腕对武器方向的混合程度。
         SetReferenceHandRotation(5, 4, frame.Weapon + .15f, animation.HandWeaponRotationWeight);
         SetReferenceHandRotation(8, 7, Mathf.LerpAngle(.05f, frame.Weapon, gripWeight), animation.HandWeaponRotationWeight);
         bool cloth = Actor.Presentation.Model.MovementCloth;
-        _bones[13].Rotation = cloth ? -.08f : -.08f + _walkWeight * .10f + Mathf.Sin(Actor.VisualTime * 3.2f) * .025f;
+        float capeAngle = Mathf.DegToRad(Actor.Presentation.Model.CapeRestDegrees);
+        _bones[13].Rotation = cloth ? capeAngle : capeAngle + _walkWeight * .10f + Mathf.Sin(Actor.VisualTime * 3.2f) * .025f;
         _bones[15].Rotation = cloth ? 0 : Mathf.Sin(Actor.VisualTime * 3) * .025f;
 
         // 同一长戟保持固定尺寸，只按关键姿态沿柄改变主握位置。
         Transform2D weaponArt = _partOffsets[14];
-        weaponArt.Origin = new Vector2(weaponArt.Origin.X, -frame.Blade);
+        weaponArt.Origin = _weaponTipOffset + Vector2.Up * frame.Blade;
         _partOffsets[14] = weaponArt;
     }
 

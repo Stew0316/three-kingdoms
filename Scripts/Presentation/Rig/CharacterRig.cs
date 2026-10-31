@@ -70,14 +70,20 @@ public partial class CharacterRig : Node2D
         UpdateMovementCloth();
         if (_partByBone[14] != null) _partByBone[14].Visible = !Actor.IsMounted;
         if (_offhandWeapon != null) _offhandWeapon.Visible = !Actor.IsMounted;
-        if (Actor.IsMounted) { ProcessRidingPose(); return; }
+        if (Actor.IsMounted) { RestoreSpatialBinding(); ProcessRidingPose(); return; }
         float elapsed = Mathf.Max(0, Actor.VisualTime - _lastTime); _lastTime = Actor.VisualTime;
         bool martial = Actor.Presentation?.Animation.MartialWalk == true;
         float travelled = Mathf.Max(0, Actor.WalkDistance - _lastWalkDistance);
         _lastWalkDistance = Actor.WalkDistance;
         if (martial && elapsed > 0)
         {
-            _walkPhase = Mathf.PosMod(_walkPhase + travelled / Mathf.Max(1, Actor.Presentation.Animation.WalkCycleDistance), 1);
+            var walkAnimation = Actor.Presentation.Animation;
+            float cycleDistance = walkAnimation.MatchWalkDistanceToFeet
+                ? 2 * walkAnimation.WalkStride * ScreenLockedScale() / ReferenceSupport
+                : walkAnimation.WalkCycleDistance;
+            if (walkAnimation.MatchWalkDistanceToFeet && Actor.Presentation.Model.DepthFacing != 0)
+                cycleDistance *= Actor.Presentation.Model.GroundDepthProjection * Actor.Presentation.Model.DepthScale;
+            _walkPhase = Mathf.PosMod(_walkPhase + travelled / Mathf.Max(1, cycleDistance), 1);
             bool walking = Actor.CurrentState == Combatant.State.Move && Actor.WalkVelocity.LengthSquared() > 1;
             _walkWeight = Mathf.MoveToward(_walkWeight, walking ? 1 : 0, elapsed * 12);
             if (walking) _walkDirection = Actor.WalkVelocity.Normalized();
@@ -88,6 +94,7 @@ public partial class CharacterRig : Node2D
         {
             ProcessReferencePose(elapsed);
             SyncParts();
+            UpdateSpatialMotion();
             _overlay.QueueRedraw();
             return;
         }

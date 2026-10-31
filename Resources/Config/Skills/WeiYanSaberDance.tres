@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="CombatActionConfig" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://Scripts/Config/Combat/CombatActionConfig.cs" id="1"]
+
+[resource]
+script = ExtResource("1")
+SkillId = "core:weiyan/saber-dance"
+DisplayName = "大刀连斩"
+Description = "面向前方连续横斩、举刀与腾空下劈，落地回架后接第二轮。完整动作约4秒，各段刀锋掠过时分别造成伤害。"
+Motion = 4
+Prepare = 0.20
+Active = 3.35
+Recover = 0.45
+Cooldown = 7.0
+Range = 64.0
+HalfAngle = 3.141593
+Damage = 4
+HitCount = 6
+HitWindows = PackedVector2Array(0.20, 0.38, 0.65, 0.83, 1.30, 1.50, 2.35, 2.55, 2.88, 3.05, 3.30, 3.50)

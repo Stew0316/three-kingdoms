@@ -18,32 +18,35 @@ public partial class CharacterRig
     }
 
     /// <summary>轻微脚跟接地、全掌承重、抬跟蹬离；摆动末段回到下次接触角。</summary>
-    private static float ReferenceStepRoll(float phase)
+    private float ReferenceStepRoll(float phase)
     {
+        var animation = Actor.Presentation.Animation;
         float degrees;
-        if (phase < .09f) degrees = Mathf.Lerp(-8, 0, Smooth(phase / .09f));
+        if (phase < .09f) degrees = Mathf.Lerp(-animation.WalkHeelRollDegrees, 0, Smooth(phase / .09f));
         else if (phase < .40f) degrees = 0;
-        else if (phase < ReferenceSupport) degrees = Mathf.Lerp(0, 12, Smooth((phase - .40f) / (ReferenceSupport - .40f)));
-        else degrees = Mathf.Lerp(12, -8, Smooth((phase - ReferenceSupport) / (1 - ReferenceSupport)));
+        else if (phase < ReferenceSupport) degrees = Mathf.Lerp(0, animation.WalkToeRollDegrees, Smooth((phase - .40f) / (ReferenceSupport - .40f)));
+        else degrees = Mathf.Lerp(animation.WalkToeRollDegrees, -animation.WalkHeelRollDegrees, Smooth((phase - ReferenceSupport) / (1 - ReferenceSupport)));
         return Mathf.DegToRad(degrees);
     }
 
     /// <summary>围绕后跟或前掌滚动时反求踝点，接触边保持在足底目标高度。</summary>
-    private Vector2 ReferenceAnkle(Vector2 sole, float roll)
+    private Vector2 ReferenceAnkle(Vector2 sole, float roll, int footIndex)
     {
-        float heel = _referenceFootOffsets[0].Origin.X;
-        Vector2 pivot = new(roll < 0 ? heel : heel + Actor.Presentation.Model.BootWidth, ReferenceFootHeight);
+        float heel = _referenceFootOffsets[footIndex].Origin.X;
+        float width = _referenceFeet[footIndex] is Sprite2D foot ? foot.Texture.GetWidth() * _referenceFootOffsets[footIndex].Scale.X : Actor.Presentation.Model.BootWidth;
+        Vector2 pivot = new(roll < 0 ? heel : heel + width, ReferenceFootHeight);
         return sole + new Vector2(pivot.X, 0) - pivot.Rotated(roll);
     }
 
     /// <summary>承重腿中段接近伸展，换脚略屈膝缓冲；双腿可达性只限制腰高，不缩放腿长。</summary>
     private float ReferenceWalkWaist(ReferenceFrame frame, float farPhase, float nearPhase)
     {
+        if (Actor.Presentation.Model.DepthFacing != 0) return DepthWalkWaist(frame, farPhase, nearPhase);
         float shin = _lowerLegLength - ReferenceFootHeight;
         float knee = Mathf.DegToRad(Actor.Presentation.Animation.WalkSupportKneeDegrees);
         float reach = Mathf.Sqrt(_thighLength * _thighLength + shin * shin + 2 * _thighLength * shin * Mathf.Cos(knee));
-        Vector2 farAnkle = ReferenceAnkle(frame.FarFoot, frame.FarFootRoll);
-        Vector2 nearAnkle = ReferenceAnkle(frame.NearFoot, frame.NearFootRoll);
+        Vector2 farAnkle = ReferenceAnkle(frame.FarFoot, frame.FarFootRoll, 0);
+        Vector2 nearAnkle = ReferenceAnkle(frame.NearFoot, frame.NearFootRoll, 1);
         float WaistFor(Vector2 ankle, int hip, float length)
         {
             Vector2 offset = _bones[hip].Position.Rotated(frame.Waist);

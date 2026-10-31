@@ -6,11 +6,11 @@ public partial class CharacterRig
     /// <summary>读取每格 alpha 包围盒建立 AtlasTexture，原图保持不变。</summary>
     private void BuildParts(Texture2D atlas)
     {
-        using var image = atlas.GetImage();
-        if (image.IsCompressed()) image.Decompress();
+        using var mainImage = atlas.GetImage();
+        if (mainImage.IsCompressed()) mainImage.Decompress();
         // 即使关闭卡通滤镜也保持统一 Shader：强化时的人形描边与武器辉光不能依赖贴图替换。
         _cartoonMaterial=BuildCartoonMaterial(Actor.Presentation.Model);
-        int cellW = image.GetWidth()/4, cellH = image.GetHeight()/4;
+        int cellW = mainImage.GetWidth()/4, cellH = mainImage.GetHeight()/4;
         var tiles = CharacterRigDefaults.AtlasTiles;
         Rect2[] rectangles = CharacterRigDefaults.CreatePartRectangles();
         if (Actor.Presentation.Model.CalibratedLegProportions)
@@ -42,6 +42,12 @@ public partial class CharacterRig
             for (int index = 0; index < CharacterRigDefaults.JointCount; index++) drawOrder[index] = Actor.Presentation.Model.DrawOrder[index];
         for(int b=0;b<CharacterRigDefaults.JointCount;b++)
         {
+            var overrides = Actor.Presentation.Model.AtlasTextureOverrides;
+            Texture2D partAtlas = overrides.Count == CharacterRigDefaults.JointCount && overrides[tiles[b]] != null
+                ? overrides[tiles[b]] : atlas;
+            using var overrideImage = partAtlas != atlas ? partAtlas.GetImage() : null;
+            var image = overrideImage ?? mainImage;
+            if (image.IsCompressed()) image.Decompress();
             var crop=Actor.Presentation.Model.AtlasRegions.Count==CharacterRigDefaults.JointCount ? Actor.Presentation.Model.AtlasRegions[tiles[b]]
                 : new Rect2(tiles[b]%4*cellW,tiles[b]/4*cellH,cellW,cellH);
             int x0=Mathf.Clamp((int)crop.Position.X,0,image.GetWidth()-1), y0=Mathf.Clamp((int)crop.Position.Y,0,image.GetHeight()-1);
@@ -49,10 +55,18 @@ public partial class CharacterRig
             int left=width,top=height,right=0,bottom=0;
             for(int y=2;y<height-2;y+=2) for(int x=2;x<width-2;x+=2)
                 if(image.GetPixel(x0+x,y0+y).A>.08f) { left=Mathf.Min(left,x); top=Mathf.Min(top,y); right=Mathf.Max(right,x); bottom=Mathf.Max(bottom,y); }
-            if(right<=left || bottom<=top) continue;
+            if(right<=left || bottom<=top)
+            {
+                // 无冠饰角色允许末格透明，仍保留业务序号占位，避免 Parts 索引与骨骼编号错位。
+                var empty = new Sprite2D { Name = _bones[b].Name + "图层", Visible = false };
+                _partOffsets[b] = empty.Transform;
+                _partByBone[b] = empty;
+                _parts.Add(empty);
+                continue;
+            }
             var region=new Rect2(x0+left-1,y0+top-1,right-left+3,bottom-top+3); var rect=rectangles[b];
             if(b==15) rect=Actor.Presentation.Model.CrestRect;
-            var sprite=new Sprite2D { Name="拆件", Texture=new AtlasTexture { Atlas=atlas,Region=region },
+            var sprite=new Sprite2D { Name="拆件", Texture=new AtlasTexture { Atlas=partAtlas,Region=region },
                 Centered=false, Position=rect.Position, Scale=rect.Size/region.Size, TextureFilter=TextureFilterEnum.Linear,
                 Material=_cartoonMaterial };
             if (b == 2 && Actor.Presentation.Model.HeadTexture is Texture2D headTexture)
@@ -88,6 +102,7 @@ public partial class CharacterRig
             sprite.Visible = b != 15 || Actor.Presentation.Model.CrestVisible;
             if (Actor.Presentation.Animation.ReferencePoseSet && Actor.Presentation.Model.ReferenceAccessories != null)
                 BindReferenceAccessory(b, sprite);
+            if (b == 14) BindWeaponAxis(sprite);
             if (b == 15 && Actor.Presentation.Model.ProceduralCrests)
             {
                 sprite.Texture = null; // 只保留业务关节占位；程序冠翎不持有或显示旧冠翎采样。
@@ -101,14 +116,41 @@ public partial class CharacterRig
             }
             if (Actor.Presentation.Model.MovementCloth && (b == 13 || b == 15 && !Actor.Presentation.Model.ProceduralCrests))
                 BindMovementCloth(b, sprite);
+            // 刀头按原比例显示，直杆独立分配长度；同一武器图层仍统一跟随握点、刀光和强化材质。
+            if (b == 14 && Actor.Presentation.Model.WeaponShaftDisplayY > 0 && sprite.Texture is AtlasTexture weaponAtlas)
+            {
+                var model = Actor.Presentation.Model;
+                float sourceSplit = (model.WeaponShaftSourceY - weaponAtlas.Region.Position.Y) / weaponAtlas.Region.Size.Y;
+                float displaySplit = model.WeaponShaftDisplayY / (weaponAtlas.Region.Size.Y * sprite.Scale.Y);
+                if (sourceSplit is > 0 and < 1 && displaySplit is > 0 and < 1)
+                {
+                    var material = BuildCartoonMaterial(model);
+                    material.SetShaderParameter("shaft_stretch_enabled", true);
+                    material.SetShaderParameter("weapon_region", new Vector4(weaponAtlas.Region.Position.X, weaponAtlas.Region.Position.Y,
+                        weaponAtlas.Region.Size.X, weaponAtlas.Region.Size.Y));
+                    material.SetShaderParameter("weapon_source_split", sourceSplit);
+                    material.SetShaderParameter("weapon_display_split", displaySplit);
+                    sprite.Material = material;
+                }
+            }
             // 在最终武器纹理上限制采样，不重新计算包围盒，避免裁掉杂片后武器缩放或握点漂移。
             if (b == 14 && Actor.Presentation.Model.WeaponAtlasClipPolygon.Length is >= 3 and <= 16)
             {
-                var material = BuildCartoonMaterial(Actor.Presentation.Model);
+                var material = Actor.Presentation.Model.WeaponShaftDisplayY > 0 && sprite.Material is ShaderMaterial weaponMaterial
+                    && weaponMaterial != _cartoonMaterial
+                    ? weaponMaterial : BuildCartoonMaterial(Actor.Presentation.Model);
                 var polygon = new Vector2[16];
                 Actor.Presentation.Model.WeaponAtlasClipPolygon.CopyTo(polygon, 0);
                 material.SetShaderParameter("clip_polygon", polygon);
                 material.SetShaderParameter("clip_count", Actor.Presentation.Model.WeaponAtlasClipPolygon.Length);
+                sprite.Material = material;
+            }
+            if (b == 14 && Actor.Presentation.Model.WeaponAtlasExclusion.HasArea())
+            {
+                var material = sprite.Material is ShaderMaterial current && current != _cartoonMaterial
+                    ? current : BuildCartoonMaterial(Actor.Presentation.Model);
+                Rect2 exclusion = Actor.Presentation.Model.WeaponAtlasExclusion;
+                material.SetShaderParameter("exclude_region", new Vector4(exclusion.Position.X, exclusion.Position.Y, exclusion.Size.X, exclusion.Size.Y));
                 sprite.Material = material;
             }
             sprite.Name=_bones[b].Name+"图层";
@@ -125,6 +167,8 @@ public partial class CharacterRig
             }
         BuildOffhandWeapon();
         BuildIndependentCrests();
+        BuildArtworkAttachments();
+        CacheWeaponLayerOrder();
         SyncParts();
     }
 
@@ -154,11 +198,19 @@ public partial class CharacterRig
             if(_partByBone[i]!=null)
             {
                 Transform2D offset = _partOffsets[i];
+                if (Actor.Presentation.Model.DepthFacing != 0 && i is >= 3 and <= 8)
+                    offset = new Transform2D(0, new Vector2(1, _depthArmScales[i - 3]), 0, Vector2.Zero) * offset;
+                if (Actor.Presentation.Model.DepthFacing != 0 && i is 9 or 10 or 11 or 12)
+                    offset = new Transform2D(0, new Vector2(1, _depthLegScales[i - 9]), 0, Vector2.Zero) * offset;
+                if (i == 14 && _referenceInitialized)
+                    offset = new Transform2D(0, new Vector2(1, _referenceFrame.WeaponProjection), 0, Vector2.Zero) * offset;
                 _partByBone[i].Transform=inverse*_bones[i].GlobalTransform*offset;
             }
         if (Actor.Presentation.Animation.ReferencePoseSet) SyncReferenceFeet(inverse);
         SyncOffhandWeapon(inverse);
         SyncIndependentCrests(inverse);
+        SyncArtworkAttachments(inverse);
+        SyncWeaponLayerOrder();
     }
 
     /// <summary>压缩写实贴图色阶并在透明边缘内侧加深轮廓，降低卡牌立绘感。</summary>

@@ -8,6 +8,7 @@ public partial class CharacterRig
     {
         public Vector2 Pelvis, FarHand, FreeHand, FarFoot, NearFoot;
         public float Waist, Chest, Head, Weapon, OffhandWeapon, Blade, Separation, Grip;
+        public float WeaponProjection, HandDepth, FarDepth, NearDepth, FarLift, NearLift; // 纵深和离地高度分开保存，避免把前后换脚误当作上下跳动。
         public float FarFootRoll, NearFootRoll; // 靴掌独立绕接地点滚动，不继承小腿角度。
 
         public static ReferenceFrame From(CharacterPoseConfig pose) => new()
@@ -17,7 +18,7 @@ public partial class CharacterRig
             Waist = Mathf.DegToRad(pose.PelvisDegrees), Chest = Mathf.DegToRad(pose.ChestDegrees), Head = Mathf.DegToRad(pose.HeadDegrees),
             Weapon = Mathf.DegToRad(pose.WeaponDegrees), Blade = pose.BladeDistance,
             OffhandWeapon = Mathf.DegToRad(pose.OffhandWeaponDegrees),
-            Separation = pose.GripSeparation, Grip = pose.TwoHandWeight
+            Separation = pose.GripSeparation, Grip = pose.TwoHandWeight, WeaponProjection = pose.WeaponProjection, HandDepth = pose.HandDepth
         };
 
         public static ReferenceFrame Mix(ReferenceFrame a, ReferenceFrame b, float weight) => new()
@@ -30,6 +31,10 @@ public partial class CharacterRig
             OffhandWeapon = Mathf.LerpAngle(a.OffhandWeapon, b.OffhandWeapon, weight),
             Blade = Mathf.Lerp(a.Blade, b.Blade, weight), Separation = Mathf.Lerp(a.Separation, b.Separation, weight),
             Grip = Mathf.Lerp(a.Grip, b.Grip, weight),
+            WeaponProjection = Mathf.Lerp(a.WeaponProjection, b.WeaponProjection, weight),
+            HandDepth = Mathf.Lerp(a.HandDepth, b.HandDepth, weight),
+            FarDepth = Mathf.Lerp(a.FarDepth, b.FarDepth, weight), NearDepth = Mathf.Lerp(a.NearDepth, b.NearDepth, weight),
+            FarLift = Mathf.Lerp(a.FarLift, b.FarLift, weight), NearLift = Mathf.Lerp(a.NearLift, b.NearLift, weight),
             FarFootRoll = Mathf.Lerp(a.FarFootRoll, b.FarFootRoll, weight),
             NearFootRoll = Mathf.Lerp(a.NearFootRoll, b.NearFootRoll, weight)
         };
@@ -42,15 +47,16 @@ public partial class CharacterRig
     private bool _referenceInitialized;
     private Combatant.State _referencePreviousState;
     private float _referencePreviousActionTime;
-    public float ReferenceGripWeight => SupportHandWeight(_referenceFrame.Grip); // 实际副手握柄程度，0 为自由手。
-    public Vector2 ReferencePrimaryGrip => _referenceFrame.FarHand; // 主握点，骨架局部坐标。
-    public Vector2 ReferenceSecondaryGrip => Actor.Presentation.Model.DualWeapons ? _referenceFrame.FreeHand : _referenceFrame.FarHand
-        + Vector2.Up.Rotated(_referenceFrame.Weapon) * _referenceFrame.Separation; // 双持为独立副剑握点，长柄为杆身副握点。
-    public Vector2 ReferenceBladeTip => Skeleton.ToGlobal(_referenceFrame.FarHand
-        + Vector2.Up.Rotated(_referenceFrame.Weapon) * _referenceFrame.Blade); // 世界坐标戟尖，供刀光跟随真实挥击。
+    public float ReferenceGripWeight => SpatialMotionActive ? _spatialPose.GripWeight : SupportHandWeight(_referenceFrame.Grip); // 实际副手握柄程度，0 为自由手。
+    public Vector2 ReferencePrimaryGrip => SpatialMotionActive ? SpatialMotionSampler.Project(_spatialPose.Points[14]) : _referenceFrame.FarHand;
+    public Vector2 ReferenceSecondaryGrip => SpatialMotionActive ? SpatialMotionSampler.Project(_spatialPose.Points[14]+_spatialPose.Blade*10) : Actor.Presentation.Model.DualWeapons ? _referenceFrame.FreeHand : _referenceFrame.FarHand
+        + Vector2.Up.Rotated(_referenceFrame.Weapon) * _referenceFrame.Separation * _referenceFrame.WeaponProjection; // 双持为独立副剑握点，长柄为杆身副握点。
+    public Vector2 ReferenceBladeTip => Skeleton.ToGlobal(SpatialMotionActive ? _spatialTip : _referenceFrame.FarHand
+        + Vector2.Up.Rotated(_referenceFrame.Weapon) * _referenceFrame.Blade * _referenceFrame.WeaponProjection); // 世界坐标刀尖，供刀光跟随真实挥击。
     /// <summary>从长兵器关键姿态产生实际动作；姿态时序只读取战斗时钟。</summary>
     private void ProcessReferencePose(float elapsed)
     {
+        RestoreSpatialBinding();
         var config = Actor.Presentation.Animation;
         var standing = ReferenceFrame.From(config.StandingPose);
         var moving = ReferenceFrame.From(config.MovingPose);
@@ -61,6 +67,7 @@ public partial class CharacterRig
         }
 
         float facing = Actor.FacingDirection.X < -.15f ? -1 : Actor.FacingDirection.X > .15f ? 1 : Mathf.Sign(Scale.X);
+        if (Actor.Presentation.Model.DepthFacing != 0) facing = 1; // 已有正/背面源图不随横向输入镜像，避免左右持械手交换。
         float baseScale = ScreenLockedScale();
         float squash = Actor.IsDead ? .52f : 1;
         bool hurt = Actor.CurrentState == Combatant.State.Hurt;
@@ -91,6 +98,14 @@ public partial class CharacterRig
                 target.NearFoot += ReferenceStep(nearPhase, facing);
                 target.FarFootRoll = ReferenceStepRoll(_walkPhase) * _walkWeight;
                 target.NearFootRoll = ReferenceStepRoll(nearPhase) * _walkWeight;
+                if (Actor.Presentation.Model.DepthFacing != 0)
+                {
+                    var farStep = DepthStep(_walkPhase); var nearStep = DepthStep(nearPhase);
+                    target.FarDepth = farStep.X; target.FarLift = farStep.Y;
+                    target.NearDepth = nearStep.X; target.NearLift = nearStep.Y;
+                    target.FarFoot = moving.FarFoot; target.NearFoot = moving.NearFoot;
+                    target.FarFootRoll = target.NearFootRoll = 0;
+                }
                 // 承重腿撑起身体，摆动腿才明显屈膝；腰高由固定腿长和落脚位置反求。
                 float waistY = ReferenceWalkWaist(target, _walkPhase, nearPhase);
                 float rise = (waistY - target.Pelvis.Y) * _walkWeight;
@@ -128,6 +143,8 @@ public partial class CharacterRig
                 _referenceFrame.NearFoot = target.NearFoot;
                 _referenceFrame.FarFootRoll = target.FarFootRoll;
                 _referenceFrame.NearFootRoll = target.NearFootRoll;
+                _referenceFrame.FarDepth = target.FarDepth; _referenceFrame.NearDepth = target.NearDepth;
+                _referenceFrame.FarLift = target.FarLift; _referenceFrame.NearLift = target.NearLift;
                 float correction = target.Pelvis.Y - _referenceFrame.Pelvis.Y;
                 _referenceFrame.Pelvis.Y += correction;
                 _referenceFrame.FarHand.Y += correction;
@@ -157,6 +174,11 @@ public partial class CharacterRig
     {
         float time = Actor.ActionTime;
         var spec = Actor.Spec;
+        if (Actor.CurrentMotion == CombatMotion.Empower)
+        {
+            // 行走中爆气只平滑收稳到持械站姿；不提械、挥击或接入攻击关键帧。
+            return ReferenceFrame.Mix(_referenceActionStart, standing, Smooth(time / Mathf.Max(spec.Prepare, .001f)));
+        }
         if (Actor.CurrentState == Combatant.State.Dodge)
         {
             var dodge = ReferenceFrame.From(Actor.Presentation.Animation.DodgePose);

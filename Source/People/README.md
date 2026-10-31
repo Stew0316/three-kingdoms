@@ -1,4 +1,16 @@
-# S1 武将 PNG 原型
+# 人物素材
+
+完整立绘与造型参考统一见 [Portraits](Portraits/README.md)，按武将分组。`LvBu`、`WeiYan`、`GuanYu`、`LiuBei` 保存对应角色的拆件、独立附件和动作样板。
+
+魏延当前依据确认的 V2 立绘重建为 `WeiYan/WeiYanPartsV3.png`，外观、骨架锚点、动作与验证见 [V3 制作记录](../../Demand/美术/WeiYanRigV3.md)。下方保留 S1 历史过程，不能作为当前资源绑定说明。
+
+2026-10-27：按用户最新要求取消魏延连斩中的旋转，改为固定朝向的横斩、腾空下劈和落地回架。完整片段接入第四主动技能「大刀连斩」，普攻引用其中的劈斩；站立与移动沿用既有修正。`WeiYan/WeiYanTurnPartsV4.png` 侧背面补件保留，当前连斩只使用其中披风，不切换身体视向。生成提示词、使用格序和当前预览见 [视频动作制作](../../Demand/美术/WeiYanSaberVideoMotion.md)。
+
+2026-10-29：用户提供的 `LvBu/LvBuRightPartsV1.png` 与 `LvBu/LvBuRightMotionPartsV1.png` 已按原字节归档，制作成独立的向右骨骼组件。待机、行走、挥戟、横扫、突刺、闪避、反击和受击预览见 [吕布右向动作](../../Demand/美术/LvBuRightRigV1.md)。
+
+2026-10-31：吕布背面使用 `LvBu/LvBuBackPartsV2.png`、`LvBu/LvBuBackLegsWeaponV2.png`，V1保留。按用户最新说明，双翎改为采样主拆件V2中的拱形翎片，先高出头顶再向左右弯下，保持根部留距和独立风动；下垂的 `LvBuBackPlumesV3.png` 留作历史版本，当前不采样。参数与参考见[拱形双翎装配V4](../../Demand/美术/LvBuBackArchedPlumesV4.md)。独立背面组件、站姿装配和连续动作见 [背面制作记录](../../Demand/美术/LvBuBackRigV1.md)。
+
+## S1 武将 PNG 原型（历史）
 
 2026-10-09：身体仍使用 `LvBu/lubu-parts-v3.png`；长戟与后弯双翎改用 `LvBu/lubu-reference-accessories-v4.png`（1774×887 RGBA，实际传入三姿态原图生成）。站立双手低持、行走腰侧拖戟、攻击后收再绕身劈扫，由六份姿态资源驱动同一骨架。小腿和靴掌在运行时分区采样。完整记录见 [长戟握持与攻击重做](../../Demand/Prompt/2026.10.09-吕布长戟握持与攻击重做.md)，下方为历史状态。
 
@@ -18,8 +30,8 @@
 
 | 文件 | 角色 | 规格 | 场景 |
 | --- | --- | --- | --- |
-| LvBu/lubu-prototype.png | 吕布，红黑甲、双翎、方天画戟 | 1024×1536，RGBA PNG | Components/Characters/LvBu.tscn |
-| WeiYan/weiyan-prototype.png | 魏延，绿黑甲、长柄刀 | 1024×1536，RGBA PNG | Components/Characters/WeiYan.tscn |
+| Portraits/LvBu/LvBuPrototype.png | 吕布，红黑甲、双翎、方天画戟 | 1024×1536，RGBA PNG | Components/Characters/LvBu.tscn |
+| Portraits/WeiYan/WeiYanPrototype.png | 魏延，绿黑甲、长柄刀 | 1024×1536，RGBA PNG | Components/Characters/WeiYan.tscn |
 
 两张图均按用户要求作为可玩原型直接接入，不代表已完成正式四向动画或像素规范验收。写实人体比例是本次明确需求，优先于 S0 的 3.5 头身像素候选约束；本轮不全局改写其他素材风格。角色根节点在脚底，Sprite 显示缩放 0.074，脚底碰撞半径 12、Hurtbox 半径 14；不使用整张立绘当碰撞体。朝向通过脚底箭头表达，临时水平镜像与轻微起伏表达移动；武器左右一致性留待正式方向图解决。
 

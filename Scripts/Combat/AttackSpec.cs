@@ -13,6 +13,7 @@ public readonly record struct AttackSpec(
 {
     public int HitCount { get; init; } = 1;
     public float HitInterval { get; init; } = .18f;
+    public System.Collections.Generic.IReadOnlyList<Godot.Vector2> HitWindows { get; init; } // 独立只读快照，防止运行时修改共享资源影响已开始的连招。
     public float StunSeconds { get; init; }
     public float SlowFactor { get; init; } = 1;
     public float Vulnerability { get; init; }
@@ -23,4 +24,17 @@ public readonly record struct AttackSpec(
     public float Lifesteal { get; init; }
     // 一次动作占用角色的总秒数；冷却独立计时，不计入动作总时长。
     public float Duration => Prepare + Active + Recover;
+    /// <summary>返回当前允许命中的段号，空隙返回-1；旧技能保留等间隔语义。</summary>
+    public int HitPulseAt(float time)
+    {
+        if(time<Prepare || time>=Prepare+Active) return -1;
+        if(HitWindows is { Count: > 0 })
+        {
+            for(int i=0;i<HitWindows.Count;i++)
+                if(time>=HitWindows[i].X && time<HitWindows[i].Y) return i;
+            return -1;
+        }
+        return Godot.Mathf.Min(Godot.Mathf.Max(1,HitCount)-1,
+            Godot.Mathf.FloorToInt((time-Prepare)/Godot.Mathf.Max(.01f,HitInterval)));
+    }
 }

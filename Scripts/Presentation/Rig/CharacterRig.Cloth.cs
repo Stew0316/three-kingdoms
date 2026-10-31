@@ -5,13 +5,15 @@ public partial class CharacterRig
 {
     private readonly System.Collections.Generic.List<ShaderMaterial> _clothMaterials = new();
     private readonly System.Collections.Generic.List<Sprite2D> _clothSprites = new();
+    private readonly System.Collections.Generic.List<Vector2> _clothAmbientWinds = new();
+    private bool _hasAmbientClothWind;
     private readonly System.Collections.Generic.List<ProceduralPlume2D> _crestParts = new();
     private readonly System.Collections.Generic.List<Transform2D> _crestOffsets = new();
     public System.Collections.Generic.IReadOnlyList<ProceduralPlume2D> CrestParts => _crestParts;
     public Node2D ArtworkRoot => _drawLayers; // 验收复制全部实际绘制层，包含程序网格。
     private float _clothTime, _clothLastTime, _clothWeight;
     private Vector2 _clothFlow = Vector2.Left;
-    public float ClothWeight => _clothWeight; // 验收可读取起停权重，不改变游戏规则。
+    public float ClothWeight => _clothWeight; // 移动带来的起停权重；附件可另有环境风，静止时此值仍归零。
     public float ClothTime => _clothTime; // 使用角色表现时钟，暂停不会继续飘动。
 
     private void BindMovementCloth(int bone, Sprite2D sprite)
@@ -32,7 +34,7 @@ public partial class CharacterRig
     }
 
     private ShaderMaterial CreateClothMaterial(Sprite2D sprite, Vector2 root, float amplitude,
-        float rate, float flex, float phase, bool cape)
+        float rate, float flex, float phase, bool cape, Vector2 ambientWind = default)
     {
         var atlas = (AtlasTexture)sprite.Texture;
         var material = BuildCartoonMaterial(Actor.Presentation.Model);
@@ -48,6 +50,8 @@ public partial class CharacterRig
         sprite.Material = material;
         _clothSprites.Add(sprite);
         _clothMaterials.Add(material);
+        _clothAmbientWinds.Add(ambientWind.LimitLength(1));
+        _hasAmbientClothWind |= !ambientWind.IsZeroApprox();
         return material;
     }
 
@@ -92,14 +96,23 @@ public partial class CharacterRig
         float target = Actor.IsDead || Actor.BattleFinished || speed < 1 ? 0 : Mathf.Clamp(speed / 150f, 0, 1);
         _clothWeight = Mathf.MoveToward(_clothWeight, target, elapsed * (target > _clothWeight ? 5 : 3));
         if (speed > 1) _clothFlow = _clothFlow.Lerp(-velocity / speed, 1 - Mathf.Exp(-10 * elapsed));
-        if (_clothWeight > 0) _clothTime += elapsed;
+        // 附件启用环境风后，静止时也需要采样；只读角色时钟，因此暂停和打击停顿仍会冻结。
+        if (_clothWeight > 0 || _hasAmbientClothWind) _clothTime += elapsed;
         foreach (var plume in _crestParts)
             plume.SetWind(_clothTime, _clothWeight, plume.GlobalTransform.AffineInverse().BasisXform(_clothFlow).Normalized());
         for (int slot = 0; slot < _clothMaterials.Count; slot++)
         {
             if (_clothMaterials[slot] == null) continue;
-            var localFlow = _clothSprites[slot].GlobalTransform.AffineInverse().BasisXform(_clothFlow).Normalized();
-            _clothMaterials[slot].SetShaderParameter("cloth_weight", _clothWeight);
+            Vector2 flow = _clothFlow;
+            float weight = _clothWeight;
+            if (!_clothAmbientWinds[slot].IsZeroApprox())
+            {
+                // 同一环境风叠加移动迎风；独立频率、相位和幅度负责各附件的柔性差异。
+                flow = _clothFlow * _clothWeight + _clothAmbientWinds[slot];
+                weight = Mathf.Min(1, flow.Length());
+            }
+            var localFlow = _clothSprites[slot].GlobalTransform.AffineInverse().BasisXform(flow).Normalized();
+            _clothMaterials[slot].SetShaderParameter("cloth_weight", weight);
             _clothMaterials[slot].SetShaderParameter("cloth_time", _clothTime);
             _clothMaterials[slot].SetShaderParameter("cloth_flow", localFlow);
         }

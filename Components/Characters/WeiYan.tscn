@@ -1,7 +1,7 @@
 [gd_scene load_steps=8 format=3]
 
 [ext_resource type="PackedScene" path="res://Components/Characters/Combatant.tscn" id="1"]
-[ext_resource type="Texture2D" path="res://Source/People/WeiYan/weiyan-prototype.png" id="2"]
+[ext_resource type="Texture2D" path="res://Source/People/Portraits/WeiYan/WeiYanPrototype.png" id="2"]
 [ext_resource type="Script" path="res://Scripts/AI/WeiYanController.cs" id="3"]
 [ext_resource type="Resource" path="res://Resources/Config/Characters/weiyan/weiyan.tres" id="4"]
 [ext_resource type="Resource" path="res://Resources/Config/Characters/weiyan/weiyan-presentation.tres" id="5"]

@@ -1,0 +1,695 @@
+[gd_resource type="Resource" script_class="CharacterSpatialMotionConfig" load_steps=41 format=3]
+
+[ext_resource type="Script" path="res://Scripts/Config/Characters/Animation/CharacterSpatialMotionConfig.cs" id="clip"]
+[ext_resource type="Script" path="res://Scripts/Config/Characters/Animation/CharacterSpatialPoseConfig.cs" id="pose"]
+
+[sub_resource type="Resource" id="K00"]
+script = ExtResource("pose")
+Time = 0
+Root = Vector3(0, -1, 0)
+Yaw = 0
+ChestTwist = 0
+Lean = 0
+Grip = Vector3(-20, 27, 0)
+BladeAngles = Vector2(90, 86)
+FreeHand = Vector3(20, 30, 0)
+TwoHandWeight = 0.0
+FarFoot = Vector3(-15, 0, 0)
+NearFoot = Vector3(15, 0, 0)
+FarFootYaw = 65
+NearFootYaw = 65
+FarFootRoll = 0
+NearFootRoll = 0
+
+[sub_resource type="Resource" id="K01"]
+script = ExtResource("pose")
+Time = 0.12
+Root = Vector3(0, 1, 0)
+Yaw = 0
+ChestTwist = 0
+Lean = -4
+Grip = Vector3(-22, -12, 14)
+BladeAngles = Vector2(90, 145)
+FreeHand = Vector3(30, 5, 22)
+TwoHandWeight = 0.0
+FarFoot = Vector3(-15, 0, 0)
+NearFoot = Vector3(15, 0, 0)
+FarFootYaw = 65
+NearFootYaw = 65
+FarFootRoll = 0
+NearFootRoll = 0
+
+[sub_resource type="Resource" id="K02"]
+script = ExtResource("pose")
+Time = 0.2
+Root = Vector3(0, 2, 0)
+Yaw = 0
+ChestTwist = 0
+Lean = -3
+Grip = Vector3(-20, -10, 18)
+BladeAngles = Vector2(90, 130)
+FreeHand = Vector3(30, 5, 22)
+TwoHandWeight = 0.0
+FarFoot = Vector3(-15, 0, 0)
+NearFoot = Vector3(15, 0, 0)
+FarFootYaw = 65
+NearFootYaw = 65
+FarFootRoll = 0
+NearFootRoll = 0
+
+[sub_resource type="Resource" id="K03"]
+script = ExtResource("pose")
+Time = 0.3
+Root = Vector3(0, 4, 0)
+Yaw = 0
+ChestTwist = 0
+Lean = 8
+Grip = Vector3(5, 3, 20)
+BladeAngles = Vector2(90, 10)
+FreeHand = Vector3(30, 5, 22)
+TwoHandWeight = 0.0
+FarFoot = Vector3(-15, 0, 0)
+NearFoot = Vector3(15, 0, 0)
+FarFootYaw = 65
+NearFootYaw = 65
+FarFootRoll = 0
+NearFootRoll = 0
+
+[sub_resource type="Resource" id="K04"]
+script = ExtResource("pose")
+Time = 0.4
+Root = Vector3(0, 4, 0)
+Yaw = 0
+ChestTwist = 0
+Lean = 6
+Grip = Vector3(7, 8, 20)
+BladeAngles = Vector2(90, -20)
+FreeHand = Vector3(30, 5, 22)
+TwoHandWeight = 0.0
+FarFoot = Vector3(-15, 0, 0)
+NearFoot = Vector3(15, 0, 0)
+FarFootYaw = 65
+NearFootYaw = 65
+FarFootRoll = 0
+NearFootRoll = 0
+
+[sub_resource type="Resource" id="K05"]
+script = ExtResource("pose")
+Time = 0.5
+Root = Vector3(0, 2, 0)
+Yaw = 0
+ChestTwist = 0
+Lean = -4
+Grip = Vector3(-18, -12, 14)
+BladeAngles = Vector2(90, 120)
+FreeHand = Vector3(30, 5, 22)
+TwoHandWeight = 0.0
+FarFoot = Vector3(-15, 0, 0)
+NearFoot = Vector3(15, 0, 0)
+FarFootYaw = 65
+NearFootYaw = 65
+FarFootRoll = 0
+NearFootRoll = 0
+
+[sub_resource type="Resource" id="K06"]
+script = ExtResource("pose")
+Time = 0.6
+Root = Vector3(0, 3, 0)
+Yaw = 0
+ChestTwist = 0
+Lean = -6
+Grip = Vector3(-20, -14, 14)
+BladeAngles = Vector2(90, 130)
+FreeHand = Vector3(30, 5, 22)
+TwoHandWeight = 0.0
+FarFoot = Vector3(-15, 0, 0)
+NearFoot = Vector3(15, 0, 0)
+FarFootYaw = 65
+NearFootYaw = 65
+FarFootRoll = 0
+NearFootRoll = 0
+
+[sub_resource type="Resource" id="K07"]
+script = ExtResource("pose")
+Time = 0.7
+Root = Vector3(0, 6, 0)
+Yaw = 0
+ChestTwist = 0
+Lean = 8
+Grip = Vector3(5, 2, 20)
+BladeAngles = Vector2(90, 15)
+FreeHand = Vector3(30, 5, 22)
+TwoHandWeight = 0.0
+FarFoot = Vector3(-15, 0, 0)
+NearFoot = Vector3(15, 0, 0)
+FarFootYaw = 65
+NearFootYaw = 65
+FarFootRoll = 0
+NearFootRoll = 0
+
+[sub_resource type="Resource" id="K08"]
+script = ExtResource("pose")
+Time = 0.8
+Root = Vector3(0, 7, 0)
+Yaw = 0
+ChestTwist = 0
+Lean = 2
+Grip = Vector3(-10, -10, 16)
+BladeAngles = Vector2(90, 70)
+FreeHand = Vector3(30, 5, 22)
+TwoHandWeight = 0.0
+FarFoot = Vector3(-15, 0, 0)
+NearFoot = Vector3(15, 0, 0)
+FarFootYaw = 65
+NearFootYaw = 65
+FarFootRoll = 0
+NearFootRoll = 0
+
+[sub_resource type="Resource" id="K09"]
+script = ExtResource("pose")
+Time = 0.9
+Root = Vector3(0, -6, 0)
+Yaw = 0
+ChestTwist = 0
+Lean = -4
+Grip = Vector3(-12, -25, 12)
+BladeAngles = Vector2(90, 120)
+FreeHand = Vector3(25, 14, 18)
+TwoHandWeight = 0.0
+FarFoot = Vector3(-15, -9, -2)
+NearFoot = Vector3(17, -14, 3)
+FarFootYaw = 65
+NearFootYaw = 65
+FarFootRoll = -10
+NearFootRoll = 12
+
+[sub_resource type="Resource" id="K10"]
+script = ExtResource("pose")
+Time = 1.0
+Root = Vector3(0, -23, 0)
+Yaw = 0
+ChestTwist = 0
+Lean = -5
+Grip = Vector3(-12, -31, 10)
+BladeAngles = Vector2(90, 135)
+FreeHand = Vector3(25, 14, 18)
+TwoHandWeight = 0.0
+FarFoot = Vector3(-16, -30, -3)
+NearFoot = Vector3(18, -40, 3)
+FarFootYaw = 65
+NearFootYaw = 65
+FarFootRoll = -10
+NearFootRoll = 12
+
+[sub_resource type="Resource" id="K11"]
+script = ExtResource("pose")
+Time = 1.1
+Root = Vector3(0, -30, 0)
+Yaw = 0
+ChestTwist = 0
+Lean = -3
+Grip = Vector3(-10, -33, 10)
+BladeAngles = Vector2(90, 125)
+FreeHand = Vector3(25, 14, 18)
+TwoHandWeight = 0.0
+FarFoot = Vector3(-18, -34, -3)
+NearFoot = Vector3(21, -44, 3)
+FarFootYaw = 65
+NearFootYaw = 65
+FarFootRoll = -10
+NearFootRoll = 12
+
+[sub_resource type="Resource" id="K12"]
+script = ExtResource("pose")
+Time = 1.2
+Root = Vector3(0, -13, 0)
+Yaw = 0
+ChestTwist = 0
+Lean = 2
+Grip = Vector3(-5, -23, 16)
+BladeAngles = Vector2(90, 100)
+FreeHand = Vector3(25, 14, 18)
+TwoHandWeight = 0.0
+FarFoot = Vector3(-20, -15, -3)
+NearFoot = Vector3(23, -18, 3)
+FarFootYaw = 65
+NearFootYaw = 65
+FarFootRoll = -10
+NearFootRoll = 12
+
+[sub_resource type="Resource" id="K13"]
+script = ExtResource("pose")
+Time = 1.3
+Root = Vector3(0, 7, 0)
+Yaw = 0
+ChestTwist = 0
+Lean = 8
+Grip = Vector3(1, -6, 22)
+BladeAngles = Vector2(90, 50)
+FreeHand = Vector3(30, 5, 22)
+TwoHandWeight = 0.0
+FarFoot = Vector3(-21, 0, -3)
+NearFoot = Vector3(23, 0, 3)
+FarFootYaw = 65
+NearFootYaw = 65
+FarFootRoll = 0
+NearFootRoll = 0
+
+[sub_resource type="Resource" id="K14"]
+script = ExtResource("pose")
+Time = 1.4
+Root = Vector3(0, 9, 0)
+Yaw = 0
+ChestTwist = 0
+Lean = 10
+Grip = Vector3(8, 8, 20)
+BladeAngles = Vector2(90, -45)
+FreeHand = Vector3(30, 5, 22)
+TwoHandWeight = 0.0
+FarFoot = Vector3(-21, 0, -3)
+NearFoot = Vector3(23, 0, 3)
+FarFootYaw = 65
+NearFootYaw = 65
+FarFootRoll = 0
+NearFootRoll = 0
+
+[sub_resource type="Resource" id="K15"]
+script = ExtResource("pose")
+Time = 1.5
+Root = Vector3(0, 6, 0)
+Yaw = 0
+ChestTwist = 0
+Lean = 7
+Grip = Vector3(5, 15, 16)
+BladeAngles = Vector2(90, -25)
+FreeHand = Vector3(30, 5, 22)
+TwoHandWeight = 0.0
+FarFoot = Vector3(-21, 0, -3)
+NearFoot = Vector3(23, 0, 3)
+FarFootYaw = 65
+NearFootYaw = 65
+FarFootRoll = 0
+NearFootRoll = 0
+
+[sub_resource type="Resource" id="K16"]
+script = ExtResource("pose")
+Time = 1.65
+Root = Vector3(0, 2, 0)
+Yaw = 0
+ChestTwist = 0
+Lean = 1
+Grip = Vector3(-17, 23, 9)
+BladeAngles = Vector2(90, 30)
+FreeHand = Vector3(30, 5, 22)
+TwoHandWeight = 0.0
+FarFoot = Vector3(-21, 0, -3)
+NearFoot = Vector3(23, 0, 3)
+FarFootYaw = 65
+NearFootYaw = 65
+FarFootRoll = 0
+NearFootRoll = 0
+
+[sub_resource type="Resource" id="K17"]
+script = ExtResource("pose")
+Time = 1.8
+Root = Vector3(0, 2, 0)
+Yaw = 0
+ChestTwist = 0
+Lean = 1
+Grip = Vector3(-17, 23, 9)
+BladeAngles = Vector2(90, 30)
+FreeHand = Vector3(30, 5, 22)
+TwoHandWeight = 0.0
+FarFoot = Vector3(-21, 0, -3)
+NearFoot = Vector3(23, 0, 3)
+FarFootYaw = 65
+NearFootYaw = 65
+FarFootRoll = 0
+NearFootRoll = 0
+
+[sub_resource type="Resource" id="K18"]
+script = ExtResource("pose")
+Time = 2.0
+Root = Vector3(0, 2, 0)
+Yaw = 0
+ChestTwist = 0
+Lean = 0
+Grip = Vector3(-17, 12, 14)
+BladeAngles = Vector2(90, 60)
+FreeHand = Vector3(30, 5, 22)
+TwoHandWeight = 0.0
+FarFoot = Vector3(-21, 0, -3)
+NearFoot = Vector3(23, 0, 3)
+FarFootYaw = 65
+NearFootYaw = 65
+FarFootRoll = 0
+NearFootRoll = 0
+
+[sub_resource type="Resource" id="K19"]
+script = ExtResource("pose")
+Time = 2.1
+Root = Vector3(0, 1, 0)
+Yaw = 0
+ChestTwist = 0
+Lean = -4
+Grip = Vector3(-20, -8, 14)
+BladeAngles = Vector2(90, 125)
+FreeHand = Vector3(30, 5, 22)
+TwoHandWeight = 0.0
+FarFoot = Vector3(-21, 0, -3)
+NearFoot = Vector3(23, 0, 3)
+FarFootYaw = 65
+NearFootYaw = 65
+FarFootRoll = 0
+NearFootRoll = 0
+
+[sub_resource type="Resource" id="K20"]
+script = ExtResource("pose")
+Time = 2.2
+Root = Vector3(0, 1, 0)
+Yaw = 0
+ChestTwist = 0
+Lean = -6
+Grip = Vector3(-22, -14, 14)
+BladeAngles = Vector2(90, 145)
+FreeHand = Vector3(30, 5, 22)
+TwoHandWeight = 0.0
+FarFoot = Vector3(-21, 0, -3)
+NearFoot = Vector3(23, 0, 3)
+FarFootYaw = 65
+NearFootYaw = 65
+FarFootRoll = 0
+NearFootRoll = 0
+
+[sub_resource type="Resource" id="K21"]
+script = ExtResource("pose")
+Time = 2.3
+Root = Vector3(0, 2, 0)
+Yaw = 0
+ChestTwist = 0
+Lean = -4
+Grip = Vector3(-20, -10, 18)
+BladeAngles = Vector2(90, 135)
+FreeHand = Vector3(30, 5, 22)
+TwoHandWeight = 0.0
+FarFoot = Vector3(-21, 0, -3)
+NearFoot = Vector3(23, 0, 3)
+FarFootYaw = 65
+NearFootYaw = 65
+FarFootRoll = 0
+NearFootRoll = 0
+
+[sub_resource type="Resource" id="K22"]
+script = ExtResource("pose")
+Time = 2.4
+Root = Vector3(0, 6, 0)
+Yaw = 0
+ChestTwist = 0
+Lean = 8
+Grip = Vector3(5, 3, 20)
+BladeAngles = Vector2(90, 15)
+FreeHand = Vector3(30, 5, 22)
+TwoHandWeight = 0.0
+FarFoot = Vector3(-21, 0, -3)
+NearFoot = Vector3(23, 0, 3)
+FarFootYaw = 65
+NearFootYaw = 65
+FarFootRoll = 0
+NearFootRoll = 0
+
+[sub_resource type="Resource" id="K23"]
+script = ExtResource("pose")
+Time = 2.5
+Root = Vector3(0, 6, 0)
+Yaw = 0
+ChestTwist = 0
+Lean = 7
+Grip = Vector3(7, 8, 20)
+BladeAngles = Vector2(90, -25)
+FreeHand = Vector3(30, 5, 22)
+TwoHandWeight = 0.0
+FarFoot = Vector3(-21, 0, -3)
+NearFoot = Vector3(23, 0, 3)
+FarFootYaw = 65
+NearFootYaw = 65
+FarFootRoll = 0
+NearFootRoll = 0
+
+[sub_resource type="Resource" id="K24"]
+script = ExtResource("pose")
+Time = 2.6
+Root = Vector3(0, 3, 0)
+Yaw = 0
+ChestTwist = 0
+Lean = 0
+Grip = Vector3(-14, 3, 16)
+BladeAngles = Vector2(90, 60)
+FreeHand = Vector3(30, 5, 22)
+TwoHandWeight = 0.0
+FarFoot = Vector3(-21, 0, -3)
+NearFoot = Vector3(23, 0, 3)
+FarFootYaw = 65
+NearFootYaw = 65
+FarFootRoll = 0
+NearFootRoll = 0
+
+[sub_resource type="Resource" id="K25"]
+script = ExtResource("pose")
+Time = 2.7
+Root = Vector3(0, 2, 0)
+Yaw = 0
+ChestTwist = 0
+Lean = -6
+Grip = Vector3(-21, -13, 14)
+BladeAngles = Vector2(90, 140)
+FreeHand = Vector3(30, 5, 22)
+TwoHandWeight = 0.0
+FarFoot = Vector3(-21, 0, -3)
+NearFoot = Vector3(23, 0, 3)
+FarFootYaw = 65
+NearFootYaw = 65
+FarFootRoll = 0
+NearFootRoll = 0
+
+[sub_resource type="Resource" id="K26"]
+script = ExtResource("pose")
+Time = 2.8
+Root = Vector3(0, 3, 0)
+Yaw = 0
+ChestTwist = 0
+Lean = -4
+Grip = Vector3(-20, -10, 18)
+BladeAngles = Vector2(90, 125)
+FreeHand = Vector3(30, 5, 22)
+TwoHandWeight = 0.0
+FarFoot = Vector3(-21, 0, -3)
+NearFoot = Vector3(23, 0, 3)
+FarFootYaw = 65
+NearFootYaw = 65
+FarFootRoll = 0
+NearFootRoll = 0
+
+[sub_resource type="Resource" id="K27"]
+script = ExtResource("pose")
+Time = 2.9
+Root = Vector3(0, 7, 0)
+Yaw = 0
+ChestTwist = 0
+Lean = 8
+Grip = Vector3(6, 5, 20)
+BladeAngles = Vector2(90, -10)
+FreeHand = Vector3(30, 5, 22)
+TwoHandWeight = 0.0
+FarFoot = Vector3(-21, 0, -3)
+NearFoot = Vector3(23, 0, 3)
+FarFootYaw = 65
+NearFootYaw = 65
+FarFootRoll = 0
+NearFootRoll = 0
+
+[sub_resource type="Resource" id="K28"]
+script = ExtResource("pose")
+Time = 3.0
+Root = Vector3(0, -5, 0)
+Yaw = 0
+ChestTwist = 0
+Lean = -3
+Grip = Vector3(-10, -22, 14)
+BladeAngles = Vector2(90, 95)
+FreeHand = Vector3(25, 14, 18)
+TwoHandWeight = 0.0
+FarFoot = Vector3(-20, -10, -3)
+NearFoot = Vector3(23, -15, 3)
+FarFootYaw = 65
+NearFootYaw = 65
+FarFootRoll = -10
+NearFootRoll = 12
+
+[sub_resource type="Resource" id="K29"]
+script = ExtResource("pose")
+Time = 3.1
+Root = Vector3(0, -23, 0)
+Yaw = 0
+ChestTwist = 0
+Lean = -4
+Grip = Vector3(-12, -32, 10)
+BladeAngles = Vector2(90, 140)
+FreeHand = Vector3(25, 14, 18)
+TwoHandWeight = 0.0
+FarFoot = Vector3(-18, -29, -3)
+NearFoot = Vector3(22, -39, 3)
+FarFootYaw = 65
+NearFootYaw = 65
+FarFootRoll = -10
+NearFootRoll = 12
+
+[sub_resource type="Resource" id="K30"]
+script = ExtResource("pose")
+Time = 3.2
+Root = Vector3(0, -7, 0)
+Yaw = 0
+ChestTwist = 0
+Lean = 2
+Grip = Vector3(-5, -23, 16)
+BladeAngles = Vector2(90, 100)
+FreeHand = Vector3(25, 14, 18)
+TwoHandWeight = 0.0
+FarFoot = Vector3(-20, -12, -3)
+NearFoot = Vector3(23, -14, 3)
+FarFootYaw = 65
+NearFootYaw = 65
+FarFootRoll = -10
+NearFootRoll = 12
+
+[sub_resource type="Resource" id="K31"]
+script = ExtResource("pose")
+Time = 3.3
+Root = Vector3(0, 8, 0)
+Yaw = 0
+ChestTwist = 0
+Lean = 8
+Grip = Vector3(1, -6, 22)
+BladeAngles = Vector2(90, 45)
+FreeHand = Vector3(30, 5, 22)
+TwoHandWeight = 0.0
+FarFoot = Vector3(-21, 0, -3)
+NearFoot = Vector3(23, 0, 3)
+FarFootYaw = 65
+NearFootYaw = 65
+FarFootRoll = 0
+NearFootRoll = 0
+
+[sub_resource type="Resource" id="K32"]
+script = ExtResource("pose")
+Time = 3.4
+Root = Vector3(0, 9, 0)
+Yaw = 0
+ChestTwist = 0
+Lean = 10
+Grip = Vector3(8, 8, 20)
+BladeAngles = Vector2(90, -45)
+FreeHand = Vector3(30, 5, 22)
+TwoHandWeight = 0.0
+FarFoot = Vector3(-21, 0, -3)
+NearFoot = Vector3(23, 0, 3)
+FarFootYaw = 65
+NearFootYaw = 65
+FarFootRoll = 0
+NearFootRoll = 0
+
+[sub_resource type="Resource" id="K33"]
+script = ExtResource("pose")
+Time = 3.5
+Root = Vector3(0, 6, 0)
+Yaw = 0
+ChestTwist = 0
+Lean = 6
+Grip = Vector3(5, 15, 16)
+BladeAngles = Vector2(90, -25)
+FreeHand = Vector3(30, 5, 22)
+TwoHandWeight = 0.0
+FarFoot = Vector3(-21, 0, -3)
+NearFoot = Vector3(23, 0, 3)
+FarFootYaw = 65
+NearFootYaw = 65
+FarFootRoll = 0
+NearFootRoll = 0
+
+[sub_resource type="Resource" id="K34"]
+script = ExtResource("pose")
+Time = 3.6
+Root = Vector3(0, 3, 0)
+Yaw = 0
+ChestTwist = 0
+Lean = 2
+Grip = Vector3(-15, 20, 10)
+BladeAngles = Vector2(90, 30)
+FreeHand = Vector3(30, 5, 22)
+TwoHandWeight = 0.0
+FarFoot = Vector3(-19, -4, -2)
+NearFoot = Vector3(23, 0, 3)
+FarFootYaw = 65
+NearFootYaw = 65
+FarFootRoll = 0
+NearFootRoll = 0
+
+[sub_resource type="Resource" id="K35"]
+script = ExtResource("pose")
+Time = 3.7
+Root = Vector3(0, 0, 0)
+Yaw = 0
+ChestTwist = 0
+Lean = 0
+Grip = Vector3(-18, 25, 4)
+BladeAngles = Vector2(90, 70)
+FreeHand = Vector3(30, 5, 22)
+TwoHandWeight = 0.0
+FarFoot = Vector3(-15, 0, 0)
+NearFoot = Vector3(19, -5, 2)
+FarFootYaw = 65
+NearFootYaw = 65
+FarFootRoll = 0
+NearFootRoll = 0
+
+[sub_resource type="Resource" id="K36"]
+script = ExtResource("pose")
+Time = 3.8
+Root = Vector3(0, -1, 0)
+Yaw = 0
+ChestTwist = 0
+Lean = 0
+Grip = Vector3(-20, 27, 0)
+BladeAngles = Vector2(90, 86)
+FreeHand = Vector3(20, 30, 0)
+TwoHandWeight = 0.0
+FarFoot = Vector3(-15, 0, 0)
+NearFoot = Vector3(15, 0, 0)
+FarFootYaw = 65
+NearFootYaw = 65
+FarFootRoll = 0
+NearFootRoll = 0
+
+[sub_resource type="Resource" id="K37"]
+script = ExtResource("pose")
+Time = 4.0
+Root = Vector3(0, -1, 0)
+Yaw = 0
+ChestTwist = 0
+Lean = 0
+Grip = Vector3(-20, 27, 0)
+BladeAngles = Vector2(90, 86)
+FreeHand = Vector3(20, 30, 0)
+TwoHandWeight = 0.0
+FarFoot = Vector3(-15, 0, 0)
+NearFoot = Vector3(15, 0, 0)
+FarFootYaw = 65
+NearFootYaw = 65
+FarFootRoll = 0
+NearFootRoll = 0
+
+[resource]
+script = ExtResource("clip")
+Duration = 4.0
+BlendIn = 0.14
+BlendOut = 0.24
+Keys = Array[ExtResource("pose")]([SubResource("K00"), SubResource("K01"), SubResource("K02"), SubResource("K03"), SubResource("K04"), SubResource("K05"), SubResource("K06"), SubResource("K07"), SubResource("K08"), SubResource("K09"), SubResource("K10"), SubResource("K11"), SubResource("K12"), SubResource("K13"), SubResource("K14"), SubResource("K15"), SubResource("K16"), SubResource("K17"), SubResource("K18"), SubResource("K19"), SubResource("K20"), SubResource("K21"), SubResource("K22"), SubResource("K23"), SubResource("K24"), SubResource("K25"), SubResource("K26"), SubResource("K27"), SubResource("K28"), SubResource("K29"), SubResource("K30"), SubResource("K31"), SubResource("K32"), SubResource("K33"), SubResource("K34"), SubResource("K35"), SubResource("K36"), SubResource("K37")])

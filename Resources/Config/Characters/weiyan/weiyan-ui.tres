@@ -1,7 +1,7 @@
 [gd_resource type="Resource" script_class="CharacterUiConfig" load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://Scripts/Config/Characters/CharacterUiConfig.cs" id="1"]
-[ext_resource type="Texture2D" path="res://Source/People/WeiYan/weiyan-prototype.png" id="portrait"]
+[ext_resource type="Texture2D" path="res://Source/People/Portraits/WeiYan/WeiYanPortraitV2.png" id="portrait"]
 
 [resource]
 script = ExtResource("1")

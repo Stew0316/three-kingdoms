@@ -24,13 +24,21 @@ public partial class CharacterAnimationConfig : Resource
     [Export(PropertyHint.Range, "4,16,0.5")] public float WalkStanceWidth { get; set; } = 12; // 两脚距身体中线的距离，骨架单位。
     [Export(PropertyHint.Range, "0,5,0.25")] public float WalkCrouch { get; set; } = 2.5f; // 腰胯下沉量，脚底仍停留在地面。
     [Export(PropertyHint.Range, "32,100,1")] public float WalkCycleDistance { get; set; } = 72; // 完成左右各一步所需的实际移动距离，世界像素。
+    [Export] public bool MatchWalkDistanceToFeet { get; set; } // 按最终世界缩放和脚幅反算周期路程，使承重脚抵消身体位移；旧动作保留原周期。
     [Export(PropertyHint.Range, "1,16,0.25")] public float WalkStride { get; set; } = 4.5f; // 单脚前后移动的半幅，骨架单位。
     [Export(PropertyHint.Range, "0,5,0.25")] public float WalkFootLift { get; set; } = 2; // 摆动脚离地高度，避免高抬腿和蹦跳。
     [Export(PropertyHint.Range, "10,35,1")] public float WalkSupportKneeDegrees { get; set; } = 24; // 参考步态的承重膝弯角，0 为完全伸直；摆动腿由足点单独求解。
+    [Export(PropertyHint.Range, "0,15,0.5")] public float WalkHeelRollDegrees { get; set; } = 8; // 脚跟初触地时抬起脚尖的角度幅度；按角色靴型调整，不改变接地点。
+    [Export(PropertyHint.Range, "0,20,0.5")] public float WalkToeRollDegrees { get; set; } = 12; // 蹬离时抬起后跟的角度幅度；与小腿的连接保持同一踝点。
     [Export] public CharacterActionAnimationConfig Basic { get; set; } // 普通挥击语义。
     [Export] public CharacterActionAnimationConfig Dash { get; set; } // 突进攻击语义。
     [Export] public CharacterActionAnimationConfig Sweep { get; set; } // 范围挥击语义。
     [Export] public CharacterActionAnimationConfig Counter { get; set; } // 反击语义，装备任何来源反击技能均用自身动作。
+    [Export] public CharacterActionAnimationConfig Combo { get; set; } // 连续刀舞语义；未制作专属片段的角色回退自身普通攻击。
     public CharacterActionAnimationConfig GetAction(CombatMotion motion) => motion switch
-    { CombatMotion.Dash => Dash, CombatMotion.Sweep => Sweep, _ => Basic };
+    {
+        // 爆气保持持械站姿，不回退到普攻，也不借用普攻的空间动作片段。
+        CombatMotion.Empower => null,
+        CombatMotion.Dash => Dash, CombatMotion.Sweep => Sweep, CombatMotion.Combo => Combo ?? Basic, _ => Basic
+    };
 }

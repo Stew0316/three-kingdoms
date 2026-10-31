@@ -53,7 +53,7 @@ public partial class Combatant : CharacterBody2D
     public float ActionTime { get; private set; }
     // 是否处于可提交伤害的生效窗口；前摇和后摇均不能命中。
     public bool IsAttackActive => !BattleFinished && CurrentState == State.Attack
-        && ActionTime >= Spec.Prepare && ActionTime < Spec.Prepare + Spec.Active;
+        && Spec.HitPulseAt(ActionTime) >= 0;
     // 供 HUD 与 AI 调试显示的当前动作阶段名称。
     public string Phase => CurrentState is State.Attack or State.Dodge
         ? ActionTime < Spec.Prepare ? BattleTexts.Charging : ActionTime < Spec.Prepare + Spec.Active ? BattleTexts.Active : BattleTexts.Recovering

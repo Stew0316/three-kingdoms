@@ -59,6 +59,12 @@ public partial class CharacterRig
     /// <summary>从同一小腿采样区分出靴掌，支持独立落地和蹬离；原 PNG 不变。</summary>
     private void BuildReferenceFoot(int bone, Sprite2D shin)
     {
+        if (Actor.Presentation.Model.FootAtlasRegions.Count == 2 && Actor.Presentation.Model.ShinAtlasAnchors.Length == 4
+            && Actor.Presentation.Model.FootAnkleAnchors.Length == 2)
+        {
+            BuildSeparateFoot(bone, shin);
+            return;
+        }
         var original = (AtlasTexture)shin.Texture;
         Rect2 region = original.Region;
         // 脚踝约在原小腿包围盒的 80% 处，与原绑定的膝下长度相对应。
@@ -83,6 +89,33 @@ public partial class CharacterRig
         _drawOrderedParts.Add(foot);
     }
 
+    /// <summary>独立小腿和靴掌各自按原图膝踝定位，关节处覆盖延伸不通过拉伸图片补缝。</summary>
+    private void BuildSeparateFoot(int bone, Sprite2D shin)
+    {
+        var model = Actor.Presentation.Model;
+        int index = bone == 10 ? 0 : 1;
+        var shinTexture = (AtlasTexture)shin.Texture;
+        Vector2 knee = model.ShinAtlasAnchors[index * 2], ankle = model.ShinAtlasAnchors[index * 2 + 1];
+        Vector2 axis = ankle - knee;
+        float rotation = Mathf.Pi / 2 - axis.Angle();
+        float scale = (_lowerLegLength - ReferenceFootHeight) / axis.Length();
+        shin.Rotation = rotation; shin.Scale = Vector2.One * scale;
+        shin.Position = -(knee - shinTexture.Region.Position).Rotated(rotation) * scale;
+        _partOffsets[bone] = shin.Transform;
+        Rect2 region = model.FootAtlasRegions[index];
+        Vector2 footAnkle = model.FootAnkleAnchors[index];
+        float footScale = ReferenceFootHeight / (region.End.Y - footAnkle.Y);
+        var foot = new Sprite2D
+        {
+            Name = index == 0 ? "远靴掌图层" : "近靴掌图层", Centered = false, Material = shin.Material,
+            Texture = new AtlasTexture { Atlas = model.PartsAtlas, Region = region },
+            TextureFilter = TextureFilterEnum.Linear, Scale = Vector2.One * footScale,
+            Position = -(footAnkle - region.Position) * footScale
+        };
+        _referenceFeet[index] = foot; _referenceFootOffsets[index] = foot.Transform;
+        _drawLayers.AddChild(foot); _drawOrderedParts.Add(foot);
+    }
+
     private void SyncReferenceFeet(Transform2D inverse)
     {
         for (int index = 0; index < _referenceFeet.Length; index++)
@@ -90,6 +123,7 @@ public partial class CharacterRig
             if (_referenceFeet[index] == null) continue;
             int bone = index == 0 ? 10 : 12;
             Vector2 ankle = Skeleton.ToLocal(_bones[bone].ToGlobal(new Vector2(0, _lowerLegLength - ReferenceFootHeight)));
+            if (Actor.Presentation.Model.DepthFacing != 0) ankle = _depthAnkles[index];
             float roll = index == 0 ? _referenceFrame.FarFootRoll : _referenceFrame.NearFootRoll;
             _referenceFeet[index].Transform = inverse * Skeleton.GlobalTransform
                 * new Transform2D(roll, ankle) * _referenceFootOffsets[index];

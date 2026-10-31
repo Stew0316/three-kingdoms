@@ -36,6 +36,7 @@ public partial class WeiYanController : Node
         _actor.SetMoveInput(Vector2.Zero);
 
         if (TryMotion(CombatMotion.Dash, distance) || TryMotion(CombatMotion.Sweep, distance)
+            || TryMotion(CombatMotion.Combo, distance)
             || TryMotion(CombatMotion.Basic, distance)) return;
         float approachRange = 42;
         foreach (CombatAction slot in System.Enum.GetValues<CombatAction>())
@@ -60,6 +61,7 @@ public partial class WeiYanController : Node
             {
                 CombatMotion.Dash => skill.Speed > 0 ? distance > skill.Range + 42 && distance < skill.Range + skill.Speed * skill.Active + 36 : distance < skill.Range - 4,
                 CombatMotion.Sweep => _attackCount > 0 && distance < skill.Range - 8,
+                CombatMotion.Combo => _attackCount > 0 && distance < skill.Range - 8,
                 _ => distance <= skill.Range - 4
             };
             if (inRange && _actor.TryAction(slot)) { Decision = skill.DisplayName; _attackCount++; return true; }

@@ -55,6 +55,7 @@ public partial class CharacterRig
     /// <summary>出招与闪避独立读取动作时钟，保留原前摇、生效与后摇，行走循环不驱动攻击。</summary>
     private void SampleActionPose()
     {
+        if (Actor.CurrentMotion == CombatMotion.Empower) return; // 旧拆件同样保留站姿，不能把爆气当挥击。
         var s=Actor.Spec; float at=Actor.ActionTime;
         float wind=Smooth(at/Mathf.Max(s.Prepare,.001f));
         float hit=Smooth((at-s.Prepare)/Mathf.Max(s.Active,.001f));

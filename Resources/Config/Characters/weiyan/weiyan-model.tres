@@ -1,29 +1,55 @@
-[gd_resource type="Resource" script_class="CharacterModelConfig" load_steps=3 format=3]
+[gd_resource type="Resource" script_class="CharacterModelConfig" load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://Scripts/Config/Characters/CharacterModelConfig.cs" id="1"]
-[ext_resource type="Texture2D" path="res://Source/People/WeiYan/weiyan-parts-v2.png" id="2"]
+[ext_resource type="Texture2D" path="res://Source/People/WeiYan/WeiYanPartsV3.png" id="2"]
+[ext_resource type="Texture2D" path="res://Source/People/WeiYan/WeiYanTurnPartsV4.png" id="turn"]
 
 [resource]
 script = ExtResource("1")
 PartsAtlas = ExtResource("2")
-WeaponAtlasClipPolygon = PackedVector2Array(765, 851, 780, 851, 835, 878.5, 835, 1254, 765, 1254)
+TurnAtlas = ExtResource("turn")
+TurnRegions = Array[Rect2]([Rect2(40, 38, 250, 314), Rect2(360, 51, 234, 286), Rect2(660, 67, 255, 284), Rect2(962, 76, 279, 270), Rect2(23, 373, 258, 265), Rect2(327, 369, 296, 275), Rect2(688, 366, 205, 275), Rect2(1009, 369, 178, 271), Rect2(45, 654, 249, 263), Rect2(390, 657, 182, 258), Rect2(685, 661, 182, 255), Rect2(1016, 654, 170, 259), Rect2(83, 978, 163, 190), Rect2(396, 978, 165, 187), Rect2(737, 914, 80, 338), Rect2(919, 920, 331, 330)])
+WeaponAtlasClipPolygon = PackedVector2Array()
 CrestRect = Rect2(-10, -1, 16, 22)
-AtlasRegions = Array[Rect2]([Rect2(0, 0, 313, 322), Rect2(340, 0, 280, 220), Rect2(627, 0, 313, 322), Rect2(940, 0, 314, 324), Rect2(0, 322, 313, 273), Rect2(313, 322, 314, 273), Rect2(627, 322, 313, 273), Rect2(940, 322, 314, 273), Rect2(0, 595, 313, 293), Rect2(313, 595, 314, 293), Rect2(627, 595, 313, 255), Rect2(940, 595, 314, 293), Rect2(113, 1090, 164, 133), Rect2(364, 1090, 160, 133), Rect2(765, 850, 70, 404), Rect2(940, 895, 314, 359)])
+AtlasRegions = Array[Rect2]([Rect2(28, 28, 265, 350), Rect2(325, 72, 300, 289), Rect2(628, 83, 310, 290), Rect2(934, 28, 314, 347), Rect2(55, 378, 251, 285), Rect2(394, 401, 169, 257), Rect2(675, 379, 251, 279), Rect2(991, 403, 196, 255), Rect2(42, 664, 260, 255), Rect2(362, 669, 225, 263), Rect2(670, 662, 251, 257), Rect2(999, 669, 221, 262), Rect2(79, 998, 159, 166), Rect2(398, 1007, 153, 138), Rect2(741, 918, 71, 333), Rect2(950, 960, 290, 280)])
 CharacterScale = 0.038
-DepthScale = 0.92
-CartoonFilter = true
+DepthScale = 0.96
+CartoonFilter = false
 CartoonColorSteps = 7.0
 CartoonSaturation = 1.12
 CartoonOutlineColor = Color(0.075, 0.09, 0.065, 0.92)
 CalibratedLegProportions = true
-PelvisHeight = 36.0
-HipHalfWidth = 4.5
-ThighLength = 17.0
-LowerLegLength = 18.0
-FlipFarBootHorizontal = true
+PelvisHeight = 46.0
+HipHalfWidth = 6.0
+ThighLength = 24.0
+LowerLegLength = 24.0
+FlipFarBootHorizontal = false
 CrestVisible = false
-JointPositions = Array[Vector2]([Vector2(0, -36), Vector2(0, -11), Vector2(3, -12), Vector2(-8, -2), Vector2(0, 12), Vector2(0, 12), Vector2(7, -3), Vector2(0, 12), Vector2(0, 12), Vector2(-4.5, 2), Vector2(0, 17), Vector2(4.5, 2), Vector2(0, 17), Vector2(-5, -9), Vector2(0, 0), Vector2(-1, -10)])
-PartRects = Array[Rect2]([Rect2(-10, -3, 20, 17), Rect2(-10, -12, 20, 25), Rect2(-9.45, -15.8, 14.4, 19.8), Rect2(-5, -3, 10, 16), Rect2(-3.5, -2, 7, 15), Rect2(-2.5, -2, 5, 6), Rect2(-5, -3, 10, 16), Rect2(-3.5, -2, 7, 15), Rect2(-2.5, -2, 5, 6), Rect2(-4.5, -2, 9, 20), Rect2(-4.5, -2, 10, 20), Rect2(-4.5, -2, 9, 20), Rect2(-4.5, -2, 10, 20), Rect2(-19, -2, 28, 49), Rect2(-5, -42, 10, 86), Rect2(-7, -27, 19, 30)])
-DrawOrder = Array[int]([13, 9, 10, 11, 12, 0, 1, 3, 4, 2, 15, 6, 7, 14, 5, 8])
-ArmAtlasAnchors = PackedVector2Array(140, 353, 183, 550, 451, 352, 503, 565, 167, 1101, 207, 1166, 808, 354, 787, 552, 1090, 353, 1121, 565, 448, 1104, 430, 1167)
-PalmInset = 2.5
+JointPositions = Array[Vector2]([Vector2(0, -46), Vector2(0, -16), Vector2(4, -10), Vector2(-14, -2), Vector2(0, 18), Vector2(0, 18), Vector2(14, -3), Vector2(0, 18), Vector2(0, 18), Vector2(-6, 2), Vector2(0, 24), Vector2(6, 2), Vector2(0, 24), Vector2(-5, -13), Vector2(0, 0), Vector2(0, -25)])
+PartRects = Array[Rect2]([Rect2(-19, -4, 38, 25), Rect2(-17, -16, 34, 32), Rect2(-16, -33, 32, 41), Rect2(-8, -3, 16, 22), Rect2(-6, -2, 12, 20), Rect2(-4, -2, 8, 9), Rect2(-8, -3, 16, 22), Rect2(-6, -2, 12, 20), Rect2(-4, -2, 8, 9), Rect2(-10, -3, 20, 28), Rect2(-8, -2, 19, 26), Rect2(-10, -3, 20, 28), Rect2(-8, -2, 19, 26), Rect2(-49, -3, 60, 73), Rect2(-10.35, -76, 14.5, 112), Rect2(0, 0, 0, 0)])
+DrawOrder = Array[int]([13, 10, 9, 12, 11, 0, 1, 3, 4, 2, 15, 6, 7, 14, 5, 8])
+ArmAtlasAnchors = PackedVector2Array(186, 447, 125, 609, 459, 447, 506, 607, 116, 1074, 174, 1081, 770, 442, 852, 607, 1073, 450, 1126, 610, 484, 1034, 472, 1082)
+PalmInset = 4.5
+
+TargetScreenPixels = 160.0
+
+FarKneeBend = -1
+
+AlignBootsForward = false
+
+ThighAtlasAnchors = PackedVector2Array(185, 701, 143, 875, 779, 700, 829, 881)
+
+MovementCloth = true
+
+ClothAmplitudes = Vector2(0, 4)
+
+BootWidth = 19.0
+
+FootHeight = 6.0
+
+BootSplit = 0.79
+
+ArmorTint = Color(1, 1, 1, 1)
+
+WeaponShaftSourceY = 1096.0
+WeaponShaftDisplayY = 42.0

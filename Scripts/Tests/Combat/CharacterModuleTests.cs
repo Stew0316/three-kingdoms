@@ -30,10 +30,12 @@ public partial class CharacterModuleTests : Node
             Check(playerModel != enemyModel && playerAnimation != enemyAnimation && playerUi != enemyUi, "双方独立模型、动作和UI资源");
             Check(playerModel.JointPositions.Count == 16 && enemyModel.JointPositions.Count == 16
                 && playerModel.PartRects.Count == 16 && enemyModel.PartRects.Count == 16, "每位武将显式保存完整关节及拆件绑定");
-            Check(!Enemy.Rig.Parts[15].Visible && Player.Rig.Parts[15].Visible, "魏延关闭重复盔缨，吕布仍显示独立双翎");
+            Check(!Enemy.Rig.Parts[15].Visible && Enemy.Rig.CrestParts.Count == 0
+                && Player.Rig.CrestParts.Count == 2 && Player.Rig.CrestParts[0].Visible && Player.Rig.CrestParts[1].Visible,
+                "魏延保持无羽饰铁盔，吕布仍显示两条程序冠翎");
             var head = (AtlasTexture)Enemy.Rig.Parts[2].Texture;
-            Check(head.Region.Position.Y < 30 && head.Region.Size.Y > 290,
-                $"魏延完整头图保留盔缨根部，不再从85像素截断：{head.Region}");
+            Check(head.Region.Position.Y < 40 && head.Region.Size.Y > 330,
+                $"魏延完整头图保留铁盔、短须与脖颈：{head.Region}");
 
             var originalBasic = Player.GetSkill(CombatAction.Basic);
             var borrowedBasic = Enemy.GetSkill(CombatAction.Basic);
@@ -55,10 +57,11 @@ public partial class CharacterModuleTests : Node
             health = Player.Health.CurrentHealth;
             Check(Enemy.TryAction(CombatAction.Basic), "魏延可使用吕布普攻");
             await Frames(8);
-            Check(Mathf.Abs(Mathf.RadToDeg(Enemy.Rig.Joints[14].Rotation) - enemyAnimation.Basic.Windup.WeaponDegrees) < 1
-                && Enemy.Rig.ReferencePrimaryGrip.DistanceTo(enemyAnimation.Basic.Windup.FarHand) < .1f
-                && Enemy.Rig.Joints[7].Rotation < 0 && Enemy.Rig.Joints[4].Rotation < 0,
-                "借用吕布技能时仍使用魏延自己的肩侧收刀和前后手独立屈肘方向");
+            Check(Enemy.Rig.SpatialMotionActive && ReferenceEquals(Enemy.Presentation.Animation,enemyAnimation)
+                && Enemy.Rig.SpatialMotionTime >= enemyAnimation.Basic.ClipStart
+                && Enemy.Rig.SpatialMotionTime <= enemyAnimation.Basic.ClipPrepareEnd
+                && Enemy.Rig.SpatialGripError < .02f,
+                "借用吕布技能时仍使用魏延自己的腾空举刀片段及握持约束");
             await Frames(40);
             Check(health - Player.Health.CurrentHealth == originalBasic.Damage, "反向交换同样按借入伤害结算");
 

@@ -214,6 +214,25 @@ public partial class FourHeroTests : Node
             if (_subject != null)
             {
                 var rig = _subject.Rig;
+                if (rig.SpatialMotionActive)
+                {
+                    // 空间片段的投影角不是解剖屈肘角；过渡帧也不能拿混合后的手与完整片段目标比较。
+                    // 与空间专项使用相同的定长三维关节事实，避免正确的透视缩短触发平面断言。
+                    if (rig.SpatialMotionWeight > .999f)
+                    {
+                        var points = rig.SpatialJointPositions;
+                        foreach (int upper in new[] { 3, 6 })
+                        {
+                            Vector3 a = (points[upper + 1] - points[upper]).Normalized();
+                            Vector3 b = (points[upper + 2] - points[upper + 1]).Normalized();
+                            float bend = Mathf.RadToDeg(Mathf.Acos(Mathf.Clamp(a.Dot(b), -1, 1)));
+                            if (bend > _maxElbow) _worst = $"{_subject.CurrentState}/{_subject.CurrentMotion} 空间臂={upper} 屈肘={bend:F1}";
+                            _minElbow = Mathf.Min(_minElbow, bend); _maxElbow = Mathf.Max(_maxElbow, bend);
+                        }
+                        _gripError = Mathf.Max(_gripError, rig.SpatialGripError);
+                    }
+                    continue;
+                }
                 foreach (int bone in new[] { 4, 7 })
                 {
                     float bend = Mathf.Abs(Mathf.RadToDeg(rig.Joints[bone].Rotation));

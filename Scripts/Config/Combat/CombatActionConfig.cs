@@ -10,6 +10,7 @@ public partial class CombatActionConfig : Resource
     [Export(PropertyHint.MultilineText)] public string Description { get; set; } = ""; // 技能说明，随装备进入HUD。
     [Export] public int HitCount { get; set; } = 1; // 每个目标最多命中的段数。
     [Export] public float HitInterval { get; set; } = .18f; // 多段命中间隔秒数。
+    [Export] public Vector2[] HitWindows { get; set; } = System.Array.Empty<Vector2>(); // 可选逐段命中起止秒数，相对整次施法；用于非等间隔连招，空数组沿用间隔规则。
     [Export] public float StunSeconds { get; set; } // 命中后额外控制时长。
     [Export] public float SlowFactor { get; set; } = 1; // 移速倍率，1不减速。
     [Export] public float Vulnerability { get; set; } // 目标承受伤害增加比例。
@@ -41,5 +42,6 @@ public partial class CombatActionConfig : Resource
         Prepare, Active, Recover, Cooldown, Range, HalfAngle, Damage, Speed)
     { HitCount = HitCount, HitInterval = HitInterval, StunSeconds = StunSeconds, SlowFactor = SlowFactor,
         Vulnerability = Vulnerability, StatusDuration = StatusDuration, SelfHeal = SelfHeal, SelfCost = SelfCost,
-        DamageMultiplier = DamageMultiplier, Lifesteal = Lifesteal };
+        DamageMultiplier = DamageMultiplier, Lifesteal = Lifesteal,
+        HitWindows = System.Array.AsReadOnly((Vector2[])HitWindows.Clone()) };
 }

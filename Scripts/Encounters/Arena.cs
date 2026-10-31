@@ -36,7 +36,7 @@ public partial class Arena : Node2D
         // 群战只能显式启用，避免额外角色干扰正常双人调试。
         if (OS.GetCmdlineUserArgs().Contains("--arena-group-test")) GroupPractice = true;
         // 专项姿态/双人规则测试隔离额外对手；群战由独立验收覆盖。
-        string[] duelTests = { "--combat-test", "--module-test", "--weiyan-pose-test", "--four-hero-test", "--rig-visual-test" };
+        string[] duelTests = { "--combat-test", "--module-test", "--weiyan-pose-test", "--weiyan-saber-test", "--four-hero-test", "--rig-visual-test" };
         if (OS.GetCmdlineUserArgs().Any(duelTests.Contains)) GroupPractice = false;
         var player = GetNode<Combatant>(SceneNodePaths.Player);
         var enemy = GetNode<Combatant>(SceneNodePaths.Enemy);
@@ -126,6 +126,8 @@ public partial class Arena : Node2D
             CallDeferred(MethodName.StartReferencePoseTests);
         if (Array.Exists(OS.GetCmdlineUserArgs(), a => a == "--weiyan-pose-test"))
             CallDeferred(MethodName.StartWeiYanPoseTests);
+        if (Array.Exists(OS.GetCmdlineUserArgs(), a => a == "--weiyan-saber-test"))
+            CallDeferred(MethodName.StartWeiYanSaberTests);
         if (Array.Exists(OS.GetCmdlineUserArgs(), a => a == "--module-test"))
             CallDeferred(MethodName.StartCharacterModuleTests);
         if (!_fourHeroTestsStarted && Array.Exists(OS.GetCmdlineUserArgs(), a => a == "--four-hero-test"))
@@ -173,6 +175,7 @@ public partial class Arena : Node2D
     private void StartReferencePoseTests() => GetTree().Root.AddChild(new ReferencePoseTests());
     /// <summary>显式恢复魏延，验收独立长刀姿态、步态与技能，不改变默认单人练习设置。</summary>
     private void StartWeiYanPoseTests() => GetTree().Root.AddChild(new WeiYanPoseTests());
+    private void StartWeiYanSaberTests() => GetTree().Root.AddChild(new WeiYanSaberMotionTests());
     private void StartCharacterModuleTests() => GetTree().Root.AddChild(new CharacterModuleTests());
     private void StartFourHeroTests() => GetTree().Root.AddChild(new FourHeroTests());
 

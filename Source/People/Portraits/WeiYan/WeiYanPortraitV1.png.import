@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://buifk4yd5vo0l"
-path="res://.godot/imported/LvBuReferenceV3.png-45b5390dc231b8cbe315550391dae07a.ctex"
+uid="uid://cr5rm1aypdtt6"
+path="res://.godot/imported/WeiYanPortraitV1.png-74f4070b41360ab2dbbe79d385f9b991.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Source/People/LvBu/LvBuReferenceV3.png"
-dest_files=["res://.godot/imported/LvBuReferenceV3.png-45b5390dc231b8cbe315550391dae07a.ctex"]
+source_file="res://Source/People/Portraits/WeiYan/WeiYanPortraitV1.png"
+dest_files=["res://.godot/imported/WeiYanPortraitV1.png-74f4070b41360ab2dbbe79d385f9b991.ctex"]
 
 [params]
 

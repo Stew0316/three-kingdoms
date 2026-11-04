@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="CharacterPresentationConfig" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://Scripts/Config/Characters/CharacterPresentationConfig.cs" id="script"]
+[ext_resource type="Resource" path="res://Resources/Config/Characters/lubu/Down/LvBuDownModelV1.tres" id="model"]
+[ext_resource type="Resource" path="res://Resources/Config/Characters/lubu/Down/LvBuDownAnimationV1.tres" id="animation"]
+
+[resource]
+script = ExtResource("script")
+Model = ExtResource("model")
+Animation = ExtResource("animation")
+AuraColor = Color(1, 0.57, 0.16, 1)
+ParticleColor = Color(1, 0.77, 0.3, 1)
+OrbitParticles = false
+Afterimages = false
+EmpowerColor = Color(1, 0.76, 0.04, 1)
+EmpowerHumanAura = true
+EmpowerWeaponGlow = false
+EmpowerBlueTrail = false

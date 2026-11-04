@@ -12,6 +12,8 @@ public partial class CharacterArtworkAttachmentConfig : Resource
     [Export] public Rect2 ExcludeRegion { get; set; } // 原图坐标中的邻件排除区；留空时不追加裁剪。
     [Export] public Rect2 DisplayRect { get; set; } // 相对挂点的骨架坐标范围。
     [Export] public float RotationDegrees { get; set; } // 附属层相对骨骼的静态倾角；配置位置时须保持原图根部对齐挂点。
+    [Export] public int RotationReferenceBone { get; set; } = -1; // 可选旋转参考骨；肩甲可参考胸骨，肘部软组织可参考上臂，位置仍固定于BoneIndex。
+    [Export(PropertyHint.Range, "0,1,0.05")] public float RotationFollowWeight { get; set; } = 1; // 在参考骨与挂点骨之间混合旋转；1保持旧绑定，肩甲小幅随臂，不随小臂整体翻转。
     [Export] public float ClothAmplitude { get; set; } // 0为刚性附件，其余为自由端位移幅度。
     [Export] public Vector2 ClothRoot { get; set; } // 相对Region的原图像素挂点，根部不变形。
     [Export] public float ClothRate { get; set; } = 1;

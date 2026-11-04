@@ -5,7 +5,7 @@ using System.Collections.Generic;
 public partial class CharacterRig
 {
     private Vector2 _weaponTipOffset; // 刃尖为零时的原图原点；姿态只改变握点到刃尖的距离。
-    private readonly List<(Sprite2D Sprite, int Bone, Transform2D Offset)> _artworkAttachments = new();
+    private readonly List<(Sprite2D Sprite, CharacterArtworkAttachmentConfig Config, Transform2D Offset)> _artworkAttachments = new();
     private readonly List<Node2D> _weaponLayerRestOrder = new();
     private bool _weaponBehindHead;
 
@@ -95,13 +95,24 @@ public partial class CharacterRig
                 _drawOrderedParts.Insert(_drawOrderedParts.IndexOf(next), sprite);
             }
             else _drawOrderedParts.Add(sprite);
-            _artworkAttachments.Add((sprite, config.BoneIndex, sprite.Transform));
+            _artworkAttachments.Add((sprite, config, sprite.Transform));
         }
     }
 
     private void SyncArtworkAttachments(Transform2D inverse)
     {
-        foreach (var (sprite, bone, offset) in _artworkAttachments)
-            sprite.Transform = inverse * _bones[bone].GlobalTransform * offset;
+        foreach (var (sprite, config, offset) in _artworkAttachments)
+        {
+            Transform2D binding = inverse * _bones[config.BoneIndex].GlobalTransform;
+            if (config.RotationReferenceBone >= 0 && config.RotationReferenceBone < _bones.Length
+                && config.RotationFollowWeight < 1)
+            {
+                var reference = inverse * _bones[config.RotationReferenceBone].GlobalTransform;
+                float rotation = Mathf.LerpAngle(reference.Rotation, binding.Rotation, Mathf.Clamp(config.RotationFollowWeight, 0, 1));
+                // 锚点仍跟随真实关节；仅分离外层护甲和内层肢体的旋转幅度，防止甲片成为摆动的手臂本体。
+                binding = new Transform2D(rotation, binding.Scale, binding.Skew, binding.Origin);
+            }
+            sprite.Transform = binding * offset;
+        }
     }
 }

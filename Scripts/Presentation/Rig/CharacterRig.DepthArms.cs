@@ -35,7 +35,8 @@ public partial class CharacterRig
             Vector3 delta = target - start;
             float distance = Mathf.Clamp(delta.Length(), .1f, first + second - .001f);
             Vector3 axis = delta.Normalized(), end = start + axis * distance;
-            Vector3 pole = new(side == 0 ? -.1f : .1f, 1, .15f); // 肘部自然下垂，不能把正背面双臂平摊成翼状。
+            Vector3 pole = side == 0 ? model.FarElbowPole : model.NearElbowPole;
+            // 屈肘方向由本方向模型校准，正面垂臂与背面抬手不能共用硬编码的肘部朝向。
             Vector3 bend = (pole - axis * pole.Dot(axis)).Normalized();
             float along = (first * first - second * second + distance * distance) / (2 * distance);
             Vector3 middle = start + axis * along + bend * Mathf.Sqrt(Mathf.Max(0, first * first - along * along));

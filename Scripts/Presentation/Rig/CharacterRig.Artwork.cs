@@ -153,6 +153,16 @@ public partial class CharacterRig
                 material.SetShaderParameter("exclude_region", new Vector4(exclusion.Position.X, exclusion.Position.Y, exclusion.Size.X, exclusion.Size.Y));
                 sprite.Material = material;
             }
+            var exclusions = Actor.Presentation.Model.AtlasExclusions;
+            if (tiles[b] < exclusions.Count && exclusions[tiles[b]].HasArea())
+            {
+                // 源图相邻零件可能进入同一矩形采样框；每个部件独立遮罩，不污染共享材质或改写原图。
+                var material = sprite.Material is ShaderMaterial current && current != _cartoonMaterial
+                    ? current : BuildCartoonMaterial(Actor.Presentation.Model);
+                Rect2 exclusion = exclusions[tiles[b]];
+                material.SetShaderParameter("exclude_region", new Vector4(exclusion.Position.X, exclusion.Position.Y, exclusion.Size.X, exclusion.Size.Y));
+                sprite.Material = material;
+            }
             sprite.Name=_bones[b].Name+"图层";
             _partOffsets[b]=sprite.Transform;
             _partByBone[b]=sprite;
@@ -188,6 +198,12 @@ public partial class CharacterRig
         sprite.Rotation = rotation;
         sprite.Scale = Vector2.One * scale;
         sprite.Position = -( (palm ? end : start) - region.Position).Rotated(rotation) * scale;
+        if (!palm)
+        {
+            float width = bone is 3 or 6 ? model.ArmArtworkWidthScale.X : model.ArmArtworkWidthScale.Y;
+            // 原图轴线已对齐本地Y轴，横向校准只调整肢体体积，肩肘腕锚点仍位于X=0。
+            sprite.Transform = new Transform2D(0, new Vector2(Mathf.Max(.1f, width), 1), 0, Vector2.Zero) * sprite.Transform;
+        }
     }
 
     /// <summary>将骨链的最终变换同步到平级绘制层，骨骼父子关系不再决定部件遮挡顺序。</summary>

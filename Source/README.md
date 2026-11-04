@@ -37,6 +37,8 @@
 
 2026-10-31 吕布背面独立组件：正式采样 `People/LvBu/LvBuBackPartsV2.png`、`LvBuBackLegsWeaponV2.png`。头发沿用确认的背面完整站姿V2；双翎重新采样主拆件中的拱形翎片，先高出头顶再向左右弯下，待机时各自随风摆动。`LvBuBackPlumesV3.png` 作为下垂轮廓的历史版本保留。最新轮廓见[拱形双翎V4](../Demand/美术/LvBuBackArchedPlumesV4.md)，完整预览与原图提示词见[背面制作](../Demand/美术/LvBuBackRigV1.md)。
 
+2026-11-01～02 吕布向下完整站姿 `People/Portraits/LvBu/LvBuDownFacingV1.png` 已获用户确认，继续采用二维像素彩绘。透明主拆件 `People/LvBu/LvBuDownPartsV1.png` 与双腿兵器页 `LvBuDownLegsWeaponV1.png` 已用于独立向下组件；完成八种动作状态，按最新参考重新校准双手位置、脚距和起收势。V3补画内袖、护臂和肘部，并将肩甲旋转与手臂分开；通过800帧实际渲染检查，旧图保留。见[站姿](../Demand/美术/LvBuDownFacingV1.md)、[拆件](../Demand/美术/LvBuDownPartsV1.md)与[动作制作](../Demand/美术/LvBuDownArmStructureV3.md)。
+
 ## 槐安城图集
 
 当前使用 `City/HuaiAn/huai-an-buildings-qingming-v2.png`，1536×1024 透明 RGBA；v1 保留。三列两行依次为驿站、军营、铁匠、民居、马厩、国槐。该图按 2026-10-13 的参考方向制作；2026-10-17 改为三国时期整体依据后，本轮仅修订规范，没有重绘图集。

@@ -10,6 +10,8 @@
 
 2026-10-31：吕布背面使用 `LvBu/LvBuBackPartsV2.png`、`LvBu/LvBuBackLegsWeaponV2.png`，V1保留。按用户最新说明，双翎改为采样主拆件V2中的拱形翎片，先高出头顶再向左右弯下，保持根部留距和独立风动；下垂的 `LvBuBackPlumesV3.png` 留作历史版本，当前不采样。参数与参考见[拱形双翎装配V4](../../Demand/美术/LvBuBackArchedPlumesV4.md)。独立背面组件、站姿装配和连续动作见 [背面制作记录](../../Demand/美术/LvBuBackRigV1.md)。
 
+2026-11-01～02：用户确认向下完整站姿后，生成 `LvBu/LvBuDownPartsV1.png` 与 `LvBu/LvBuDownLegsWeaponV1.png`，共31个部件（含备用件）。已装配独立向下骨骼组件，完成站走、挥戟、横扫、突刺、闪避、反击与受击；最新反馈已用于重新校准两只手，脚距增加约27%，同步动作起收势。部件顺序和提示词见 [向下拆件记录](../../Demand/美术/LvBuDownPartsV1.md)，最新V3新增 `LvBu/LvBuDownArmSleevesV3.png` 六块内袖与护臂补件，修正空心臂甲观感、肘部体积和肩甲跟随；实际预览与800帧验证见 [向下手臂结构](../../Demand/美术/LvBuDownArmStructureV3.md)。
+
 ## S1 武将 PNG 原型（历史）
 
 2026-10-09：身体仍使用 `LvBu/lubu-parts-v3.png`；长戟与后弯双翎改用 `LvBu/lubu-reference-accessories-v4.png`（1774×887 RGBA，实际传入三姿态原图生成）。站立双手低持、行走腰侧拖戟、攻击后收再绕身劈扫，由六份姿态资源驱动同一骨架。小腿和靴掌在运行时分区采样。完整记录见 [长戟握持与攻击重做](../../Demand/Prompt/2026.10.09-吕布长戟握持与攻击重做.md)，下方为历史状态。

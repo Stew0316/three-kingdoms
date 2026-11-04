@@ -15,11 +15,15 @@ public partial class CharacterModelConfig : Resource
     [Export] public Rect2 HeadRegion { get; set; } // 独立头图的有效采样区域；空矩形时自动取透明包围盒，显式设置可排除近透明噪点。
     [Export] public Godot.Collections.Array<Rect2> AtlasRegions { get; set; } = new();
     [Export] public Godot.Collections.Array<Texture2D> AtlasTextureOverrides { get; set; } = new(); // 按16格图集序号覆盖来源；空项沿用PartsAtlas，允许原图分散在多张拆件页。
+    [Export] public Godot.Collections.Array<Rect2> AtlasExclusions { get; set; } = new(); // 按图集序号排除采样框内的邻件，使用原图像素坐标；空矩形保留整块采样。
     [Export] public Vector2[] WeaponAxisAnchors { get; set; } = System.Array.Empty<Vector2>(); // 原图中的柄尾、刃尖轴线；两点启用等比旋转绑定，支持横放兵器，长度取AccessoryWeaponSize.Y。
     [Export] public Rect2 WeaponAtlasExclusion { get; set; } // 原图中需排除的说明标签等矩形，不裁改原图。
     [Export] public bool RaisedWeaponBehindHead { get; set; } // 向身后收戟时，杆身及握持前臂位于头后，避免源图横穿脸部；旧模型默认关闭。
     [Export(PropertyHint.Enum, "侧面:0,正面:1,背面:-1")] public int DepthFacing { get; set; } // 正背面沿纵深屈膝，0保留侧面平面骨链；只改变美术投影。
     [Export(PropertyHint.Range, "0.2,1,0.05")] public float GroundDepthProjection { get; set; } = .65f; // 纵深腿段投到画面的比例，行走周期同步考虑该比例。
+    [Export] public Vector3 FarElbowPole { get; set; } = new(-.1f, 1, .15f); // 纵深求解的远臂屈肘参考方向，X为左右、Y向下、Z向画面近处；默认保持既有姿态。
+    [Export] public Vector3 NearElbowPole { get; set; } = new(.1f, 1, .15f); // 近臂独立校准；正面垂臂可让肘略朝身后，避免上臂内收、小臂横挡腰部。
+    [Export] public Vector2 ArmArtworkWidthScale { get; set; } = Vector2.One; // 上臂、小臂沿骨轴法线的显示宽度校准，不改变源图关节、固定骨长与握点；手掌单独按PalmInset绑定。
     [Export] public Vector2[] ShinAtlasAnchors { get; set; } = System.Array.Empty<Vector2>(); // 远、近小腿的膝踝原图轴线；共4点，配合独立靴图避免重复靴掌。
     [Export] public Godot.Collections.Array<Rect2> FootAtlasRegions { get; set; } = new(); // 独立远、近靴采样区；空数组沿用从小腿下段分割的旧规则。
     [Export] public Vector2[] FootAnkleAnchors { get; set; } = System.Array.Empty<Vector2>(); // 两只独立靴的原图踝点，靴底至踝点距离映射为FootHeight。
